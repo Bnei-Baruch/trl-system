@@ -1,7 +1,5 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import classNames from 'classnames';
-
 import {
     Menu,
     Select,
@@ -11,7 +9,7 @@ import {
     Popup,
     Segment,
     Message,
-    Table, Input
+    Table,
 } from "semantic-ui-react";
 import {
     geoInfo,
@@ -23,15 +21,11 @@ import {
     testMic
 } from "../../shared/tools";
 import './VirtualClient.scss'
-//import './VideoConteiner.scss'
-import {audios_options, lnglist, trllang} from "../../shared/consts";
+import {audios_options, lnglist} from "../../shared/consts";
 import VirtualChat from "./VirtualChat";
 import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol, sendProtocolMessage} from "../../shared/protocol";
 import Stream from "../Stream/App";
-//import Slider from "react-rangeslider";
-//import VirtualStreaming from "../../components/VirtualStreaming";
-//import {initGxyProtocol, sendProtocolMessage} from "../../shared/protocol";
 
 class TrlApp extends Component {
 

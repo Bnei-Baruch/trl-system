@@ -3,8 +3,8 @@ import {Button} from "semantic-ui-react";
 import 'semantic-ui-css/semantic.min.css';
 import LoginPage from './components/LoginPage';
 import {client, getUser} from "./components/UserManager";
-import TrlApp from "./apps/Translation/App";
-// import TrlAdmin from "./apps/Admin/App";
+// import TrlApp from "./apps/Translation/App";
+import TrlAdmin from "./apps/Admin/App";
 
 class GroupsApp extends Component {
 
@@ -35,17 +35,17 @@ class GroupsApp extends Component {
         const {user, roles} = this.state;
 
         let opt = roles.map((role,i) => {
-            if(role === "bb_user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://galaxy.kli.one/stream","_self")} >Chat</Button>);
-            if(role === "trl_user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://galaxy.kli.one/group","_self")} >Translate</Button>);
-            if(role === "trl_admin") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://galaxy.kli.one/shidur","_self")} >Admin</Button>);
+            if(role === "bb_user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://trl.kli.one/chat","_self")} >Chat</Button>);
+            if(role === "user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://trl.kli.one/client","_self")} >Translate</Button>);
+            if(role === "admin") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://trl.kli.one/admin","_self")} >Admin</Button>);
             return false
         });
 
         return (
             <Fragment>
                 {/*<LoginPage user={user} enter={opt} />*/}
-                <TrlApp/>
-                {/*<TrlAdmin/>*/}
+                {/*<TrlApp/>*/}
+                <TrlAdmin/>
             </Fragment>
 
         );

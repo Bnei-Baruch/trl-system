@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {Message, Button, Input, Tab, Label, Menu, Icon} from "semantic-ui-react";
+import {Message, Button, Input, Tab, Label, Menu} from "semantic-ui-react";
 import {initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import {SHIDUR_ID} from "../../shared/consts";
 
@@ -198,8 +198,9 @@ class VirtualChat extends Component {
             let {user,time,text} = msg;
             return (
                 <div key={i} ref='end'><p>
-                    <i style={{color: 'grey'}}>[{time}]</i> :
-                    <a style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.display}</a> : {text}</p></div>
+                    <i style={{color: 'grey'}}>[{time}]</i> -
+                    <a style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</a> : {text}</p>
+                </div>
             );
         });
 
@@ -207,9 +208,9 @@ class VirtualChat extends Component {
             let {user,time,text} = msg;
             return (
                 <div key={i} ref='end'><p>
-                    <i style={{color: 'grey'}}>{time}</i> -
-                    <a style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.role === "admin" ? user.username : user.display}</a>:
-                </p>{text}</div>
+                    <i style={{color: 'grey'}}>[{time}]</i> -
+                    <a style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</a> : {text}</p>
+                </div>
             );
         });
 

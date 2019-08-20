@@ -1,6 +1,20 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {Segment, Menu, Button, Input, Table, Grid, Message, Transition, Select, Icon, Popup, List} from "semantic-ui-react";
+import {
+    Segment,
+    Menu,
+    Button,
+    Input,
+    Table,
+    Grid,
+    Message,
+    Transition,
+    Select,
+    Icon,
+    Popup,
+    List,
+    Tab, Label
+} from "semantic-ui-react";
 import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, getHiddenProp, notifyMe} from "../../shared/tools";
 import './ShidurAdmin.css';
 //import './VideoConteiner.scss'
@@ -42,8 +56,8 @@ class TrlAdmin extends Component {
         user: {
             email: null,
             id: Janus.randomString(10),
-            role: "user",
-            name: "Amnon Israely - "+Janus.randomString(4),
+            role: "admin",
+            name: "Admin - "+Janus.randomString(4),
             username: null,
         },
         description: "",
@@ -53,6 +67,7 @@ class TrlAdmin extends Component {
         switch_mode: false,
         users: {},
         root: false,
+        support_chat: {}
     };
 
     componentDidMount() {
@@ -662,7 +677,7 @@ class TrlAdmin extends Component {
                 messages.push(message);
                 this.setState({messages});
                 this.scrollToBottom();
-            } else if(room === 1234){
+            } else {
                 // Public message
                 let {messages} = this.state;
                 let message = JSON.parse(msg);
@@ -671,7 +686,7 @@ class TrlAdmin extends Component {
                 messages.push(message);
                 this.setState({messages});
                 this.scrollToBottom();
-                notifyMe(message.user.username, message.text,(getHiddenProp !== null));
+                //notifyMe(message.user.username, message.text,(getHiddenProp !== null));
             }
         } else if (what === "join") {
             // Somebody joined
@@ -703,6 +718,15 @@ class TrlAdmin extends Component {
                 users[data.user.id] = {question: data.status};
                 this.setState({users});
             }
+            let {support_chat} = this.state;
+            if(!support_chat[data.user.name]) {
+                support_chat[data.user.name] = {};
+                support_chat[data.user.name].msgs = [];
+            }
+            support_chat[data.user.name].count = 0;
+            data.text = "test";
+            support_chat[data.user.name].msgs.push(data);
+            this.setState({support_chat})
         } else if(data.type === "sound-test") {
             if(users[data.id]) {
                 users[data.id].sound_test = true;
@@ -1015,12 +1039,7 @@ class TrlAdmin extends Component {
 
   render() {
 
-      const { bitrate,rooms,current_room,switch_mode,user,feeds,feed_id,i,messages,description,room_id,room_name,root,forwarders,feed_rtcp,feed_talk,msg_type,users} = this.state;
-      const width = "134";
-      const height = "100";
-      const autoPlay = true;
-      const controls = false;
-      const muted = true;
+      const { bitrate,rooms,current_room,user,feeds,feed_id,i,messages,description,room_id,room_name,root,forwarders,feed_rtcp,feed_talk,msg_type,users} = this.state;
 
       const f = (<Icon name='volume up' />);
       const q = (<Icon color='red' name='help' />);
@@ -1075,58 +1094,36 @@ class TrlAdmin extends Component {
           let {user,time,text,to} = msg;
           return (
               <div key={i}><p>
-                  <i style={{color: 'grey'}}>{time}</i> -
-                  <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.username}</b>
-                  {to ? <b style={{color: 'blue'}}>-> {to} :</b> : ""}
-              </p>{text}</div>
+                  <i style={{color: 'grey'}}>[{time}]</i> -
+                  <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
+              </div>
           );
       });
 
-      let view = current_room !== 1234 ? "feeds" : "groups";
-
-      let videos = this.state[view].map((feed) => {
-          if(feed) {
-              let id = feed.id;
-              let talk = feed.talk;
-              let selected = id === feed_id && current_room !== 1234;
-              return (<div className="video"
-                           key={"v" + id}
-                           ref={"video" + id}
-                           id={"video" + id}>
-                  <div className={classNames('video__overlay', {'talk' : talk}, {'selected' : selected})} />
-                  <video key={id}
-                         ref={"remoteVideo" + id}
-                         id={"remoteVideo" + id}
-                         width={width}
-                         height={height}
-                         autoPlay={autoPlay}
-                         controls={controls}
-                         muted={muted}
-                         playsInline={true}/>
-                  <audio
-                      key={"a" + id}
-                      ref={"remoteAudio" + id}
-                      id={"remoteAudio" + id}
-                      autoPlay={autoPlay}
-                      controls={controls}
-                      playsInline={true}/>
-              </div>);
-          }
-          return true;
+      let panes = Object.keys(this.state.support_chat).map((user, i) => {
+          let data = this.state.support_chat[user].msgs;
+          let l = (<Label color='red'>1</Label>);
+          return (
+              {
+                  menuItem: (<Menu.Item key={user} >Translators {user.count > 0 ? l : ""}</Menu.Item>),
+                  render: () => <Tab.Pane>
+                      <Message className='messages_list'>
+                          <div className="messages-wrapper" >
+                              {data.map((msg,i) => {
+                                  let {user,time,text,to} = msg;
+                                  return (
+                                      <div key={i}><p>
+                                          <i style={{color: 'grey'}}>[{time}]</i> -
+                                          <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
+                                      </div>
+                                  );
+                              })}
+                          </div>
+                      </Message>
+                  </Tab.Pane>,
+              }
+          );
       });
-
-      let switchvideo = (
-          <div className="video">
-              <div className={classNames('video__overlay', {'talk' : feed_talk})} />
-              <video ref = {"switchVideo"}
-                     id = "switchVideo"
-                     width = {width}
-                     height = {height}
-                     autoPlay = {autoPlay}
-                     controls
-                     muted = {false}
-                     playsInline = {true} />
-          </div>);
 
       let login = (<LoginPage user={user} />);
 
@@ -1227,6 +1224,11 @@ class TrlAdmin extends Component {
                               {list_msgs}
                               <div ref='end' />
                           </Message>
+                          <Input className='room_input' fluid type='text' placeholder='Type your message' action value={this.state.input_value}
+                                 onChange={(v,{value}) => this.setState({input_value: value})}>
+                              <input />
+                              <Button positive onClick={this.sendDataMessage}>Send</Button>
+                          </Input>
                       </Grid.Column>
                       <Grid.Column width={3}>
 
@@ -1244,10 +1246,7 @@ class TrlAdmin extends Component {
 
               <Segment className='chat_segment'>
 
-                  <Message className='messages_list'>
-                      {list_msgs}
-                      <div ref='end' />
-                  </Message>
+                  <Tab panes={panes} onTabChange={this.tabChange} />
 
                   <Input fluid type='text' placeholder='Type your message' action value={this.state.input_value}
                          onChange={(v,{value}) => this.setState({input_value: value})}>
