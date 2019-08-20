@@ -137,7 +137,7 @@ class VirtualChat extends Component {
         if(this.state.room_chat)
             this.setState({admin_count: this.state.admin_count + 1});
         if(this.props.visible) {
-            //this.scrollToBottom();
+            this.scrollToBottom();
         } else {
             notifyMe("Shidur",message.text,true);
             this.setState({room_chat: false});
@@ -157,7 +157,9 @@ class VirtualChat extends Component {
         let msg = { type: "question", status: !question, room, user, text, time: getDateString()};
         sendProtocolMessage(protocol, user, msg );
         support_msgs.push(msg);
-        this.setState({support_msgs,input_value: ""});
+        this.setState({support_msgs,input_value: ""}, () => {
+            this.scrollToBottom();
+        });
     };
 
     sendChatMessage = () => {
@@ -191,7 +193,8 @@ class VirtualChat extends Component {
     };
 
     scrollToBottom = () => {
-        this.refs.end.scrollIntoView({ behavior: 'smooth' })
+        if(this.refs.end)
+            this.refs.end.scrollIntoView({ behavior: 'smooth' })
     };
 
     tooggleChat = (room_chat) => {

@@ -618,17 +618,17 @@ class TrlApp extends Component {
 
     onProtocolData = (data) => {
         //TODO: Need to add transaction handle (filter and acknowledge)
-        let {room,feeds,users,user} = this.state;
-        if (data.type === "question" && data.room === room && user.id !== data.user.id) {
-            let rfid = users[data.user.id].rfid;
-            for (let i = 0; i < feeds.length; i++) {
-                if (feeds[i] && feeds[i].id === rfid) {
-                    feeds[i].question = data.status;
-                    break
-                }
-            }
-            this.setState({feeds});
-        }
+        // let {room,feeds,users,user} = this.state;
+        // if (data.type === "question" && data.room === room && user.id !== data.user.id) {
+        //     let rfid = users[data.user.id].rfid;
+        //     for (let i = 0; i < feeds.length; i++) {
+        //         if (feeds[i] && feeds[i].id === rfid) {
+        //             feeds[i].question = data.status;
+        //             break
+        //         }
+        //     }
+        //     this.setState({feeds});
+        // }
     };
 
     sendDataMessage = (key,value) => {
