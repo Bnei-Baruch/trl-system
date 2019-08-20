@@ -50,7 +50,7 @@ class TrlAdmin extends Component {
         myid: null,
         mypvtid: null,
         mystream: null,
-        msg_type: "private",
+        msg_type: "support",
         audio: null,
         muted: true,
         user: {
@@ -67,7 +67,8 @@ class TrlAdmin extends Component {
         switch_mode: false,
         users: {},
         root: false,
-        support_chat: {}
+        support_chat: {},
+        active_tab: null,
     };
 
     componentDidMount() {
@@ -718,14 +719,23 @@ class TrlAdmin extends Component {
                 users[data.user.id] = {question: data.status};
                 this.setState({users});
             }
-            let {support_chat} = this.state;
-            if(!support_chat[data.user.name]) {
-                support_chat[data.user.name] = {};
-                support_chat[data.user.name].msgs = [];
+            let {support_chat,active_tab} = this.state;
+            if(!support_chat[data.user.id]) {
+                support_chat[data.user.id] = {};
+                support_chat[data.user.id].msgs = [];
+                support_chat[data.user.id].count = 0;
+                support_chat[data.user.id].name = data.user.name;
             }
-            support_chat[data.user.name].count = 0;
+            if(!active_tab) {
+                this.setState({active_tab:{index: 0, id: data.user.id}});
+                support_chat[data.user.id].count = 0;
+            } else if(active_tab.id !== data.user.id) {
+                support_chat[data.user.id].count = support_chat[data.user.id].count + 1;
+            } else {
+                support_chat[data.user.id].count = 0;
+            }
             data.text = "test";
-            support_chat[data.user.name].msgs.push(data);
+            support_chat[data.user.id].msgs.push(data);
             this.setState({support_chat})
         } else if(data.type === "sound-test") {
             if(users[data.id]) {
@@ -1036,6 +1046,15 @@ class TrlAdmin extends Component {
         }
     };
 
+    tabChange = (e, data) => {
+        let {active_tab,support_chat} = this.state;
+        active_tab.index = data.activeIndex;
+        active_tab.id = data.panes[data.activeIndex].menuItem.key;
+        support_chat[active_tab.id].count = 0;
+        this.setState({support_chat,active_tab});
+        //this.refs.end.scrollIntoView({ behavior: 'smooth' });
+    };
+
 
   render() {
 
@@ -1054,7 +1073,7 @@ class TrlAdmin extends Component {
 
       const send_options = [
           { key: 'all', text: 'All', value: 'all' },
-          { key: 'private', text: 'Private', value: 'private' },
+          { key: 'support', text: 'Support', value: 'support' },
       ];
 
       let rooms_list = rooms.map((data,i) => {
@@ -1100,16 +1119,15 @@ class TrlAdmin extends Component {
           );
       });
 
-      let panes = Object.keys(this.state.support_chat).map((user, i) => {
-          let data = this.state.support_chat[user].msgs;
-          let l = (<Label color='red'>1</Label>);
+      let panes = Object.keys(this.state.support_chat).map((id, i) => {
+          let {msgs,name,count} = this.state.support_chat[id];
+          let l = (<Label color='red'>{count}</Label>);
           return (
-              {
-                  menuItem: (<Menu.Item key={user} >Translators {user.count > 0 ? l : ""}</Menu.Item>),
+              {menuItem: (<Menu.Item key={id} >{name} {count > 0 ? l : ""}</Menu.Item>),
                   render: () => <Tab.Pane>
                       <Message className='messages_list'>
                           <div className="messages-wrapper" >
-                              {data.map((msg,i) => {
+                              {msgs.map((msg,i) => {
                                   let {user,time,text,to} = msg;
                                   return (
                                       <div key={i}><p>
@@ -1246,6 +1264,8 @@ class TrlAdmin extends Component {
 
               <Segment className='chat_segment'>
 
+                  {this.state.active_tab ?
+                      <div>
                   <Tab panes={panes} onTabChange={this.tabChange} />
 
                   <Input fluid type='text' placeholder='Type your message' action value={this.state.input_value}
@@ -1257,9 +1277,10 @@ class TrlAdmin extends Component {
                               onChange={(e,{value}) => this.setState({msg_type: value})} />
                       <Button positive negative={msg_type === "all"} onClick={this.sendMessage}>Send</Button>
                   </Input>
+                    </div>
+                  : ""}
 
               </Segment>
-
           </Segment>
       );
 
