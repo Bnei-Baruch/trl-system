@@ -333,7 +333,7 @@ class TrlAdmin extends Component {
             } else if(event === "talking") {
                 let {feeds} = this.state;
                 let id = msg["id"];
-                Janus.debug("User: "+id+" - start talking");
+                Janus.log("User: "+id+" - start talking");
                 for(let i=0; i<feeds.length; i++) {
                     if(feeds[i] && feeds[i].id === id) {
                         feeds[i].talk = true;
@@ -343,7 +343,7 @@ class TrlAdmin extends Component {
             } else if(event === "stopped-talking") {
                 let {feeds} = this.state;
                 let id = msg["id"];
-                Janus.debug("User: "+id+" - stop talking");
+                Janus.log("User: "+id+" - stop talking");
                 for(let i=0; i<feeds.length; i++) {
                     if(feeds[i] && feeds[i].id === id) {
                         feeds[i].talk = false;
@@ -1112,9 +1112,10 @@ class TrlAdmin extends Component {
               let fw = forwarders.find(f => f.publisher_id === feed.id);
               let qt = users[feed.display.id].question;
               let st = users[feed.display.id].sound_test;
+              let talk = feed.talk;
               //let st = feed.display.self_test;
               return (
-                  <Table.Row active={feed.id === this.state.feed_id} key={i} onClick={() => this.getUserInfo(feed)} >
+                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={talk} onClick={() => this.getUserInfo(feed)} >
                       <Table.Cell width={10}>{qt ? q : ""}{feed.display.display}</Table.Cell>
                       <Table.Cell width={1}>{fw ? f : ""}</Table.Cell>
                       <Table.Cell positive={st} width={1}>{st ? v : ""}</Table.Cell>
