@@ -134,8 +134,10 @@ class VirtualChat extends Component {
         message.time = getDateString();
         support_msgs.push(message);
         this.setState({support_msgs, from: "Admin"});
+        if(this.state.room_chat)
+            this.setState({admin_count: this.state.admin_count + 1});
         if(this.props.visible) {
-            this.scrollToBottom();
+            //this.scrollToBottom();
         } else {
             notifyMe("Shidur",message.text,true);
             this.setState({room_chat: false});

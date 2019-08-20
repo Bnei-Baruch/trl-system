@@ -712,6 +712,8 @@ class TrlAdmin extends Component {
         let {users} = this.state;
 
         if(data.type === "question") {
+            if(data.user.role === "admin")
+                return;
             if(users[data.user.id]) {
                 users[data.user.id].question = data.status;
                 this.setState({users});
@@ -805,6 +807,18 @@ class TrlAdmin extends Component {
                 this.setState({messages, input_value: ""});
                 this.scrollToBottom();
             }
+        });
+    };
+
+    supportMessage = () => {
+        const {protocol,current_room,input_value,user,active_tab,support_chat} = this.state;
+        let msg = { type: "question", room: current_room, user, text: input_value, to: active_tab.id};
+        msg.time = getDateString();
+        support_chat[active_tab.id].msgs.push(msg);
+        sendProtocolMessage(protocol, user, msg );
+        Janus.log("-:: It's support message: "+msg);
+        this.setState({support_chat, input_value: "", msg_type: "support"}, () => {
+            this.scrollToBottom();
         });
     };
 
@@ -1275,7 +1289,7 @@ class TrlAdmin extends Component {
                               value={msg_type}
                               error={msg_type === "all"}
                               onChange={(e,{value}) => this.setState({msg_type: value})} />
-                      <Button positive negative={msg_type === "all"} onClick={this.sendMessage}>Send</Button>
+                      <Button positive negative={msg_type === "all"} onClick={this.supportMessage}>Send</Button>
                   </Input>
                     </div>
                   : ""}

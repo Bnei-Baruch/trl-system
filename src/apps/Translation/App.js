@@ -662,7 +662,7 @@ class TrlApp extends Component {
             }
         }, ondata => {
             Janus.log("-- :: It's protocol public message: ", ondata);
-            const {type,error_code,id,room} = ondata;
+            const {type,error_code,id,room,to} = ondata;
             if(type === "error" && error_code === 420) {
                 alert(ondata.error);
                 this.state.protocol.hangup();
@@ -676,6 +676,8 @@ class TrlApp extends Component {
                 this.chat.initChatRoom(user,selected_room);
                 this.stream.initJanus();
             } else if(type === "chat-broadcast" && room === selected_room) {
+                this.chat.showSupportMessage(ondata);
+            } else if(type === "question" && user.id === to) {
                 this.chat.showSupportMessage(ondata);
             } else if(type === "client-reconnect" && user.id === id) {
                 this.exitRoom(true);
