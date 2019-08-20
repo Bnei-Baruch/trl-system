@@ -44,7 +44,7 @@ class VirtualChat extends Component {
 
     onKeyPressed = (e) => {
         if(e.code === "Enter")
-            this.sendChatMessage();
+            this.sendMessage();
     };
 
     exitChatRoom = (room) => {

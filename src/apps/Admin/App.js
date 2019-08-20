@@ -50,7 +50,7 @@ class TrlAdmin extends Component {
         myid: null,
         mypvtid: null,
         mystream: null,
-        msg_type: "support",
+        msg_type: "room",
         audio: null,
         muted: true,
         user: {
@@ -100,7 +100,7 @@ class TrlAdmin extends Component {
 
     onKeyPressed = (e) => {
         if(e.code === "Enter")
-            this.sendPrivateMessage();
+            this.sendMessage();
     };
 
     initShidurAdmin = (user) => {
@@ -739,7 +739,7 @@ class TrlAdmin extends Component {
             }
             //data.text = "test";
             support_chat[data.user.id].msgs.push(data);
-            this.setState({support_chat})
+            this.setState({support_chat,msg_type: "support"})
         } else if(data.type === "sound-test") {
             if(users[data.id]) {
                 users[data.id].sound_test = true;
@@ -831,7 +831,7 @@ class TrlAdmin extends Component {
         msg.to = "ALL";
         Janus.log("-:: It's broadcast message: "+msg);
         messages.push(msg);
-        this.setState({messages, input_value: "", msg_type: "private"}, () => {
+        this.setState({messages, input_value: "", msg_type: "support"}, () => {
             this.scrollToBottom();
         });
     };
@@ -846,7 +846,13 @@ class TrlAdmin extends Component {
 
     sendMessage = () => {
         const {msg_type} = this.state;
-        msg_type === "private" ? this.sendPrivateMessage() : this.sendBroadcastMessage();
+        if(msg_type === "support") {
+            this.supportMessage();
+        } else if(msg_type === "room") {
+            this.sendDataMessage();
+        } else if(msg_type === "all") {
+            this.sendBroadcastMessage();
+        }
     };
 
     scrollToBottom = () => {
@@ -1100,6 +1106,7 @@ class TrlAdmin extends Component {
 
       const send_options = [
           { key: 'all', text: 'All', value: 'all' },
+          { key: 'room', text: 'Room', value: 'room' },
           { key: 'support', text: 'Support', value: 'support' },
       ];
 
@@ -1282,11 +1289,11 @@ class TrlAdmin extends Component {
                               {list_msgs}
                               <div ref='end' />
                           </Message>
-                          <Input className='room_input' fluid type='text' placeholder='Type your message' action value={this.state.input_value}
-                                 onChange={(v,{value}) => this.setState({input_value: value})}>
-                              <input />
-                              <Button positive onClick={this.sendDataMessage}>Send</Button>
-                          </Input>
+                          {/*<Input className='room_input' fluid type='text' placeholder='Type your message' action value={this.state.input_value}*/}
+                          {/*       onChange={(v,{value}) => this.setState({input_value: value})}>*/}
+                          {/*    <input />*/}
+                          {/*    <Button positive onClick={this.sendDataMessage}>Send</Button>*/}
+                          {/*</Input>*/}
                       </Grid.Column>
                       <Grid.Column width={3}>
 
@@ -1305,9 +1312,9 @@ class TrlAdmin extends Component {
               <Segment className='chat_segment'>
 
                   {this.state.active_tab ?
-                      <div>
-                  <Tab panes={panes} onTabChange={this.tabChange} />
 
+                  <Tab panes={panes} onTabChange={this.tabChange} />
+                      : ""}
                   <Input fluid type='text' placeholder='Type your message' action value={this.state.input_value}
                          onChange={(v,{value}) => this.setState({input_value: value})}>
                       <input />
@@ -1315,10 +1322,9 @@ class TrlAdmin extends Component {
                               value={msg_type}
                               error={msg_type === "all"}
                               onChange={(e,{value}) => this.setState({msg_type: value})} />
-                      <Button positive negative={msg_type === "all"} onClick={this.supportMessage}>Send</Button>
+                      <Button positive negative={msg_type === "all"} onClick={this.sendMessage}>Send</Button>
                   </Input>
-                    </div>
-                  : ""}
+
 
               </Segment>
           </Segment>
