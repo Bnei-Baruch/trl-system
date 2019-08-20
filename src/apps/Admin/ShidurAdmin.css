@@ -27,6 +27,10 @@
     flex-grow: 0!important;
 }
 
+.volume {
+    width: 500px;
+}
+
 .ingest_segment > .menu,
 .ingest_segment >.input {
     margin: .2rem .5rem !important;

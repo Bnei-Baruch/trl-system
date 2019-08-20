@@ -69,6 +69,7 @@ class TrlAdmin extends Component {
         root: false,
         support_chat: {},
         active_tab: null,
+        trl_muted: false,
     };
 
     componentDidMount() {
@@ -1069,10 +1070,22 @@ class TrlAdmin extends Component {
         //this.refs.end.scrollIntoView({ behavior: 'smooth' });
     };
 
+    muteTrl = () => {
+        const {trl_muted} = this.state;
+        this.setState({trl_muted: !trl_muted});
+    };
+
+    setTrlVolume = (value) => {
+        const {feeds} = this.state;
+        for(let i=0; i<feeds.length; i++) {
+            this.refs["remoteAudio" + feeds[i].id].volume = value;
+        }
+    };
+
 
   render() {
 
-      const { bitrate,rooms,current_room,user,feeds,feed_id,i,messages,description,room_id,room_name,root,forwarders,feed_rtcp,feed_talk,msg_type,users} = this.state;
+      const { bitrate,rooms,current_room,user,feeds,feed_id,i,messages,description,room_id,room_name,root,forwarders,feed_rtcp,trl_muted,msg_type,users} = this.state;
 
       const f = (<Icon name='volume up' />);
       const q = (<Icon color='red' name='help' />);
@@ -1113,12 +1126,21 @@ class TrlAdmin extends Component {
               let qt = users[feed.display.id].question;
               let st = users[feed.display.id].sound_test;
               let talk = feed.talk;
+              let id = feed.display.rfid;
               //let st = feed.display.self_test;
               return (
                   <Table.Row active={feed.id === this.state.feed_id} key={i} positive={talk} onClick={() => this.getUserInfo(feed)} >
                       <Table.Cell width={10}>{qt ? q : ""}{feed.display.display}</Table.Cell>
                       <Table.Cell width={1}>{fw ? f : ""}</Table.Cell>
                       <Table.Cell positive={st} width={1}>{st ? v : ""}</Table.Cell>
+                      <audio
+                          key={id}
+                          ref={"remoteAudio" + id}
+                          id={"remoteAudio" + id}
+                          autoPlay={true}
+                          controls={false}
+                          muted={trl_muted}
+                          playsinline={true}/>
                   </Table.Row>
               )
           }
@@ -1200,10 +1222,10 @@ class TrlAdmin extends Component {
           <Segment className="virtual_segment" color='blue' raised>
 
               <Segment textAlign='center' className="ingest_segment">
-                  <Button color='blue' icon='sound' onClick={() => this.sendRemoteCommand("sound-test")} />
+                  {/*<Button color='blue' icon='sound' onClick={() => this.sendRemoteCommand("sound-test")} />*/}
                   <Popup
                       trigger={<Button positive icon='info' onClick={this.getFeedInfo} />}
-                      position='bottom right'
+                      position='bottom left'
                       content={
                           <List as='ul'>
                               <List.Item as='li'>Audio
@@ -1220,6 +1242,9 @@ class TrlAdmin extends Component {
                       on='click'
                       hideOnScroll
                   />
+                  <Menu secondary className='volume' >
+                      <VolumeSlider volume={this.setTrlVolume} mute={this.muteTrl} />
+                  </Menu>
                   {root ? root_content : ""}
               </Segment>
 
