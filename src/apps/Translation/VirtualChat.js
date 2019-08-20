@@ -3,6 +3,7 @@ import { Janus } from "../../lib/janus";
 import {Message, Button, Input, Tab, Label, Menu} from "semantic-ui-react";
 import {initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import {SHIDUR_ID} from "../../shared/consts";
+import {sendProtocolMessage} from "../../shared/protocol";
 
 
 class VirtualChat extends Component {
@@ -142,6 +143,21 @@ class VirtualChat extends Component {
         }
     };
 
+    sendMessage = () => {
+        this.state.room_chat ? this.sendChatMessage() : this.supportMessage();
+    };
+
+    supportMessage = () => {
+        //TODO: only when shidur user is online will be avelable send question event, so we need to add check
+        const { protocol, user, room, question} = this.props;
+        let {support_msgs,input_value} = this.state;
+        let text = input_value || " :: Support request :: ";
+        let msg = { type: "question", status: !question, room, user, text, time: getDateString()};
+        sendProtocolMessage(protocol, user, msg );
+        support_msgs.push(msg);
+        this.setState({support_msgs,input_value: ""});
+    };
+
     sendChatMessage = () => {
         let {input_value, user, from, room_chat, support_msgs} = this.state;
         let msg = {user, text: input_value};
@@ -243,7 +259,7 @@ class VirtualChat extends Component {
                 <Input attached fluid type='text' placeholder='Type your message' action value={this.state.input_value}
                        onChange={(v,{value}) => this.setState({input_value: value})}>
                     <input />
-                    <Button positive onClick={this.sendChatMessage}>Send</Button>
+                    <Button positive onClick={this.sendMessage}>Send</Button>
                 </Input>
             </div>
         );

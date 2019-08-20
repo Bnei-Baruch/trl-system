@@ -800,7 +800,7 @@ class TrlApp extends Component {
         //TODO: only when shidur user is online will be avelable send question event, so we need to add check
         const { protocol, user, room, question} = this.state;
         localStorage.setItem("question", !question);
-        let msg = { type: "question", status: !question, room, user};
+        let msg = { type: "question", status: !question, room, user, text: " :: Support request :: "};
         sendProtocolMessage(protocol, user, msg );
         this.setState({question: !question});
     };
@@ -1024,13 +1024,14 @@ class TrlApp extends Component {
                             </Table.Row>
                             <Table.Row>
                                 <Table.Cell width={7}>
-                                    <VirtualChat
+                                    <VirtualChat {...this.state}
                                         ref={chat => {this.chat = chat;}}
                                         visible={this.state.visible}
                                         janus={this.state.janus}
                                         room={room}
                                         user={this.state.user}
-                                        onNewMsg={this.onNewMsg} />
+                                        onNewMsg={this.onNewMsg}
+                                        supportMessage={this.supportMessage} />
                                 </Table.Cell>
                             </Table.Row>
                         </Table.Row>

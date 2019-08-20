@@ -734,7 +734,7 @@ class TrlAdmin extends Component {
             } else {
                 support_chat[data.user.id].count = 0;
             }
-            data.text = "test";
+            //data.text = "test";
             support_chat[data.user.id].msgs.push(data);
             this.setState({support_chat})
         } else if(data.type === "sound-test") {
