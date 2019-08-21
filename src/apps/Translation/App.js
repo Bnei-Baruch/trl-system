@@ -971,7 +971,7 @@ class TrlApp extends Component {
                         <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
                             <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
                             <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
-                            {!muted ? "Mute" : "Unmute"}
+                            {!muted ? "ON" : "OFF"}
                         </Menu.Item>
                         <Menu.Item disabled >
                             <Icon color={mystream ? 'green' : 'red'} name='power off'/>

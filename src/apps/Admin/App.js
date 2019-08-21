@@ -686,9 +686,9 @@ class TrlAdmin extends Component {
                 message.time = dateString;
                 Janus.log("-:: It's public message: ", message);
                 messages.push(message);
-                this.setState({messages});
-                this.scrollToBottom();
-                //notifyMe(message.user.username, message.text,(getHiddenProp !== null));
+                this.setState({messages}, () => {
+                    this.scrollToBottom();
+                });
             }
         } else if (what === "join") {
             // Somebody joined

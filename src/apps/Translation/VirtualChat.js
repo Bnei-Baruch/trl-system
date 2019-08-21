@@ -104,11 +104,9 @@ class VirtualChat extends Component {
                 this.setState({messages});
                 if(!this.state.room_chat)
                     this.setState({room_count: this.state.room_count + 1});
-                if(this.props.visible) {
-                    this.scrollToBottom();
-                } else {
-                    this.props.onNewMsg();
-                }
+                if(document.hidden)
+                    notifyMe(message.user.name, message.text,false);
+                this.scrollToBottom();
             }
         } else if (what === "join") {
             // Somebody joined
@@ -136,13 +134,9 @@ class VirtualChat extends Component {
         this.setState({support_msgs, from: "Admin"});
         if(this.state.room_chat)
             this.setState({admin_count: this.state.admin_count + 1});
-        if(this.props.visible) {
-            this.scrollToBottom();
-        } else {
-            notifyMe("Shidur",message.text,true);
-            this.setState({room_chat: false});
-            this.props.onNewMsg(true);
-        }
+        if(document.hidden)
+            notifyMe("Shidur", message.text,true);
+        this.scrollToBottom();
     };
 
     sendMessage = () => {
