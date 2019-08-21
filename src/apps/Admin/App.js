@@ -739,7 +739,9 @@ class TrlAdmin extends Component {
             }
             //data.text = "test";
             support_chat[data.user.id].msgs.push(data);
-            this.setState({support_chat,msg_type: "support"})
+            this.setState({support_chat,msg_type: "support"},() => {
+                this.scrollToBottom();
+            })
         } else if(data.type === "sound-test") {
             if(users[data.id]) {
                 users[data.id].sound_test = true;
@@ -856,7 +858,10 @@ class TrlAdmin extends Component {
     };
 
     scrollToBottom = () => {
-        this.refs.end.scrollIntoView({ behavior: 'smooth' })
+        if(this.refs.end)
+            this.refs.end.scrollIntoView({ behavior: 'smooth' })
+        if(this.supt)
+            this.supt.scrollIntoView({ behavior: 'smooth' })
     };
 
     selectRoom = (i) => {
@@ -1073,7 +1078,7 @@ class TrlAdmin extends Component {
         active_tab.id = data.panes[data.activeIndex].menuItem.key;
         support_chat[active_tab.id].count = 0;
         this.setState({support_chat,active_tab});
-        //this.refs.end.scrollIntoView({ behavior: 'smooth' });
+        this.scrollToBottom();
     };
 
     muteTrl = () => {
@@ -1156,7 +1161,7 @@ class TrlAdmin extends Component {
       let list_msgs = messages.map((msg,i) => {
           let {user,time,text,to} = msg;
           return (
-              <div key={i}><p>
+              <div key={i} ref='end'><p>
                   <i style={{color: 'grey'}}>[{time}]</i> -
                   <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
               </div>
@@ -1170,11 +1175,11 @@ class TrlAdmin extends Component {
               {menuItem: (<Menu.Item key={id} >{name} {count > 0 ? l : ""}</Menu.Item>),
                   render: () => <Tab.Pane>
                       <Message className='messages_list'>
-                          <div className="messages-wrapper" >
+                          <div className="messages-wrapper">
                               {msgs.map((msg,i) => {
                                   let {user,time,text,to} = msg;
                                   return (
-                                      <div key={i}><p>
+                                      <div key={i+id} ref={el => { this.supt = el; }}><p>
                                           <i style={{color: 'grey'}}>[{time}]</i> -
                                           <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
                                       </div>
