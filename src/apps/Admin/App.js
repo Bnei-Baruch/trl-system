@@ -1093,6 +1093,27 @@ class TrlAdmin extends Component {
         }
     };
 
+    removeFromSupport = (e,id) => {
+        e.preventDefault();
+        if (e.type === 'contextmenu') {
+            let {support_chat} = this.state;
+            delete support_chat[id];
+            this.setState({support_chat});
+        }
+    };
+
+    addToSupport = (e,id) => {
+        e.preventDefault();
+        if (e.type === 'contextmenu') {
+            let {support_chat,users,current_room} = this.state;
+            if(support_chat[id])
+                return;
+            let user = users[id];
+            let data = {user, room: current_room,time: getDateString(),type: "question",text: ":: Admin request ::"};
+            this.onProtocolData(data);
+        }
+    };
+
 
   render() {
 
@@ -1134,16 +1155,18 @@ class TrlAdmin extends Component {
 
       let users_grid = feeds.map((feed,i) => {
           if(feed) {
-              let fw = forwarders.find(f => f.publisher_id === feed.id);
-              let qt = users[feed.display.id].question;
+              //let fw = forwarders.find(f => f.publisher_id === feed.id);
+              //let qt = users[feed.display.id].question;
               let st = users[feed.display.id].sound_test;
               let talk = feed.talk;
               let id = feed.display.rfid;
               //let st = feed.display.self_test;
               return (
-                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={talk} onClick={() => this.getUserInfo(feed)} >
-                      <Table.Cell width={10}>{qt ? q : ""}{feed.display.display}</Table.Cell>
-                      <Table.Cell width={1}>{fw ? f : ""}</Table.Cell>
+                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={talk}
+                             onClick={() => this.getUserInfo(feed)}
+                             onContextMenu={(e) => this.addToSupport(e,feed.display.id)} >
+                      <Table.Cell width={10}>{feed.display.display}</Table.Cell>
+                      <Table.Cell width={1}>{talk ? f : ""}</Table.Cell>
                       <Table.Cell positive={st} width={1}>{st ? v : ""}</Table.Cell>
                       <audio
                           key={id}
@@ -1172,7 +1195,7 @@ class TrlAdmin extends Component {
           let {msgs,name,count} = this.state.support_chat[id];
           let l = (<Label color='red'>{count}</Label>);
           return (
-              {menuItem: (<Menu.Item key={id} >{name} {count > 0 ? l : ""}</Menu.Item>),
+              {menuItem: (<Menu.Item key={id} onContextMenu={(e) => this.removeFromSupport(e,id)} >{name} {count > 0 ? l : ""}</Menu.Item>),
                   render: () => <Tab.Pane>
                       <Message className='messages_list'>
                           <div className="messages-wrapper">
@@ -1279,9 +1302,9 @@ class TrlAdmin extends Component {
                               <Table selectable compact='very' basic structured className="admin_table" unstackable>
                                   <Table.Body>
                                       <Table.Row disabled>
-                                          <Table.Cell width={10}>Title</Table.Cell>
-                                          <Table.Cell width={1}>FW</Table.Cell>
-                                          <Table.Cell width={1}>ST</Table.Cell>
+                                          <Table.Cell width={10}></Table.Cell>
+                                          <Table.Cell width={1}></Table.Cell>
+                                          <Table.Cell width={1}></Table.Cell>
                                       </Table.Row>
                                       {users_grid}
                                   </Table.Body>
