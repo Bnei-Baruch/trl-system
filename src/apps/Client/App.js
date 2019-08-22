@@ -3,7 +3,7 @@ import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Label, Icon, Popup, Segment, Message, Table} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
-import {audios_options, lnglist} from "../../shared/consts";
+import {audios_options, lnglist, SECRET, DANTE_IN_IP} from "../../shared/consts";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol, sendProtocolMessage} from "../../shared/protocol";
@@ -31,6 +31,7 @@ class TrlClient extends Component {
         myid: null,
         mypvtid: null,
         mystream: null,
+        forward_id: null,
         mids: [],
         audio: null,
         muted: false,
@@ -173,21 +174,76 @@ class TrlClient extends Component {
         }
     };
 
-    //FIXME: tmp solution to show count without service users in room list
-    getFeedsList = (rooms) => {
-        let {videoroom} = this.state;
-        rooms.forEach((room,i) => {
-            if(room.num_participants > 0) {
-                videoroom.send({
-                    message: {request: "listparticipants", "room": room.room},
-                    success: (data) => {
-                        let count = data.participants.filter(p => JSON.parse(p.display).role === "user");
-                        rooms[i].num_participants = count.length;
-                        this.setState({rooms});
+    listForwarders = () => {
+        const {videoroom,room} = this.state;
+        let fwlist = [];
+        let req = {request:"listforwarders", room:room, secret:`${SECRET}`};
+        videoroom.send ({"message": req,
+            success: (data) => {
+                for(let i=0; i<data.publishers.length; i++) {
+                    if(data.publishers[i].forwarders) {
+                        for(let f=0; f<data.publishers[i].forwarders.length; f++) {
+                            let port = data.publishers[i].forwarders[f].port;
+                            fwlist.push(port);
+                        }
                     }
-                });
+                }
+                Janus.log(fwlist);
+                this.setPort(fwlist);
             }
-        })
+        });
+    };
+
+    setPort = (fwlist) => {
+        let {name} = this.state;
+        let fwport = lnglist[name].port;
+        if(fwlist.length === 0) {
+            Janus.log("-- ::We alone here");
+            this.startForward(fwport);
+        } else if(fwlist.length === 9) {
+            Janus.log("-- ::Only 9 Translator avalabale - exiting!");
+            alert("Only 9 connection possible");
+            this.state.janus.destroy();
+        } else {
+            do {
+                Janus.debug("--  Port: "+fwport+" TAFUS");
+                fwport = fwport + 1;
+                Janus.debug("--  Let's check: "+fwport+" port");
+            } while (fwlist.find(p => p === fwport) !== undefined);
+            Janus.log("--  Going to set: "+fwport+" port");
+            this.startForward(fwport);
+        }
+    };
+
+
+    startForward = (port) => {
+        let {room,myid} = this.state;
+        const {videoroom} = this.state;
+        Janus.log(" :: Start forward from room: ", room);
+        let forward = { request: "rtp_forward", publisher_id:myid, room:room, secret:`${SECRET}` ,host:`${DANTE_IN_IP}`, audio_port:port};
+        videoroom.send({"message": forward,
+            success: (data) => {
+                Janus.log(":: Forward callback: ", data);
+                let forward_id = data["rtp_stream"]["audio_stream_id"];
+                // Janus.log(":: Forward ID: ", forward_id);
+                this.setState({forward_id});
+            },
+        });
+    };
+
+    stopForward = (room) => {
+        const {forward_id,myid} = this.state;
+        const {videoroom} = this.state;
+        if(forward_id) {
+            Janus.log(" :: Stop forward from room: ", room);
+            let stopfw = { request:"stop_rtp_forward", stream_id:forward_id, publisher_id:myid, room:room, secret:`${SECRET}` };
+            videoroom.send({"message": stopfw,
+                success: (data) => {
+                    Janus.log(":: Forward callback: ", data);
+                    this.setState({forward_id: null});
+                },
+            });
+        }
     };
 
     initVideoRoom = (reconnect) => {
@@ -224,6 +280,10 @@ class TrlClient extends Component {
             },
             mediaState: (medium, on) => {
                 Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
+                //this.startForward();
+                setTimeout(() => {
+                    this.listForwarders()
+                }, 3000);
             },
             webrtcState: (on) => {
                 Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
@@ -690,6 +750,7 @@ class TrlClient extends Component {
         this.chat.exitChatRoom(room);
         this.stream.exitJanus();
         localStorage.setItem("question", false);
+        this.stopForward(room);
         this.setState({
             muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: [], mids: [], remoteFeed: null, question: false, trl_room: null
         });
@@ -708,77 +769,6 @@ class TrlClient extends Component {
         let trl_stream = lnglist[name].streamid;
         this.setState({selected_room,name,i,fw_port,trl_stream});
     };
-
-    // function getFWlist(setPort) {
-    //     var req = {"request":"listforwarders", "room":room, "secret":"adminpwd"};
-    //     mcutest.send ({"message": req,
-    //         success: function(data) {
-    //             for(var i=0; i<data.rtp_forwarders.length; i++) {
-    //                 var fwname = data.rtp_forwarders[i].display;
-    //                 var fwid = data.rtp_forwarders[i].publisher_id;
-    //                 for(var p=0; p<data.rtp_forwarders[i].rtp_forwarder.length; p++) {
-    //                     if(data.rtp_forwarders[i].rtp_forwarder[p].audio_stream_id !== undefined) {
-    //                         var aport = data.rtp_forwarders[i].rtp_forwarder[p].port;
-    //                         fwlist.push(aport);
-    //                     }
-    //                 }
-    //             }
-    //             setPort(fwlist);
-    //         }
-    //     });
-    // }
-    //
-    // function setPort(fwlist) {
-    //     if(fwlist.length == 0) {
-    //         console.log("-- ::We alone here");
-    //         console.log("--  Going to set: "+fwport+" port");
-    //         startForward();
-    //     } else if(fwlist.length == 9) {
-    //         console.log("-- ::Only 9 Translator avalabale - exiting!");
-    //         window.alert("Only 9 connection possible");
-    //         janus.destroy();
-    //     } else {
-    //         do {
-    //             console.log("--  Port: "+fwport+" TAFUS");
-    //             fwport = fwport + 1;
-    //             console.log("--  Let's check: "+fwport+" port");
-    //             var result = $.inArray(fwport, fwlist);
-    //         } while (result !== -1)
-    //         console.log("--  Going to set: "+fwport+" port");
-    //         startForward();
-    //     }
-    // }
-
-    // function startForward() {
-    //     // Forward local rtp stream
-    //     console.log(" --- ::Start forward rtp for id: " + myid);
-    //     // decoder.il.kbb1.com = 62.219.8.116
-    //     var forward = { "request": "rtp_forward","publisher_id":myid,"room":room,"secret":"adminpwd","host":ip,"audio_port":fwport, "video_port":vport};
-    //     mcutest.send({"message": forward,
-    //         success: function(data) {
-    //             audio_id = data["rtp_stream"]["audio_stream_id"];
-    //             video_id = data["rtp_stream"]["video_stream_id"];
-    //             publisher_id = data["publisher_id"];
-    //             console.log("  -- We got rtp forward video ID: " + video_id);
-    //             console.log("  -- We got rtp forward audio ID: " + audio_id);
-    //             console.log("  -- We got rtp forward publisher ID: " + publisher_id);
-    //             console.log(JSON.stringify(data));
-    //         },
-    //     });
-    // }
-    //
-    // function stopForward() {
-    //     // Forward local rtp stream
-    //     if(publisher_id !== undefined && publisher_id !== null) {
-    //         console.log("  -- We need to stop rtp forward video ID: " + video_id);
-    //         console.log("  -- We need to stop rtp forward audio ID: " + audio_id);
-    //         console.log("  -- We need to stop rtp forward publisher ID: " + publisher_id);
-    //         var stopfw_video = { "request":"stop_rtp_forward","stream_id":video_id,"publisher_id":publisher_id,"room":room,"secret":"adminpwd" };
-    //         var stopfw_audio = { "request":"stop_rtp_forward","stream_id":audio_id,"publisher_id":publisher_id,"room":room,"secret":"adminpwd" };
-    //         mcutest.send({"message": stopfw_video});
-    //         mcutest.send({"message": stopfw_audio});
-    //     }
-    // }
 
     handleQuestion = () => {
         //TODO: only when shidur user is online will be avelable send question event, so we need to add check
