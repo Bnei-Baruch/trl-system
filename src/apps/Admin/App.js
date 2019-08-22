@@ -1,27 +1,11 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {
-    Segment,
-    Menu,
-    Button,
-    Input,
-    Table,
-    Grid,
-    Message,
-    Transition,
-    Select,
-    Icon,
-    Popup,
-    List,
-    Tab, Label
-} from "semantic-ui-react";
-import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, getHiddenProp, notifyMe} from "../../shared/tools";
-import './ShidurAdmin.css';
-//import './VideoConteiner.scss'
+import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label} from "semantic-ui-react";
+import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, notifyMe} from "../../shared/tools";
+import './App.css';
 import {SECRET} from "../../shared/consts";
 import {initGxyProtocol,sendProtocolMessage} from "../../shared/protocol";
-import classNames from "classnames";
-import {client, getUser} from "../../components/UserManager";
+//import {client, getUser} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
 

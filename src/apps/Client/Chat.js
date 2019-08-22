@@ -6,7 +6,7 @@ import {SHIDUR_ID} from "../../shared/consts";
 import {sendProtocolMessage} from "../../shared/protocol";
 
 
-class VirtualChat extends Component {
+class Chat extends Component {
 
     state = {
         ...this.props,
@@ -266,4 +266,4 @@ class VirtualChat extends Component {
     }
 }
 
-export default VirtualChat;
+export default Chat;
