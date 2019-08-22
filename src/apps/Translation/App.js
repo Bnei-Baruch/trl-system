@@ -27,7 +27,7 @@ import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol, sendProtocolMessage} from "../../shared/protocol";
 import Stream from "../Stream/App";
 
-class TrlApp extends Component {
+class TrlClient extends Component {
 
     state = {
         count: 0,
@@ -1044,4 +1044,4 @@ class TrlApp extends Component {
     }
 }
 
-export default TrlApp;
+export default TrlClient;

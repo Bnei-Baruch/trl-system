@@ -48,10 +48,10 @@ class LoginPage extends Component {
                 <br />
                 <Message size='massive'>
                     <Message.Header>
-                        {this.props.user === null ? "Translations" : "Welcome, "+this.props.user.username}
+                        {this.props.user === null ? "TRL" : "Welcome, "+this.props.user.username}
                         {this.props.user === null ? "" : profile}
                     </Message.Header>
-                    <p>The Group Today Is You Tomorrow</p>
+                    <p>WebRTC Translation System</p>
                     {this.props.user === null ? login : this.props.enter}
                     <Image size='large' src={logo} centered />
                 </Message>
