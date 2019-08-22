@@ -3,7 +3,8 @@ import {Button} from "semantic-ui-react";
 import 'semantic-ui-css/semantic.min.css';
 import LoginPage from './components/LoginPage';
 import {client, getUser} from "./components/UserManager";
-import TrlApp from "./apps/Translation/App";
+// import TrlApp from "./apps/Translation/App";
+import TrlChat from "./apps/Chat/App";
 // import TrlAdmin from "./apps/Admin/App";
 
 class GroupsApp extends Component {
@@ -44,7 +45,8 @@ class GroupsApp extends Component {
         return (
             <Fragment>
                 {/*<LoginPage user={user} enter={opt} />*/}
-                <TrlApp/>
+                <TrlChat />
+                {/*<TrlApp/>*/}
                 {/*<TrlAdmin/>*/}
             </Fragment>
 

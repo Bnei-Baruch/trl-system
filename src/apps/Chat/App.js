@@ -2,25 +2,18 @@ import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
 import {
     Segment,
-    Menu,
     Button,
     Input,
     Table,
     Grid,
     Message,
-    Select,
     Icon,
-    Popup,
-    List,
-    Tab, Label
 } from "semantic-ui-react";
-import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, getHiddenProp, notifyMe} from "../../shared/tools";
+import {initJanus, initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import './App.css';
-import {SECRET} from "../../shared/consts";
-import {initGxyProtocol,sendProtocolMessage} from "../../shared/protocol";
-import {client, getUser} from "../../components/UserManager";
+import {initGxyProtocol} from "../../shared/protocol";
+//import {client, getUser} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
-import VolumeSlider from "../../components/VolumeSlider";
 
 class TrlChat extends Component {
 
@@ -53,8 +46,8 @@ class TrlChat extends Component {
         user: {
             email: null,
             id: Janus.randomString(10),
-            role: "admin",
-            name: "Admin - "+Janus.randomString(4),
+            role: "chat",
+            name: "Petah-Tikva",
             username: null,
         },
         description: "",
@@ -96,7 +89,7 @@ class TrlChat extends Component {
 
     onKeyPressed = (e) => {
         if(e.code === "Enter")
-            this.sendPrivateMessage();
+            this.sendDataMessage();
     };
 
     initShidurAdmin = (user) => {
@@ -115,105 +108,26 @@ class TrlChat extends Component {
                 this.setState({protocol});
             }, ondata => {
                 Janus.log("-- :: It's protocol public message: ", ondata);
-                this.onProtocolData(ondata);
+                //this.onProtocolData(ondata);
             });
         }, er => {}, true);
-        setInterval(() => {
-            this.getRoomList();
-            if(this.state.feed_user)
-                this.getFeedInfo()
-        }, 5000 );
     };
 
     getRoomList = () => {
-        const {videoroom,current_room} = this.state;
+        const {videoroom} = this.state;
         if (videoroom) {
             videoroom.send({message: {request: "list"},
                 success: (data) => {
-                    //Janus.log(" :: Get Rooms List: ", data.list)
+
                     data.list.sort((a, b) => {
-                        // if (a.num_participants > b.num_participants) return -1;
-                        // if (a.num_participants < b.num_participants) return 1;
                         if (a.description > b.description) return 1;
                         if (a.description < b.description) return -1;
                         return 0;
                     });
                     this.setState({rooms: data.list});
-                    if(current_room !== "") {
-                        this.listForward(current_room);
-                    }
                 }
             });
         }
-    };
-
-    getFeedsList = (room_id) => {
-        const {videoroom} = this.state;
-        if (videoroom) {
-            videoroom.send({message: {request: "listparticipants", "room": room_id},
-                success: (data) => {
-                    Janus.log(" :: Got Feeds List (room :"+room_id+"): ", data);
-                    let feeds = data.participants;
-                    Janus.log(feeds)
-                }
-            });
-        }
-    };
-
-    listForward = (room) => {
-        let {videoroom} = this.state;
-        let req = {request:"listforwarders",room,"secret":`${SECRET}`};
-        videoroom.send ({"message": req,
-            success: (data) => {
-                Janus.debug(" :: List forwarders: ", data);
-                if(!data.publishers)
-                    return;
-                //let forwarders = data.publishers.filter(f => f.forwarders);
-                let forwarders = [];
-                for(let i=0; i<data.publishers.length; i++) {
-                    if(data.publishers[i].forwarders) {
-                        let user = data.publishers[i].display;
-                        data.publishers[i].display = JSON.parse(user);
-                        let role = data.publishers[i].display.role;
-                        if(role === "user" || role === "group")
-                            forwarders.push(data.publishers[i])
-                    }
-                }
-                this.setState({forwarders});
-            }
-        })
-    };
-
-    stopForward = (id) => {
-        const {videoroom,current_room} = this.state;
-        if(current_room === "")
-            return;
-        let req = {request:"listforwarders",room:current_room,secret:`${SECRET}`};
-        videoroom.send ({"message": req,
-            success: (data) => {
-                for(let i=0; i<data.publishers.length; i++) {
-                    if(data.publishers[i].forwarders) {
-                        let user = data.publishers[i].display;
-                        data.publishers[i].display = JSON.parse(user);
-                        let role = data.publishers[i].display.role;
-                        let publisher_id = data.publishers[i].publisher_id;
-                        if(id && id === publisher_id) {
-                            for(let f=0; f<data.publishers[i].forwarders.length; f++) {
-                                let stream_id = data.publishers[i].forwarders[f].stream_id;
-                                let stop_forward = {request:"stop_rtp_forward",stream_id,publisher_id,"room":current_room,"secret":`${SECRET}`};
-                                videoroom.send({"message": stop_forward});
-                            }
-                        } else if(role === "user" || role === "group") {
-                            for(let f=0; f<data.publishers[i].forwarders.length; f++) {
-                                let stream_id = data.publishers[i].forwarders[f].stream_id;
-                                let stop_forward = {request:"stop_rtp_forward",stream_id,publisher_id,"room":current_room,"secret":`${SECRET}`};
-                                videoroom.send({"message": stop_forward});
-                            }
-                        }
-                    }
-                }
-            }
-        });
     };
 
     initVideoRoom = (room_id) => {
@@ -232,7 +146,6 @@ class TrlChat extends Component {
                 this.setState({videoroom, remoteFeed: null, groups: []});
 
                 if(room_id) {
-                    this.listForward(room_id);
                     let register = { "request": "join", "room": room_id, "ptype": "publisher", "display": JSON.stringify(user) };
                     videoroom.send({"message": register});
                 } else {
@@ -514,6 +427,7 @@ class TrlChat extends Component {
                     // The subscriber stream is recvonly, we don't expect anything here
                 },
                 onremotetrack: (track, mid, on) => {
+                    return
                     Janus.debug(" ::: Got a remote track event ::: (remote feed)");
                     if(!mid) {
                        mid = track.id.split("janus")[1];
@@ -674,6 +588,8 @@ class TrlChat extends Component {
                 Janus.log("-:: It's private message: ", message, from);
                 messages.push(message);
                 this.setState({messages});
+                if(document.hidden)
+                    notifyMe(message.user.name, message.text,false);
                 this.scrollToBottom();
             } else {
                 // Public message
@@ -683,8 +599,9 @@ class TrlChat extends Component {
                 Janus.log("-:: It's public message: ", message);
                 messages.push(message);
                 this.setState({messages});
+                if(document.hidden)
+                    notifyMe(message.user.name, message.text,false);
                 this.scrollToBottom();
-                //notifyMe(message.user.username, message.text,(getHiddenProp !== null));
             }
         } else if (what === "join") {
             // Somebody joined
@@ -771,80 +688,6 @@ class TrlChat extends Component {
         });
     };
 
-    sendPrivateMessage = () => {
-        let {input_value,user,feed_user,current_room} = this.state;
-        if(!feed_user) {
-            alert("Choose user");
-            return
-        };
-        let msg = {user, text: input_value};
-        let message = {
-            textroom: "message",
-            transaction: Janus.randomString(12),
-            room: this.state.current_room,
-            to: feed_user.id,
-            text: JSON.stringify(msg),
-        };
-        // Note: messages are always acknowledged by default. This means that you'll
-        // always receive a confirmation back that the message has been received by the
-        // server and forwarded to the recipients. If you do not want this to happen,
-        // just add an ack:false property to the message above, and server won't send
-        // you a response (meaning you just have to hope it succeeded).
-        this.state.chatroom.data({
-            text: JSON.stringify(message),
-            error: (reason) => { alert(reason); },
-            success: () => {
-                Janus.log(":: Message sent ::");
-                //FIXME: it's directly put to message box
-                let {messages} = this.state;
-                msg.time = getDateString();
-                msg.to = current_room === 1234 ? feed_user.username : feed_user.display;
-                Janus.log("-:: It's public message: "+msg);
-                messages.push(msg);
-                this.setState({messages, input_value: ""});
-                this.scrollToBottom();
-            }
-        });
-    };
-
-    supportMessage = () => {
-        const {protocol,current_room,input_value,user,active_tab,support_chat} = this.state;
-        let msg = { type: "question", room: current_room, user, text: input_value, to: active_tab.id};
-        msg.time = getDateString();
-        support_chat[active_tab.id].msgs.push(msg);
-        sendProtocolMessage(protocol, user, msg );
-        Janus.log("-:: It's support message: "+msg);
-        this.setState({support_chat, input_value: "", msg_type: "support"}, () => {
-            this.scrollToBottom();
-        });
-    };
-
-    sendBroadcastMessage = () => {
-        const { protocol, current_room, input_value, messages, user } = this.state;
-        let msg = { type: "chat-broadcast", room: current_room, user, text: input_value};
-        sendProtocolMessage(protocol, null, msg );
-        msg.time = getDateString();
-        msg.to = "ALL";
-        Janus.log("-:: It's broadcast message: "+msg);
-        messages.push(msg);
-        this.setState({messages, input_value: "", msg_type: "private"}, () => {
-            this.scrollToBottom();
-        });
-    };
-
-    sendRemoteCommand = (command_type) => {
-        const {protocol,feed_user,user} = this.state;
-        if(feed_user) {
-            let msg = { type: command_type, id: feed_user.id};
-            sendProtocolMessage(protocol, user, msg);
-        }
-    };
-
-    sendMessage = () => {
-        const {msg_type} = this.state;
-        msg_type === "private" ? this.sendPrivateMessage() : this.sendBroadcastMessage();
-    };
-
     scrollToBottom = () => {
         this.refs.end.scrollIntoView({ behavior: 'smooth' })
     };
@@ -894,198 +737,13 @@ class TrlChat extends Component {
         });
     };
 
-    getRoomID = () => {
-        const {rooms} = this.state;
-        let id = 1028;
-        for(let i=id; i<9999; i++) {
-            let room_id = rooms.filter(room => room.room === i);
-            if (room_id.length === 0) {
-                return i;
-            }
-        }
-    };
-
-    createChatRoom = (id,description) => {
-        const {chatroom} = this.state;
-        let req = {
-            textroom : "create",
-            room : id,
-            transaction: Janus.randomString(12),
-            secret: `${SECRET}`,
-            description : description,
-            is_private : false,
-            permanent : true
-        };
-        chatroom.data({text: JSON.stringify(req),
-            success: () => {
-                Janus.log(":: Successfuly created room: ",id);
-            },
-            error: (reason) => {
-                Janus.log(reason);
-            }
-        });
-    };
-
-    removeChatRoom = (id) => {
-        const {chatroom} = this.state;
-        let req = {
-            textroom: "destroy",
-            room: id,
-            transaction: Janus.randomString(12),
-            secret: `${SECRET}`,
-            permanent: true,
-        };
-        chatroom.data({text: JSON.stringify(req),
-            success: () => {
-                Janus.log(":: Successfuly removed room: ", id);
-            },
-            error: (reason) => {
-                Janus.log(reason);
-            }
-        });
-    };
-
-    setBitrate = (bitrate) => {
-        this.setState({bitrate});
-    };
-
-    createRoom = () => {
-        let {bitrate,description,videoroom} = this.state;
-        let room_id = this.getRoomID();
-        let janus_room = {
-            request : "create",
-            room: room_id,
-            description: description,
-            secret: `${SECRET}`,
-            publishers: 20,
-            bitrate: bitrate,
-            fir_freq: 10,
-            audiocodec: "opus",
-            videocodec: "h264",
-            audiolevel_event: true,
-            audio_level_average: 100,
-            audio_active_packets: 25,
-            record: false,
-            is_private: false,
-            permanent: true,
-        };
-        Janus.log(description);
-        videoroom.send({"message": janus_room,
-            success: (data) => {
-                Janus.log(":: Create callback: ", data);
-                this.getRoomList();
-                alert("Room: "+description+" created!")
-                this.createChatRoom(room_id,description);
-            },
-        });
-        this.setState({description: ""});
-    };
-
-    removeRoom = () => {
-        const {room_id,videoroom} = this.state;
-        let janus_room = {
-            request: "destroy",
-            room: room_id,
-            secret: `${SECRET}`,
-            permanent: true,
-        };
-        videoroom.send({"message": janus_room,
-            success: (data) => {
-                Janus.log(":: Remove callback: ", data);
-                this.getRoomList();
-                alert("Room ID: "+room_id+" removed!");
-                this.removeChatRoom(room_id);
-            },
-        });
-    };
-
-    disableRoom = (e, data, i) => {
-        e.preventDefault();
-        if (e.type === 'contextmenu') {
-            Janus.log(data)
-            // let {disabled_rooms} = this.state;
-            // disabled_rooms.push(data);
-            // this.setState({disabled_rooms});
-            // this.getRoomList();
-        }
-    };
-
-    kickUser = (id) => {
-        const {current_room,videoroom,feed_id} = this.state;
-        let request = {
-            request: "kick",
-            room: current_room,
-            secret: `${SECRET}`,
-            id: feed_id,
-        };
-        videoroom.send({"message": request,
-            success: (data) => {
-                Janus.log(":: Kick callback: ", data);
-            },
-        });
-    };
-
-    getUserInfo = (feed) => {
-        Janus.log(" :: Selected feed: ",feed);
-        let {display,id,talking} = feed;
-        let {feeds} =  this.state;
-        this.setState({feed_id: id, feed_user: display, feed_talk: talking});
-        Janus.log(display,id,talking);
-
-        if(feeds.length === 0) {
-            let groups = [];
-            groups.push(feed);
-            this.setState({groups});
-            let subscription = [{feed: id, mid: "0"},{feed: id, mid: "1"}];
-            this.subscribeTo(subscription);
-        } else {
-            this.switchFeed(id);
-        }
-    };
-
-    getFeedInfo = () => {
-        if(this.state.feed_user) {
-            let {session,handle} = this.state.feed_user;
-            if(session && handle) {
-                getPublisherInfo(session, handle, json => {
-                        //Janus.log(":: Publisher info", json);
-                        let audio = json.info.webrtc.media[0].rtcp.main;
-                        this.setState({feed_rtcp: {audio}});
-                    }, true
-                )
-            }
-        }
-    };
-
-    tabChange = (e, data) => {
-        let {active_tab,support_chat} = this.state;
-        active_tab.index = data.activeIndex;
-        active_tab.id = data.panes[data.activeIndex].menuItem.key;
-        support_chat[active_tab.id].count = 0;
-        this.setState({support_chat,active_tab});
-        //this.refs.end.scrollIntoView({ behavior: 'smooth' });
-    };
-
-
   render() {
 
-      const { bitrate,rooms,current_room,user,feeds,feed_id,i,messages,description,room_id,room_name,root,forwarders,feed_rtcp,feed_talk,msg_type,users} = this.state;
+      const { rooms,current_room,user,feeds,messages,forwarders,users} = this.state;
 
       const f = (<Icon name='volume up' />);
       const q = (<Icon color='red' name='help' />);
       const v = (<Icon name='checkmark' />);
-      const x = (<Icon name='close' />);
-
-      const bitrate_options = [
-          { key: 1, text: '150Kb/s', value: 150000 },
-          { key: 2, text: '300Kb/s', value: 300000 },
-          { key: 3, text: '600Kb/s', value: 600000 },
-      ];
-
-      const send_options = [
-          { key: 'all', text: 'All', value: 'all' },
-          { key: 'support', text: 'Support', value: 'support' },
-      ];
 
       let rooms_list = rooms.map((data,i) => {
           const {room, num_participants, description} = data;
@@ -1096,8 +754,7 @@ class TrlChat extends Component {
           const {room, num_participants, description} = data;
           return (
               <Table.Row active={current_room === room}
-                         key={i} onClick={() => this.joinRoom(data, i)}
-                         onContextMenu={(e) => this.disableRoom(e, data, i)} >
+                         key={i} onClick={() => this.joinRoom(data, i)} >
                   <Table.Cell width={5}>{description}</Table.Cell>
                   <Table.Cell width={1}>{num_participants}</Table.Cell>
               </Table.Row>
@@ -1112,7 +769,7 @@ class TrlChat extends Component {
               let talk = feed.talk;
               //let st = feed.display.self_test;
               return (
-                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={talk} onClick={() => this.getUserInfo(feed)} >
+                  <Table.Row key={i} positive={talk} >
                       <Table.Cell width={10}>{qt ? q : ""}{feed.display.display}</Table.Cell>
                       <Table.Cell width={1}>{fw ? f : ""}</Table.Cell>
                       <Table.Cell positive={st} width={1}>{st ? v : ""}</Table.Cell>
@@ -1131,117 +788,25 @@ class TrlChat extends Component {
           );
       });
 
-      let panes = Object.keys(this.state.support_chat).map((id, i) => {
-          let {msgs,name,count} = this.state.support_chat[id];
-          let l = (<Label color='red'>{count}</Label>);
-          return (
-              {menuItem: (<Menu.Item key={id} >{name} {count > 0 ? l : ""}</Menu.Item>),
-                  render: () => <Tab.Pane>
-                      <Message className='messages_list'>
-                          <div className="messages-wrapper" >
-                              {msgs.map((msg,i) => {
-                                  let {user,time,text,to} = msg;
-                                  return (
-                                      <div key={i}><p>
-                                          <i style={{color: 'grey'}}>[{time}]</i> -
-                                          <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
-                                      </div>
-                                  );
-                              })}
-                          </div>
-                      </Message>
-                  </Tab.Pane>,
-              }
-          );
-      });
-
       let login = (<LoginPage user={user} />);
-
-      let root_content = (
-          <Menu secondary >
-              <Menu.Item>
-                  <Button color='orange' icon='bell slash' labelPosition='right'
-                          content={room_name} onClick={this.stopForward} />
-              </Menu.Item>
-              <Menu.Item>
-              </Menu.Item>
-              <Menu.Item>
-                  <Button negative onClick={this.removeRoom}>Remove</Button>
-                  :::
-                  <Select
-                      error={room_id}
-                      scrolling
-                      placeholder="Select Room:"
-                      value={i}
-                      options={rooms_list}
-                      onChange={(e, {value}) => this.selectRoom(value)} />
-              </Menu.Item>
-              <Menu.Item>
-                  <Input type='text' placeholder='Room description...' action value={description}
-                         onChange={(v,{value}) => this.setState({description: value})}>
-                      <input />
-                      <Select
-                          compact={true}
-                          scrolling={false}
-                          placeholder="Room Bitrate:"
-                          value={bitrate}
-                          options={bitrate_options}
-                          onChange={(e, {value}) => this.setBitrate(value)}/>
-                      <Button positive onClick={this.createRoom}>Create</Button>
-                  </Input>
-              </Menu.Item>
-          </Menu>
-      );
 
       let content = (
           <Segment className="virtual_segment" color='blue' raised>
 
               <Segment textAlign='center' className="ingest_segment">
-                  <Button color='blue' icon='sound' onClick={() => this.sendRemoteCommand("sound-test")} />
-                  <Popup
-                      trigger={<Button positive icon='info' onClick={this.getFeedInfo} />}
-                      position='bottom right'
-                      content={
-                          <List as='ul'>
-                              <List.Item as='li'>Audio
-                                  <List.List as='ul'>
-                                      <List.Item as='li'>in-link-quality: {feed_rtcp.audio ? feed_rtcp.audio["in-link-quality"] : ""}</List.Item>
-                                      <List.Item as='li'>in-media-link-quality: {feed_rtcp.audio ? feed_rtcp.audio["in-media-link-quality"] : ""}</List.Item>
-                                      <List.Item as='li'>jitter-local: {feed_rtcp.audio ? feed_rtcp.audio["jitter-local"] : ""}</List.Item>
-                                      <List.Item as='li'>jitter-remote: {feed_rtcp.audio ? feed_rtcp.audio["jitter-remote"] : ""}</List.Item>
-                                      <List.Item as='li'>lost: {feed_rtcp.audio ? feed_rtcp.audio["lost"] : ""}</List.Item>
-                                  </List.List>
-                              </List.Item>
-                          </List>
-                      }
-                      on='click'
-                      hideOnScroll
-                  />
-                  {root ? root_content : ""}
               </Segment>
 
               <Grid>
                   <Grid.Row stretched columns='equal'>
                       <Grid.Column width={4}>
                           <Segment.Group>
-                              { root ?
-                              <Segment textAlign='center'>
-                                  <Popup trigger={<Button color="orange" icon='bell slash' onClick={() => this.stopForward(feed_id)} />} content='Stop forward' inverted />
-                                  <Popup trigger={<Button negative icon='user x' onClick={this.kickUser} />} content='Kick' inverted />
-                                      <Popup trigger={<Button color="brown" icon='sync alternate' alt="test" onClick={() => this.sendRemoteCommand("client-reconnect")} />} content='Reconnect' inverted />
-                                      <Popup trigger={<Button color="olive" icon='redo alternate' onClick={() => this.sendRemoteCommand("client-reload")} />} content='Reload page(LOST FEED HERE!)' inverted />
-                                      <Popup trigger={<Button color="teal" icon='microphone' onClick={() => this.sendRemoteCommand("client-mute")} />} content='Mute/Unmute' inverted />
-                                      <Popup trigger={<Button color="blue" icon='power off' onClick={() => this.sendRemoteCommand("client-disconnect")} />} content='Disconnect(LOST FEED HERE!)' inverted />
-                                      <Popup trigger={<Button color="yellow" icon='question' onClick={() => this.sendRemoteCommand("client-question")} />} content='Set/Unset question' inverted />
-                              </Segment>
-                                  : ""}
                           <Segment textAlign='center' className="group_list" raised>
                               <Table selectable compact='very' basic structured className="admin_table" unstackable>
                                   <Table.Body>
                                       <Table.Row disabled>
-                                          <Table.Cell width={10}>Title</Table.Cell>
-                                          <Table.Cell width={1}>FW</Table.Cell>
-                                          <Table.Cell width={1}>ST</Table.Cell>
+                                          <Table.Cell width={10}></Table.Cell>
+                                          <Table.Cell width={1}></Table.Cell>
+                                          <Table.Cell width={1}></Table.Cell>
                                       </Table.Row>
                                       {users_grid}
                                   </Table.Body>
@@ -1273,26 +838,6 @@ class TrlChat extends Component {
                       </Grid.Column>
                   </Grid.Row>
               </Grid>
-
-              <Segment className='chat_segment'>
-
-                  {this.state.active_tab ?
-                      <div>
-                  <Tab panes={panes} onTabChange={this.tabChange} />
-
-                  <Input fluid type='text' placeholder='Type your message' action value={this.state.input_value}
-                         onChange={(v,{value}) => this.setState({input_value: value})}>
-                      <input />
-                      <Select options={send_options}
-                              value={msg_type}
-                              error={msg_type === "all"}
-                              onChange={(e,{value}) => this.setState({msg_type: value})} />
-                      <Button positive negative={msg_type === "all"} onClick={this.supportMessage}>Send</Button>
-                  </Input>
-                    </div>
-                  : ""}
-
-              </Segment>
           </Segment>
       );
 
