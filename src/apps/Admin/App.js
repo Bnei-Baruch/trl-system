@@ -725,7 +725,9 @@ class TrlAdmin extends Component {
             support_chat[data.user.id].msgs.push(data);
             this.setState({support_chat,msg_type: "support"},() => {
                 this.scrollToBottom();
-            })
+            });
+            if(document.hidden)
+                notifyMe(data.user.name, data.text,true);
         } else if(data.type === "sound-test") {
             if(users[data.id]) {
                 users[data.id].sound_test = true;
