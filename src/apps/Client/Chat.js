@@ -199,7 +199,7 @@ class Chat extends Component {
         this.tooggleChat(data.activeIndex === 0);
         let count = data.activeIndex === 0 ? "room_count" : "admin_count";
         this.setState({[count]: 0});
-        //this.refs.end.scrollIntoView({ behavior: 'smooth' });
+        this.scrollToBottom();
     };
 
     render() {

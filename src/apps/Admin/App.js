@@ -1085,6 +1085,9 @@ class TrlAdmin extends Component {
             let {support_chat} = this.state;
             delete support_chat[id];
             this.setState({support_chat});
+            if(Object.keys(support_chat).length === 0) {
+                this.setState({msg_type: "room"});
+            }
         }
     };
 
@@ -1103,7 +1106,7 @@ class TrlAdmin extends Component {
 
   render() {
 
-      const { bitrate,rooms,current_room,user,feeds,feed_id,i,messages,description,room_id,room_name,root,forwarders,feed_rtcp,trl_muted,msg_type,users} = this.state;
+      const { bitrate,rooms,current_room,user,feeds,feed_id,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,users} = this.state;
 
       const f = (<Icon name='volume up' />);
       const q = (<Icon color='red' name='help' />);
@@ -1117,9 +1120,9 @@ class TrlAdmin extends Component {
       ];
 
       const send_options = [
-          { key: 'all', text: 'All', value: 'all' },
+          { key: 'all', text: 'All', value: 'all', disabled: true },
           { key: 'room', text: 'Room', value: 'room' },
-          { key: 'support', text: 'Support', value: 'support' },
+          { key: 'support', text: 'Support', value: 'support', disabled: Object.keys(support_chat).length === 0 },
       ];
 
       let rooms_list = rooms.map((data,i) => {
@@ -1177,8 +1180,8 @@ class TrlAdmin extends Component {
           );
       });
 
-      let panes = Object.keys(this.state.support_chat).map((id, i) => {
-          let {msgs,name,count} = this.state.support_chat[id];
+      let panes = Object.keys(support_chat).map((id, i) => {
+          let {msgs,name,count} = support_chat[id];
           let l = (<Label color='red'>{count}</Label>);
           return (
               {menuItem: (<Menu.Item key={id} onContextMenu={(e) => this.removeFromSupport(e,id)} >{name} {count > 0 ? l : ""}</Menu.Item>),
