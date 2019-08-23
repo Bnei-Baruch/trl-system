@@ -92,7 +92,6 @@ class Chat extends Component {
                 } else {
                     notifyMe("Shidur",message.text,true);
                     this.setState({room_chat: false});
-                    this.props.onNewMsg(true);
                 }
             } else {
                 // Public message

@@ -1,8 +1,7 @@
 import React, {Component} from 'react';
-import {Message, Icon, Button, Segment, Grid, Table, Select} from 'semantic-ui-react';
+import {Message, Icon, Button, Table} from 'semantic-ui-react';
 import Slider from 'react-rangeslider'
 import './VolumeSlider.css';
-import {audios_options} from "../shared/consts";
 
 class VolumeSlider extends Component {
 
@@ -31,7 +30,7 @@ class VolumeSlider extends Component {
                 <Table basic='very' compact='very'>
                     <Table.Row>
                         <Table.Cell width={3}>
-                            {/*<Icon name={icon} />*/}
+                            <Icon size='big' name={icon} />
                             {label}
                         </Table.Cell>
                         <Table.Cell width={9}>

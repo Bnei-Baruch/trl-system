@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {Menu, Select, Button, Label, Icon, Popup, Segment, Message, Table} from "semantic-ui-react";
+import {Menu, Select, Button, Icon, Popup, Segment, Message, Table} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
 import {audios_options, lnglist, SECRET, DANTE_IN_IP} from "../../shared/consts";
@@ -14,7 +14,6 @@ import LoginPage from "../../components/LoginPage";
 class TrlClient extends Component {
 
     state = {
-        count: 0,
         audioContext: null,
         stream: null,
         audio_devices: [],
@@ -44,7 +43,6 @@ class TrlClient extends Component {
         user: null,
         audios: Number(localStorage.getItem("lang")) || 15,
         users: {},
-        //username_value: localStorage.getItem("username") || "",
         visible: true,
         question: false,
         selftest: "Mic Test",
@@ -782,28 +780,11 @@ class TrlClient extends Component {
         this.setState({question: !question});
     };
 
-    camMute = () => {
-        let {videoroom,cammuted,protocol,user,room} = this.state;
-        cammuted ? videoroom.unmuteVideo() : videoroom.muteVideo();
-        this.setState({cammuted: !cammuted, delay: true});
-        setTimeout(() => {
-            this.setState({delay: false});
-        }, 3000);
-        this.sendDataMessage("camera", this.state.cammuted);
-        // Send to protocol camera status event
-        let msg = { type: "camera", status: cammuted, room, user};
-        sendProtocolMessage(protocol, user, msg );
-    };
-
     micMute = () => {
         let {videoroom, muted} = this.state;
         //mystream.getAudioTracks()[0].enabled = !muted;
         muted ? videoroom.unmuteAudio() : videoroom.muteAudio();
         this.setState({muted: !muted});
-    };
-
-    onNewMsg = (private_message) => {
-        this.setState({count: this.state.count + 1});
     };
 
     setAudio = (audios,options) => {
@@ -843,12 +824,12 @@ class TrlClient extends Component {
 
     render() {
 
-        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,count,question,selftest,tested,trl_stream,trl_muted,user} = this.state;
+        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,question,selftest,tested,trl_stream,trl_muted,user} = this.state;
         const autoPlay = true;
         const controls = false;
 
         let rooms_list = rooms.map((data,i) => {
-            const {room, num_participants, description} = data;
+            const {room, description} = data;
             return ({ key: room, text: description, value: i})
         });
 
@@ -860,9 +841,9 @@ class TrlClient extends Component {
         let trlaudio = this.state.feeds.map((feed) => {
             if(feed) {
                 let id = feed.display.rfid;
-                let talk = feed.talk;
-                let question = feed.question;
-                let name = feed.display.display;
+                //let talk = feed.talk;
+                //let question = feed.question;
+                //let name = feed.display.display;
                 return (<audio
                         key={id}
                         ref={"remoteAudio" + id}
@@ -875,13 +856,13 @@ class TrlClient extends Component {
             return true;
         });
 
-        let l = (<Label key='Carbon' floating size='mini' color='red'>{count}</Label>);
+        //let l = (<Label key='Carbon' floating size='mini' color='red'>{count}</Label>);
 
         const list = feeds.map((feed,i) => {
             if(feed) {
                 let id = feed.display.rfid;
                 let talk = feed.talk;
-                let question = feed.question;
+                //let question = feed.question;
                 let name = feed.display.display;
                 return (<Message key={id} className='trl_name' attached={i === feeds.length-1 ? 'bottom' : true} warning color={talk ? 'green' : 'red'} >{name}</Message>);
             }
@@ -893,10 +874,6 @@ class TrlClient extends Component {
         let content = (
             <div className="vclient" >
                 <div className="vclient__toolbar">
-                    {/*{mystream ? */}
-                    {/*<Button negative icon='sign-out' onClick={this.exitRoom} />:""}*/}
-                    {/*{!mystream ?*/}
-                    {/*<Button primary icon='sign-in' disabled={!selected_room||!audio_device} onClick={this.joinRoom} />:""}  */}
                     <Menu icon='labeled' size="mini">
                         <Popup
                             trigger={<Menu.Item><Icon name="settings" color={!audio_device ? 'red' : ''} />Input Device</Menu.Item>}
@@ -913,10 +890,10 @@ class TrlClient extends Component {
                                         onChange={(e, {value}) => this.setDevice(value)}/>
                             </Popup.Content>
                         </Popup>
-                        <Menu.Item disabled={!mystream} onClick={this.handleQuestion}>
-                            <Icon color={question ? 'green' : ''} name='help'/>
-                            Support
-                        </Menu.Item>
+                        {/*<Menu.Item disabled={!mystream} onClick={this.handleQuestion}>*/}
+                        {/*    <Icon color={question ? 'green' : ''} name='help'/>*/}
+                        {/*    Support*/}
+                        {/*</Menu.Item>*/}
                         {!mystream ?
                             <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>
                                 <Icon color={tested ? 'green' : 'red'} name="sound" />
@@ -932,7 +909,6 @@ class TrlClient extends Component {
                                 placeholder="Translate to:"
                                 value={i}
                                 options={rooms_list}
-                            // onClick={this.getRoomList}
                                 onChange={(e, {value}) => this.selectRoom(value)} />
                         {mystream ?
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
@@ -940,10 +916,6 @@ class TrlClient extends Component {
                             <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !audio_device} onClick={this.joinRoom} />:""}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
-                        {/*<Menu.Item disabled={!mystream} onClick={this.handleQuestion}>*/}
-                        {/*    <Icon color={question ? 'green' : ''} name='sound'/>*/}
-                        {/*    Self Test*/}
-                        {/*</Menu.Item>*/}
                         <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
                             <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
                             <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
@@ -1007,9 +979,7 @@ class TrlClient extends Component {
                                           visible={this.state.visible}
                                           janus={this.state.janus}
                                           room={room}
-                                          user={this.state.user}
-                                          onNewMsg={this.onNewMsg}
-                                          supportMessage={this.supportMessage} />
+                                          user={this.state.user} />
                                 </Table.Cell>
                             </Table.Row>
                         </Table.Row>
