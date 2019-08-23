@@ -875,10 +875,14 @@ class TrlClient extends Component {
             <div className="vclient" >
                 <div className="vclient__toolbar">
                     <Menu icon='labeled' size="mini">
+                        <Menu.Item disabled >
+                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
+                            {!mystream ? "Disconnected" : "Connected"}
+                        </Menu.Item>
                         <Popup
                             trigger={<Menu.Item><Icon name="settings" color={!audio_device ? 'red' : ''} />Input Device</Menu.Item>}
                             on='click'
-                            position='bottom right'
+                            position='bottom left'
                         >
                             <Popup.Content>
                                 <Select fluid
@@ -894,11 +898,6 @@ class TrlClient extends Component {
                         {/*    <Icon color={question ? 'green' : ''} name='help'/>*/}
                         {/*    Support*/}
                         {/*</Menu.Item>*/}
-                        {!mystream ?
-                            <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>
-                                <Icon color={tested ? 'green' : 'red'} name="sound" />
-                                {selftest}
-                            </Menu.Item> : ""}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini">
                         <Select className='trl_select'
@@ -916,14 +915,15 @@ class TrlClient extends Component {
                             <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !audio_device} onClick={this.joinRoom} />:""}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
+                        {!mystream ?
+                            <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>
+                                <Icon color={tested ? 'green' : 'red'} name="sound" />
+                                {selftest}
+                            </Menu.Item> : ""}
                         <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
                             <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
                             <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
                             {!muted ? "ON" : "OFF"}
-                        </Menu.Item>
-                        <Menu.Item disabled >
-                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
-                            {!mystream ? "Disconnected" : "Connected"}
                         </Menu.Item>
                     </Menu>
                 </div>
