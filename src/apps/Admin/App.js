@@ -47,7 +47,7 @@ class TrlAdmin extends Component {
         root: false,
         support_chat: {},
         active_tab: null,
-        trl_muted: false,
+        trl_muted: true,
     };
 
     componentDidMount() {

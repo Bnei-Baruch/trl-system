@@ -16,8 +16,8 @@ class Stream extends Component {
         videos: Number(localStorage.getItem("video")) || 1,
         audios: Number(localStorage.getItem("lang")) || 15,
         room: Number(localStorage.getItem("room")) || null,
-        str_muted: false,
-        trl_muted: false,
+        str_muted: true,
+        trl_muted: true,
         mixvolume: null,
         user: null,
         talking: null,
@@ -100,6 +100,7 @@ class Stream extends Component {
                     //this.audioMute();
                 });
                 audiostream.send({message: {request: "watch", id: audios}});
+                audiostream.muteAudio()
             },
             error: (error) => {
                 Janus.log("Error attaching plugin: " + error);
@@ -160,6 +161,7 @@ class Stream extends Component {
                 Janus.log(trlstream);
                 this.setState({trlstream});
                 trlstream.send({message: {request: "watch", id: streamId}});
+                trlstream.muteAudio()
             },
             error: (error) => {
                 Janus.log("Error attaching plugin: " + error);

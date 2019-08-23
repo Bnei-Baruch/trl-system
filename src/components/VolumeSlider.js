@@ -7,7 +7,7 @@ class VolumeSlider extends Component {
 
     state = {
         value: 1,
-        muted: false
+        muted: true
     };
 
     handleOnChange = (value) => {

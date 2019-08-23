@@ -36,7 +36,7 @@ class TrlClient extends Component {
         mids: [],
         audio: null,
         muted: false,
-        trl_muted: false,
+        trl_muted: true,
         cammuted: false,
         shidur: false,
         protocol: null,
