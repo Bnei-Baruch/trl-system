@@ -55,8 +55,8 @@ class TrlAdmin extends Component {
         let {user} = this.state;
         getUser(user => {
             if(user) {
-                let gxy_group = user.roles.filter(role => role === 'gxy_admin').length > 0;
-                let gxy_root = user.roles.filter(role => role === 'gxy_root').length > 0;
+                let gxy_group = user.roles.filter(role => role === 'trl_admin').length > 0;
+                let gxy_root = user.roles.filter(role => role === 'trl_root').length > 0;
                 if (gxy_group) {
                     this.setState({root: gxy_root});
                     delete user.roles;
@@ -812,7 +812,7 @@ class TrlAdmin extends Component {
         msg.to = "ALL";
         Janus.log("-:: It's broadcast message: "+msg);
         messages.push(msg);
-        this.setState({messages, input_value: "", msg_type: "support"}, () => {
+        this.setState({messages, input_value: "", msg_type: "room"}, () => {
             this.scrollToBottom();
         });
     };
