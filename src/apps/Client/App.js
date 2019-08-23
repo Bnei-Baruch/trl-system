@@ -718,7 +718,7 @@ class TrlClient extends Component {
                 }, 3000);
                 this.chat.initChatRoom(user,selected_room);
                 this.stream.initJanus();
-            } else if(type === "chat-broadcast" && room === selected_room) {
+            } else if(type === "chat-broadcast") {
                 this.chat.showSupportMessage(ondata);
             } else if(type === "question" && user.id === to) {
                 this.chat.showSupportMessage(ondata);

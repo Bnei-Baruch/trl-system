@@ -1113,7 +1113,7 @@ class TrlAdmin extends Component {
       ];
 
       const send_options = [
-          { key: 'all', text: 'All', value: 'all', disabled: true },
+          { key: 'all', text: 'All', value: 'all'},
           { key: 'room', text: 'Room', value: 'room' },
           { key: 'support', text: 'Support', value: 'support', disabled: Object.keys(support_chat).length === 0 },
       ];
