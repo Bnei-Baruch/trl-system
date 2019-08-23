@@ -4,10 +4,12 @@ import {Menu, Select, Button, Label, Icon, Popup, Segment, Message, Table} from 
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
 import {audios_options, lnglist, SECRET, DANTE_IN_IP} from "../../shared/consts";
+import {client, getUser} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol, sendProtocolMessage} from "../../shared/protocol";
 import Stream from "../Stream/App";
+import LoginPage from "../../components/LoginPage";
 
 class TrlClient extends Component {
 
@@ -39,13 +41,7 @@ class TrlClient extends Component {
         cammuted: false,
         shidur: false,
         protocol: null,
-        user: {
-            email: null,
-            id: Janus.randomString(10),
-            role: "user",
-            name: "Translator-"+Janus.randomString(4),
-            username: null,
-        },
+        user: null,
         audios: Number(localStorage.getItem("lang")) || 15,
         users: {},
         //username_value: localStorage.getItem("username") || "",
@@ -57,12 +53,19 @@ class TrlClient extends Component {
 
     componentDidMount() {
         let {user} = this.state;
-        this.initClient(user);
-        // initJanus(janus => {
-        //     user.session = janus.getSessionId();
-        //     this.setState({janus, user});
-        //     this.initVideoRoom();
-        // });
+        getUser(user => {
+            if(user) {
+                let gxy_group = user.roles.filter(role => role === 'trl_user').length > 0;
+                if (gxy_group) {
+                    delete user.roles;
+                    user.role = "user";
+                    this.initClient(user);
+                } else {
+                    alert("Access denied!");
+                    client.signoutRedirect();
+                }
+            }
+        });
     };
 
     componentWillUnmount() {
@@ -840,7 +843,7 @@ class TrlClient extends Component {
 
     render() {
 
-        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,count,question,selftest,tested,trl_stream,trl_muted} = this.state;
+        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,count,question,selftest,tested,trl_stream,trl_muted,user} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -885,8 +888,9 @@ class TrlClient extends Component {
             return true;
         });
 
-        return (
+        let login = (<LoginPage user={user} />);
 
+        let content = (
             <div className="vclient" >
                 <div className="vclient__toolbar">
                     {/*{mystream ? */}
@@ -928,7 +932,7 @@ class TrlClient extends Component {
                                 placeholder="Translate to:"
                                 value={i}
                                 options={rooms_list}
-                                // onClick={this.getRoomList}
+                            // onClick={this.getRoomList}
                                 onChange={(e, {value}) => this.selectRoom(value)} />
                         {mystream ?
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
@@ -999,19 +1003,27 @@ class TrlClient extends Component {
                             <Table.Row>
                                 <Table.Cell width={7}>
                                     <Chat {...this.state}
-                                        ref={chat => {this.chat = chat;}}
-                                        visible={this.state.visible}
-                                        janus={this.state.janus}
-                                        room={room}
-                                        user={this.state.user}
-                                        onNewMsg={this.onNewMsg}
-                                        supportMessage={this.supportMessage} />
+                                          ref={chat => {this.chat = chat;}}
+                                          visible={this.state.visible}
+                                          janus={this.state.janus}
+                                          room={room}
+                                          user={this.state.user}
+                                          onNewMsg={this.onNewMsg}
+                                          supportMessage={this.supportMessage} />
                                 </Table.Cell>
                             </Table.Row>
                         </Table.Row>
                     </Table>
                 </Segment>
             </div>
+        );
+
+        return (
+
+            <div>
+                {user ? content : login}
+            </div>
+
         );
     }
 }

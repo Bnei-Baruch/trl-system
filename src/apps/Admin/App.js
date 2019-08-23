@@ -5,7 +5,7 @@ import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, 
 import './App.css';
 import {SECRET} from "../../shared/consts";
 import {initGxyProtocol,sendProtocolMessage} from "../../shared/protocol";
-//import {client, getUser} from "../../components/UserManager";
+import {client, getUser} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
 
@@ -37,13 +37,7 @@ class TrlAdmin extends Component {
         msg_type: "room",
         audio: null,
         muted: true,
-        user: {
-            email: null,
-            id: Janus.randomString(10),
-            role: "admin",
-            name: "Admin - "+Janus.randomString(4),
-            username: null,
-        },
+        user: null,
         description: "",
         messages: [],
         visible: false,
@@ -59,22 +53,21 @@ class TrlAdmin extends Component {
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyPressed);
         let {user} = this.state;
-        this.initShidurAdmin(user);
-        // getUser(user => {
-        //     if(user) {
-        //         let gxy_group = user.roles.filter(role => role === 'gxy_admin').length > 0;
-        //         let gxy_root = user.roles.filter(role => role === 'gxy_root').length > 0;
-        //         if (gxy_group) {
-        //             this.setState({root: gxy_root});
-        //             delete user.roles;
-        //             user.role = "admin";
-        //             this.initShidurAdmin(user);
-        //         } else {
-        //             alert("Access denied!");
-        //             client.signoutRedirect();
-        //         }
-        //     }
-        // });
+        getUser(user => {
+            if(user) {
+                let gxy_group = user.roles.filter(role => role === 'gxy_admin').length > 0;
+                let gxy_root = user.roles.filter(role => role === 'gxy_root').length > 0;
+                if (gxy_group) {
+                    this.setState({root: gxy_root});
+                    delete user.roles;
+                    user.role = "admin";
+                    this.initShidurAdmin(user);
+                } else {
+                    alert("Access denied!");
+                    client.signoutRedirect();
+                }
+            }
+        });
     };
 
     componentWillUnmount() {
@@ -1350,8 +1343,7 @@ class TrlAdmin extends Component {
       return (
 
           <div>
-              {/*{user ? content : login}*/}
-              {content}
+              {user ? content : login}
           </div>
 
       );

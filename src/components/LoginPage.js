@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import {client} from './UserManager';
-import { Container,Message,Button,Dropdown,Image } from 'semantic-ui-react';
-import logo from './logo.svg';
+import { Container,Message,Button,Dropdown } from 'semantic-ui-react';
 
 class LoginPage extends Component {
 
@@ -53,7 +52,6 @@ class LoginPage extends Component {
                     </Message.Header>
                     <p>WebRTC Translation System</p>
                     {this.props.user === null ? login : this.props.enter}
-                    <Image size='large' src={logo} centered />
                 </Message>
             </Container>
         );

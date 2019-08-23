@@ -12,7 +12,7 @@ import {
 import {initJanus, initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import './App.css';
 import {initGxyProtocol} from "../../shared/protocol";
-//import {client, getUser} from "../../components/UserManager";
+import {client, getUser} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 
 class TrlChat extends Component {
@@ -43,13 +43,7 @@ class TrlChat extends Component {
         msg_type: "support",
         audio: null,
         muted: true,
-        user: {
-            email: null,
-            id: Janus.randomString(10),
-            role: "chat",
-            name: "Petah-Tikva",
-            username: null,
-        },
+        user: null,
         description: "",
         messages: [],
         visible: false,
@@ -64,22 +58,20 @@ class TrlChat extends Component {
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyPressed);
         let {user} = this.state;
-        this.initShidurAdmin(user);
-        // getUser(user => {
-        //     if(user) {
-        //         let gxy_group = user.roles.filter(role => role === 'gxy_admin').length > 0;
-        //         let gxy_root = user.roles.filter(role => role === 'gxy_root').length > 0;
-        //         if (gxy_group) {
-        //             this.setState({root: gxy_root});
-        //             delete user.roles;
-        //             user.role = "admin";
-        //             this.initShidurAdmin(user);
-        //         } else {
-        //             alert("Access denied!");
-        //             client.signoutRedirect();
-        //         }
-        //     }
-        // });
+        getUser(user => {
+            if(user) {
+                let gxy_group = user.roles.filter(role => role === 'bb_user').length > 0;
+                if (gxy_group) {
+                    delete user.roles;
+                    user.role = "chat";
+                    user.name = "Petah-Tikva";
+                    this.initShidurAdmin(user);
+                } else {
+                    alert("Access denied!");
+                    client.signoutRedirect();
+                }
+            }
+        });
     };
 
     componentWillUnmount() {
@@ -844,8 +836,7 @@ class TrlChat extends Component {
       return (
 
           <div>
-              {/*{user ? content : login}*/}
-              {content}
+              {user ? content : login}
           </div>
 
       );
