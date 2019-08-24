@@ -841,7 +841,7 @@ class TrlClient extends Component {
                 let id = feed.display.rfid;
                 let talk = feed.talk;
                 //let question = feed.question;
-                let name = feed.display.display;
+                let name = feed.display.name;
                 return (<Message key={id} className='trl_name' attached={i === feeds.length-1 ? 'bottom' : true} warning color={talk ? 'green' : 'red'} >{name}</Message>);
             }
             return true;
