@@ -203,7 +203,7 @@ class Chat extends Component {
 
     render() {
 
-        const {room_count,admin_count,messages,support_msgs,room_chat} = this.state;
+        const {room_count,admin_count,messages,support_msgs} = this.state;
 
         let la = (<Label color='red'>{admin_count}</Label>);
         let lr = (<Label color='red'>{room_count}</Label>);
@@ -212,8 +212,8 @@ class Chat extends Component {
             let {user,time,text} = msg;
             return (
                 <div key={i} ref='end'><p>
-                    <i style={{color: 'grey'}}>[{time}]</i> -
-                    <a style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</a> : {text}</p>
+                    <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
+                    <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
                 </div>
             );
         });
@@ -222,8 +222,8 @@ class Chat extends Component {
             let {user,time,text} = msg;
             return (
                 <div key={i} ref='end'><p>
-                    <i style={{color: 'grey'}}>[{time}]</i> -
-                    <a style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</a> : {text}</p>
+                    <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
+                    <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
                 </div>
             );
         });

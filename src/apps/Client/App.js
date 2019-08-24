@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Table} from "semantic-ui-react";
+import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
 import {audios_options, lnglist, SECRET, DANTE_IN_IP} from "../../shared/consts";
 import {client, getUser} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
-import {initGxyProtocol, sendProtocolMessage} from "../../shared/protocol";
+import {initGxyProtocol} from "../../shared/protocol";
 import Stream from "../Stream/App";
 import LoginPage from "../../components/LoginPage";
 
@@ -50,7 +50,6 @@ class TrlClient extends Component {
     };
 
     componentDidMount() {
-        let {user} = this.state;
         getUser(user => {
             if(user) {
                 let gxy_group = user.roles.filter(role => role === 'trl_user').length > 0;
@@ -71,8 +70,6 @@ class TrlClient extends Component {
     };
 
     initClient = (user,error) => {
-        localStorage.setItem("question", false);
-        localStorage.setItem("sound_test", false);
         checkNotification();
         geoInfo('https://v4g.kbb1.com/geo.php?action=get', data => {
             Janus.log(data);
@@ -105,7 +102,6 @@ class TrlClient extends Component {
                 //Try to get audio fail reson
                 testDevices(false, true, steam => {});
                 alert(" :: No input devices found ::");
-                //FIXME: What we going to do in this case?
                 this.setState({audio_device: null});
             }
         }, { audio: true, video: false });
@@ -210,6 +206,7 @@ class TrlClient extends Component {
                 Janus.debug("--  Port: "+fwport+" TAFUS");
                 fwport = fwport + 1;
                 Janus.debug("--  Let's check: "+fwport+" port");
+                // eslint-disable-next-line no-loop-func
             } while (fwlist.find(p => p === fwport) !== undefined);
             Janus.log("--  Going to set: "+fwport+" port");
             this.startForward(fwport);
@@ -324,6 +321,10 @@ class TrlClient extends Component {
                 // Add data:true here if you want to publish datachannels as well
                 media: {
                     audioRecv: false, videoRecv: false, audioSend: true, videoSend: false, audio: {
+                        autoGainControl: false,
+                        echoCancellation: false,
+                        highpassFilter: false,
+                        noiseSuppression: false,
                         deviceId: {
                             exact: audio_device
                         }
@@ -687,25 +688,14 @@ class TrlClient extends Component {
         setTimeout(() => {
             this.setState({delay: false});
         }, 3000);
-        let {janus, videoroom, selected_room, user, username_value, tested} = this.state;
+        let {janus, videoroom, selected_room, user, tested} = this.state;
         localStorage.setItem("room", selected_room);
-        //This name will see other users
-        user.display = username_value || user.name;
         user.self_test = tested;
-        user.sound_test = reconnect ? JSON.parse(localStorage.getItem("sound_test")) : false;
-        localStorage.setItem("username", user.display);
         initGxyProtocol(janus, user, protocol => {
             this.setState({protocol});
-            // Send question event if before join it was true
-            if(reconnect && JSON.parse(localStorage.getItem("question"))) {
-                let msg = { type: "question", status: true, room: selected_room, user};
-                setTimeout(() => {
-                    sendProtocolMessage(protocol, user, msg );
-                }, 5000);
-            }
         }, ondata => {
             Janus.log("-- :: It's protocol public message: ", ondata);
-            const {type,error_code,id,room,to} = ondata;
+            const {type,error_code,id,to} = ondata;
             if(type === "error" && error_code === 420) {
                 alert(ondata.error);
                 this.state.protocol.hangup();
@@ -728,8 +718,6 @@ class TrlClient extends Component {
                 window.location.reload();
             } else if(type === "client-disconnect" && user.id === id) {
                 this.exitRoom();
-            } else if(type === "client-question" && user.id === id) {
-                this.handleQuestion();
             } else if(type === "client-mute" && user.id === id) {
                 this.micMute();
             } else if(type === "sound-test" && user.id === id) {
@@ -750,7 +738,6 @@ class TrlClient extends Component {
         videoroom.send({"message": leave});
         this.chat.exitChatRoom(room);
         this.stream.exitJanus();
-        localStorage.setItem("question", false);
         this.stopForward(room);
         this.setState({
             muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: [], mids: [], remoteFeed: null, question: false, trl_room: null
@@ -769,15 +756,6 @@ class TrlClient extends Component {
         let fw_port = lnglist[name].port;
         let trl_stream = lnglist[name].streamid;
         this.setState({selected_room,name,i,fw_port,trl_stream});
-    };
-
-    handleQuestion = () => {
-        //TODO: only when shidur user is online will be avelable send question event, so we need to add check
-        const { protocol, user, room, question} = this.state;
-        localStorage.setItem("question", !question);
-        let msg = { type: "question", status: !question, room, user, text: " :: Support request :: "};
-        sendProtocolMessage(protocol, user, msg );
-        this.setState({question: !question});
     };
 
     micMute = () => {
@@ -824,7 +802,7 @@ class TrlClient extends Component {
 
     render() {
 
-        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,question,selftest,tested,trl_stream,trl_muted,user} = this.state;
+        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -894,10 +872,6 @@ class TrlClient extends Component {
                                         onChange={(e, {value}) => this.setDevice(value)}/>
                             </Popup.Content>
                         </Popup>
-                        {/*<Menu.Item disabled={!mystream} onClick={this.handleQuestion}>*/}
-                        {/*    <Icon color={question ? 'green' : ''} name='help'/>*/}
-                        {/*    Support*/}
-                        {/*</Menu.Item>*/}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini">
                         <Select className='trl_select'
@@ -938,7 +912,9 @@ class TrlClient extends Component {
 
                 {trlaudio}
 
-                <Segment basic color='blue'>
+                {mystream ? '' : <Divider fitted />}
+
+                <Segment basic color='blue' className={mystream ? '' : 'hidden'}>
                     <Table basic='very' fixed>
                         <Table.Row>
                             <Table.Cell width={8} rowSpan='2'>

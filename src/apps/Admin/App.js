@@ -52,7 +52,6 @@ class TrlAdmin extends Component {
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyPressed);
-        let {user} = this.state;
         getUser(user => {
             if(user) {
                 let gxy_group = user.roles.filter(role => role === 'trl_admin').length > 0;
@@ -1164,11 +1163,11 @@ class TrlAdmin extends Component {
       });
 
       let list_msgs = messages.map((msg,i) => {
-          let {user,time,text,to} = msg;
+          let {user,time,text} = msg;
           return (
               <div key={i} ref='end'><p>
-                  <i style={{color: 'grey'}}>[{time}]</i> -
-                  <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
+                  <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
+                  <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
               </div>
           );
       });
@@ -1182,11 +1181,11 @@ class TrlAdmin extends Component {
                       <Message className='messages_list'>
                           <div className="messages-wrapper">
                               {msgs.map((msg,i) => {
-                                  let {user,time,text,to} = msg;
+                                  let {user,time,text} = msg;
                                   return (
                                       <div key={i+id} ref={el => { this.supt = el; }}><p>
-                                          <i style={{color: 'grey'}}>[{time}]</i> -
-                                          <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
+                                          <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
+                                          <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
                                       </div>
                                   );
                               })}

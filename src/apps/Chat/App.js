@@ -1,14 +1,6 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {
-    Segment,
-    Button,
-    Input,
-    Table,
-    Grid,
-    Message,
-    Icon,
-} from "semantic-ui-react";
+import {Segment, Button, Input, Table, Grid, Message, Icon} from "semantic-ui-react";
 import {initJanus, initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import './App.css';
 import {initGxyProtocol} from "../../shared/protocol";
@@ -57,7 +49,6 @@ class TrlChat extends Component {
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyPressed);
-        let {user} = this.state;
         getUser(user => {
             if(user) {
                 let gxy_group = user.roles.filter(role => role === 'bb_user').length > 0;
@@ -775,7 +766,7 @@ class TrlChat extends Component {
           return (
               <div key={i}><p>
                   <i style={{color: 'grey'}}>[{time}]</i> -
-                  <b style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</b> : {text}</p>
+                  <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
               </div>
           );
       });
