@@ -722,40 +722,36 @@ class TrlChat extends Component {
 
   render() {
 
-      const { rooms,current_room,user,feeds,messages,forwarders,users} = this.state;
+      const {rooms,current_room,user,feeds,messages} = this.state;
 
-      const f = (<Icon name='volume up' />);
-      const q = (<Icon color='red' name='help' />);
-      const v = (<Icon name='checkmark' />);
-
-      let rooms_list = rooms.map((data,i) => {
-          const {room, num_participants, description} = data;
-          return ({ key: room, text: description, value: i, description: num_participants.toString()})
-      });
+      // const f = (<Icon name='volume up' />);
+      // const q = (<Icon color='red' name='help' />);
+      // const v = (<Icon name='checkmark' />);
+      //
+      // let rooms_list = rooms.map((data,i) => {
+      //     const {room, num_participants, description} = data;
+      //     return ({ key: room, text: description, value: i, description: num_participants.toString()})
+      // });
 
       let rooms_grid = rooms.map((data,i) => {
-          const {room, num_participants, description} = data;
+          const {room, description} = data;
           return (
               <Table.Row active={current_room === room}
                          key={i} onClick={() => this.joinRoom(data, i)} >
                   <Table.Cell width={5}>{description}</Table.Cell>
-                  <Table.Cell width={1}>{num_participants}</Table.Cell>
+                  <Table.Cell width={1}></Table.Cell>
               </Table.Row>
           )
       });
 
       let users_grid = feeds.map((feed,i) => {
           if(feed) {
-              let fw = forwarders.find(f => f.publisher_id === feed.id);
-              let qt = users[feed.display.id].question;
-              let st = users[feed.display.id].sound_test;
               let talk = feed.talk;
-              //let st = feed.display.self_test;
               return (
                   <Table.Row key={i} positive={talk} >
-                      <Table.Cell width={10}>{qt ? q : ""}{feed.display.display}</Table.Cell>
-                      <Table.Cell width={1}>{fw ? f : ""}</Table.Cell>
-                      <Table.Cell positive={st} width={1}>{st ? v : ""}</Table.Cell>
+                      <Table.Cell width={10}>{feed.display.name}</Table.Cell>
+                      <Table.Cell width={1}></Table.Cell>
+                      <Table.Cell width={1}></Table.Cell>
                   </Table.Row>
               )
           }
@@ -765,7 +761,7 @@ class TrlChat extends Component {
           let {user,time,text,to} = msg;
           return (
               <div key={i}><p>
-                  <i style={{color: 'grey'}}>[{time}]</i> -
+                  <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
                   <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
               </div>
           );

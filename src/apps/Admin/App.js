@@ -1146,7 +1146,7 @@ class TrlAdmin extends Component {
                   <Table.Row active={feed.id === this.state.feed_id} key={i} positive={talk}
                              onClick={() => this.getUserInfo(feed)}
                              onContextMenu={(e) => this.addToSupport(e,feed.display.id)} >
-                      <Table.Cell width={10}>{feed.display.display}</Table.Cell>
+                      <Table.Cell width={10}>{feed.display.name}</Table.Cell>
                       <Table.Cell width={1}>{talk ? f : ""}</Table.Cell>
                       <Table.Cell positive={st} width={1}>{st ? v : ""}</Table.Cell>
                       <audio
