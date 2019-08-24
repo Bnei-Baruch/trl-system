@@ -186,8 +186,10 @@ class Chat extends Component {
     };
 
     scrollToBottom = () => {
-        if(this.refs.end)
-            this.refs.end.scrollIntoView({ behavior: 'smooth' })
+        if(this.roomt)
+            this.roomt.scrollIntoView({ behavior: 'smooth' });
+        if(this.suppt)
+            this.suppt.scrollIntoView({ behavior: 'smooth' });
     };
 
     tooggleChat = (room_chat) => {
@@ -197,8 +199,9 @@ class Chat extends Component {
     tabChange = (e, data) => {
         this.tooggleChat(data.activeIndex === 0);
         let count = data.activeIndex === 0 ? "room_count" : "admin_count";
-        this.setState({[count]: 0});
-        this.scrollToBottom();
+        this.setState({[count]: 0}, () => {
+            this.scrollToBottom();
+        });
     };
 
     render() {
@@ -207,26 +210,6 @@ class Chat extends Component {
 
         let la = (<Label color='red'>{admin_count}</Label>);
         let lr = (<Label color='red'>{room_count}</Label>);
-
-        let room_msgs = messages.map((msg,i) => {
-            let {user,time,text} = msg;
-            return (
-                <div key={i} ref='end'><p>
-                    <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
-                    <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
-                </div>
-            );
-        });
-
-        let admin_msgs = support_msgs.map((msg,i) => {
-            let {user,time,text} = msg;
-            return (
-                <div key={i} ref='end'><p>
-                    <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
-                    <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
-                </div>
-            );
-        });
 
         const panes = [
             {
@@ -250,6 +233,26 @@ class Chat extends Component {
                 </Tab.Pane>,
             },
         ];
+
+        let room_msgs = messages.map((msg,i) => {
+            let {user,time,text} = msg;
+            return (
+                <div key={i} ref={el => {this.roomt = el;}}><p>
+                    <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
+                    <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
+                </div>
+            );
+        });
+
+        let admin_msgs = support_msgs.map((msg,i) => {
+            let {user,time,text} = msg;
+            return (
+                <div key={i} ref={el => {this.suppt = el;}}><p>
+                    <i style={{color: 'grey'}}>[{time}]</i>&nbsp;
+                    <u style={{color: user.role === "admin" ? 'red' : 'blue'}}>{user.name}</u> : {text}</p>
+                </div>
+            );
+        });
 
         return (
             <div className="chat-panell" >

@@ -1055,8 +1055,9 @@ class TrlAdmin extends Component {
         active_tab.index = data.activeIndex;
         active_tab.id = data.panes[data.activeIndex].menuItem.key;
         support_chat[active_tab.id].count = 0;
-        this.setState({support_chat,active_tab});
-        this.scrollToBottom();
+        this.setState({support_chat,active_tab} ,() => {
+            this.scrollToBottom();
+        });
     };
 
     muteTrl = () => {
