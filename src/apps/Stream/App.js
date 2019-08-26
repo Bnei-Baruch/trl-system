@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Janus } from "./lib/janus";
+import { Janus } from "../../lib/janus";
 import { Segment } from 'semantic-ui-react';
 import {JANUS_SRV_EURFR, STUN_SRV_STR,} from "../../shared/consts";
 import './App.css'
@@ -11,6 +11,7 @@ class Stream extends Component {
         janus: null,
         videostream: null,
         audiostream: null,
+        trlstream: null,
         datastream: null,
         audio: null,
         videos: Number(localStorage.getItem("video")) || 1,
@@ -32,6 +33,10 @@ class Stream extends Component {
     };
 
     exitJanus = () => {
+        this.state.videostream.hangup();
+        this.state.audiostream.hangup();
+        this.state.trlstream.hangup();
+        this.setState({video_stream: null, audio_stream: null, trlaudio_stream: null});
         this.state.janus.destroy();
     };
 
@@ -75,11 +80,27 @@ class Stream extends Component {
             error: (error) => {
                 Janus.log("Error attaching plugin: " + error);
             },
+            iceState: (state) => {
+                Janus.log("ICE state changed to " + state);
+            },
+            webrtcState: (on) => {
+                Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
+            },
+            slowLink: (uplink, lost, mid) => {
+                Janus.warn("Janus reports problems " + (uplink ? "sending" : "receiving") +
+                    " packets on mid " + mid + " (" + lost + " lost packets)");
+            },
             onmessage: (msg, jsep) => {
                 this.onStreamingMessage(this.state.videostream, msg, jsep, false);
             },
-            onremotestream: (stream) => {
-                Janus.log("Got a remote stream!", stream);
+            onremotetrack: (track, mid, on) => {
+                Janus.debug(" ::: Got a remote video track event :::");
+                Janus.debug("Remote video track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
+                if(this.state.video_stream) return;
+                let stream = new MediaStream();
+                stream.addTrack(track.clone());
+                this.setState({video_stream: stream});
+                Janus.log("Created remote video stream:", stream);
                 let video = this.refs.remoteVideo;
                 Janus.attachMediaStream(video, stream);
             },
@@ -108,10 +129,17 @@ class Stream extends Component {
             onmessage: (msg, jsep) => {
                 this.onStreamingMessage(this.state.audiostream, msg, jsep, false);
             },
-            onremotestream: (stream) => {
-                Janus.log("Got a remote stream!", stream);
+            onremotetrack: (track, mid, on) => {
+                Janus.debug(" ::: Got a remote audio track event :::");
+                Janus.debug("Remote audio track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
+                if(this.state.audio_stream) return;
+                let stream = new MediaStream();
+                stream.addTrack(track.clone());
+                this.setState({audio_stream: stream});
+                Janus.log("Created remote audio stream:", stream);
                 let audio = this.refs.remoteAudio;
                 Janus.attachMediaStream(audio, stream);
+                //StreamVisualizer2(stream, this.refs.canvas1.current,50);
             },
             oncleanup: () => {
                 Janus.log("Got a cleanup notification");
@@ -169,13 +197,16 @@ class Stream extends Component {
             onmessage: (msg, jsep) => {
                 this.onStreamingMessage(this.state.trlstream, msg, jsep, false);
             },
-            onremotestream: (stream) => {
-                Janus.log("Got a remote stream!", stream);
+            onremotetrack: (track, mid, on) => {
+                Janus.debug(" ::: Got a remote audio track event :::");
+                Janus.debug("Remote audio track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
+                if(this.state.trlaudio_stream) return;
+                let stream = new MediaStream();
+                stream.addTrack(track.clone());
+                this.setState({trlaudio_stream: stream});
+                Janus.log("Created remote audio stream:", stream);
                 let audio = this.refs.trlAudio;
                 Janus.attachMediaStream(audio, stream);
-                // this.state.trlstream.getVolume();
-                // let talking = setInterval(this.ducerMixaudio, 200);
-                // this.setState({talking});
             },
             oncleanup: () => {
                 Janus.log("Got a cleanup notification");

@@ -886,7 +886,7 @@ class TrlClient extends Component {
                         {mystream ?
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
                         {!mystream ?
-                            <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !audio_device} onClick={this.joinRoom} />:""}
+                            <Button attached='right' size='huge' positive loading={delay} icon='sign-in' disabled={delay || !selected_room || !audio_device} onClick={this.joinRoom} />:""}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
                         {!mystream ?
