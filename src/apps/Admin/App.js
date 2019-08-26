@@ -1021,19 +1021,19 @@ class TrlAdmin extends Component {
     getUserInfo = (feed) => {
         Janus.log(" :: Selected feed: ",feed);
         let {display,id,talking} = feed;
-        let {feeds} =  this.state;
+        //let {feeds} =  this.state;
         this.setState({feed_id: id, feed_user: display, feed_talk: talking});
         Janus.log(display,id,talking);
 
-        if(feeds.length === 0) {
-            let groups = [];
-            groups.push(feed);
-            this.setState({groups});
-            let subscription = [{feed: id, mid: "0"},{feed: id, mid: "1"}];
-            this.subscribeTo(subscription);
-        } else {
-            this.switchFeed(id);
-        }
+        // if(feeds.length === 0) {
+        //     let groups = [];
+        //     groups.push(feed);
+        //     this.setState({groups});
+        //     let subscription = [{feed: id, mid: "0"},{feed: id, mid: "1"}];
+        //     this.subscribeTo(subscription);
+        // } else {
+        //     this.switchFeed(id);
+        // }
     };
 
     getFeedInfo = () => {
