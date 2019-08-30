@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import platform from "platform";
 import { Janus } from "../../lib/janus";
 import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label} from "semantic-ui-react";
 import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, notifyMe} from "../../shared/tools";
@@ -23,6 +24,7 @@ class TrlAdmin extends Component {
         rooms: [],
         feed_id: null,
         feed_user: null,
+        feed_info: null,
         feed_talk: false,
         feed_rtcp: {},
         current_room: "",
@@ -1021,19 +1023,9 @@ class TrlAdmin extends Component {
     getUserInfo = (feed) => {
         Janus.log(" :: Selected feed: ",feed);
         let {display,id,talking} = feed;
-        //let {feeds} =  this.state;
-        this.setState({feed_id: id, feed_user: display, feed_talk: talking});
+        let feed_info = display.system ? platform.parse(display.system) : null;
+        this.setState({feed_id: id, feed_user: display, feed_talk: talking, feed_info});
         Janus.log(display,id,talking);
-
-        // if(feeds.length === 0) {
-        //     let groups = [];
-        //     groups.push(feed);
-        //     this.setState({groups});
-        //     let subscription = [{feed: id, mid: "0"},{feed: id, mid: "1"}];
-        //     this.subscribeTo(subscription);
-        // } else {
-        //     this.switchFeed(id);
-        // }
     };
 
     getFeedInfo = () => {
@@ -1099,7 +1091,7 @@ class TrlAdmin extends Component {
 
   render() {
 
-      const { bitrate,rooms,current_room,user,feeds,feed_id,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,users} = this.state;
+      const { bitrate,rooms,current_room,user,feeds,feed_id,feed_info,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,users} = this.state;
 
       const f = (<Icon name='volume up' />);
       const q = (<Icon color='red' name='help' />);
@@ -1245,6 +1237,13 @@ class TrlAdmin extends Component {
                       position='bottom left'
                       content={
                           <List as='ul'>
+                              <List.Item as='li'>System
+                                  <List.List as='ul'>
+                                      <List.Item as='li'>OS: {feed_info ? feed_info.os.toString() : ""}</List.Item>
+                                      <List.Item as='li'>Browser: {feed_info ? feed_info.name : ""}</List.Item>
+                                      <List.Item as='li'>Version: {feed_info ? feed_info.version : ""}</List.Item>
+                                  </List.List>
+                              </List.Item>
                               <List.Item as='li'>Audio
                                   <List.List as='ul'>
                                       <List.Item as='li'>in-link-quality: {feed_rtcp.audio ? feed_rtcp.audio["in-link-quality"] : ""}</List.Item>
