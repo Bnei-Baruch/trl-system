@@ -3,7 +3,7 @@ import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
-import {audios_options, lnglist, SECRET, DANTE_IN_IP} from "../../shared/consts";
+import {audios_options, lnglist, GEO_IP_INFO, SECRET, DANTE_IN_IP} from "../../shared/consts";
 import {client, getUser} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
@@ -71,9 +71,9 @@ class TrlClient extends Component {
 
     initClient = (user,error) => {
         checkNotification();
-        geoInfo('https://v4g.kbb1.com/geo.php?action=get', data => {
+        geoInfo(`${GEO_IP_INFO}`, data => {
             Janus.log(data);
-            user.ip = data.external_ip;
+            user.ip = data.ip;
         });
         initJanus(janus => {
             user.session = janus.getSessionId();
