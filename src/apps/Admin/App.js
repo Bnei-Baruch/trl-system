@@ -5,7 +5,7 @@ import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, 
 import './App.css';
 import {SECRET} from "../../shared/consts";
 import {initGxyProtocol,sendProtocolMessage} from "../../shared/protocol";
-import {client, getUser} from "../../components/UserManager";
+import {client} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
 
@@ -52,26 +52,25 @@ class TrlAdmin extends Component {
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyPressed);
-        getUser(user => {
-            if(user) {
-                let gxy_group = user.roles.filter(role => role === 'trl_admin').length > 0;
-                let gxy_root = user.roles.filter(role => role === 'trl_root').length > 0;
-                if (gxy_group) {
-                    this.setState({root: gxy_root});
-                    delete user.roles;
-                    user.role = "admin";
-                    this.initShidurAdmin(user);
-                } else {
-                    alert("Access denied!");
-                    client.signoutRedirect();
-                }
-            }
-        });
     };
 
     componentWillUnmount() {
         document.removeEventListener("keydown", this.onKeyPressed);
         this.state.janus.destroy();
+    };
+
+    checkPermission = (user) => {
+        let gxy_group = user.roles.filter(role => role === 'trl_admin').length > 0;
+        let gxy_root = user.roles.filter(role => role === 'trl_root').length > 0;
+        if (gxy_group) {
+            this.setState({root: gxy_root});
+            delete user.roles;
+            user.role = "admin";
+            this.initShidurAdmin(user);
+        } else {
+            alert("Access denied!");
+            client.signoutRedirect();
+        }
     };
 
     onKeyPressed = (e) => {
@@ -1197,7 +1196,7 @@ class TrlAdmin extends Component {
           );
       });
 
-      let login = (<LoginPage user={user} />);
+      let login = (<LoginPage user={user} checkPermission={this.checkPermission} />);
 
       let root_content = (
           <Menu secondary >

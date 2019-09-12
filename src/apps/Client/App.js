@@ -4,7 +4,7 @@ import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} fro
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
 import {audios_options, lnglist, SECRET, DANTE_IN_IP} from "../../shared/consts";
-import {client, getUser} from "../../components/UserManager";
+import {client} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol} from "../../shared/protocol";
@@ -49,20 +49,16 @@ class TrlClient extends Component {
         tested: false,
     };
 
-    componentDidMount() {
-        getUser(user => {
-            if(user) {
-                let gxy_group = user.roles.filter(role => role === 'trl_user').length > 0;
-                if (gxy_group) {
-                    delete user.roles;
-                    user.role = "user";
-                    this.initClient(user);
-                } else {
-                    alert("Access denied!");
-                    client.signoutRedirect();
-                }
-            }
-        });
+    checkPermission = (user) => {
+        let gxy_group = user.roles.filter(role => role === 'trl_user').length > 0;
+        if (gxy_group) {
+            delete user.roles;
+            user.role = "user";
+            this.initClient(user);
+        } else {
+            alert("Access denied!");
+            client.signoutRedirect();
+        }
     };
 
     componentWillUnmount() {
@@ -847,7 +843,7 @@ class TrlClient extends Component {
             return true;
         });
 
-        let login = (<LoginPage user={user} />);
+        let login = (<LoginPage user={user} checkPermission={this.checkPermission} />);
 
         let content = (
             <div className="vclient" >

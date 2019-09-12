@@ -4,7 +4,7 @@ import {Segment, Button, Input, Table, Grid, Message, Icon} from "semantic-ui-re
 import {initJanus, initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import './App.css';
 import {initGxyProtocol} from "../../shared/protocol";
-import {client, getUser} from "../../components/UserManager";
+import {client} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 
 class TrlChat extends Component {
@@ -49,20 +49,19 @@ class TrlChat extends Component {
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyPressed);
-        getUser(user => {
-            if(user) {
-                let gxy_group = user.roles.filter(role => role === 'bb_user').length > 0;
-                if (gxy_group) {
-                    delete user.roles;
-                    user.role = "chat";
-                    user.name = "Petah-Tikva";
-                    this.initShidurAdmin(user);
-                } else {
-                    alert("Access denied!");
-                    client.signoutRedirect();
-                }
-            }
-        });
+    };
+
+    checkPermission = (user) => {
+        let gxy_group = user.roles.filter(role => role === 'bb_user').length > 0;
+        if (gxy_group) {
+            delete user.roles;
+            user.role = "chat";
+            user.name = "Petah-Tikva";
+            this.initShidurAdmin(user);
+        } else {
+            alert("Access denied!");
+            client.signoutRedirect();
+        }
     };
 
     componentWillUnmount() {
@@ -767,7 +766,7 @@ class TrlChat extends Component {
           );
       });
 
-      let login = (<LoginPage user={user} />);
+      let login = (<LoginPage user={user} checkPermission={this.checkPermission} />);
 
       let content = (
           <Segment className="virtual_segment" color='blue' raised>

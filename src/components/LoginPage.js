@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import {client} from './UserManager';
+import {client,getUser} from './UserManager';
 import { Container,Message,Button,Dropdown } from 'semantic-ui-react';
 
 class LoginPage extends Component {
@@ -11,19 +11,31 @@ class LoginPage extends Component {
 
     componentDidMount() {
         setTimeout(() => this.setState({disabled: false, loading: false}), 1000);
-        client.signinRedirectCallback().then(user => {
-            if(user.state) window.location = user.state;
-        }).catch(err =>  {
-            //console.log("callback error",err);
+        this.appLogin();
+    };
+
+    appLogin = () => {
+        getUser(user => {
+            if(user) {
+                this.props.checkPermission(user);
+            } else {
+                client.signinRedirectCallback().then((user) => {
+                    if(user.state) window.location = user.state;
+                }).catch(() => {
+                    client.signinSilent().then(user => {
+                        if(user) this.appLogin();
+                    }).catch((error) => {
+                        console.log("SigninSilent error: ",error);
+                    });
+                });
+            }
         });
     };
 
-    getUser = () => {
+    userLogin = () => {
         this.setState({disabled: true, loading: true});
-        client.getUser().then(user => {
-            (user === null) ? client.signinRedirect({state: window.location.href}) : console.log(":: What just happend?");
-        }).catch(error => {
-            console.log("Error: ",error);
+        getUser(cb => {
+            if(!cb) client.signinRedirect({state: window.location.href});
         });
     };
 
@@ -31,7 +43,7 @@ class LoginPage extends Component {
 
         const {disabled, loading} = this.state;
 
-        let login = (<Button size='massive' primary onClick={this.getUser} disabled={disabled} loading={loading}>Login</Button>);
+        let login = (<Button size='massive' primary onClick={this.userLogin} disabled={disabled} loading={loading}>Login</Button>);
         //let enter = (<Button size='massive' color='green' onClick={() => this.props.enter()} disabled={disabled} loading={loading}>Enter</Button>);
         let profile = (
             <Dropdown inline text=''>

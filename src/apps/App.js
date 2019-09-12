@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import {Button} from "semantic-ui-react";
 import LoginPage from '../components/LoginPage';
-import {client, getUser} from "../components/UserManager";
+import {client} from "../components/UserManager";
 
 class TrlApp extends Component {
 
@@ -9,12 +9,6 @@ class TrlApp extends Component {
         pass: false,
         user: null,
         roles: [],
-    };
-
-    componentDidMount() {
-        getUser(cb => {
-            if(cb) this.checkPermission(cb);
-        });
     };
 
     checkPermission = (user) => {
@@ -40,7 +34,7 @@ class TrlApp extends Component {
 
         return (
             <Fragment>
-                <LoginPage user={user} enter={opt} />
+                <LoginPage user={user} enter={opt} checkPermission={this.checkPermission} />
             </Fragment>
 
         );

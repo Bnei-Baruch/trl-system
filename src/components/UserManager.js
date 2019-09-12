@@ -5,21 +5,31 @@ const AUTH_URL = 'https://accounts.kbb1.com/auth/realms/main';
 export const BASE_URL = process.env.NODE_ENV === 'production' ? process.env.REACT_APP_TRL_URL : 'http://localhost:3000/';
 
 oidclog.logger = console;
-oidclog.level  = 3;
+oidclog.level  = 4;
 
 const userManagerConfig = {
     authority: AUTH_URL,
     client_id: 'trl',
     redirect_uri: `${BASE_URL}`,
     response_type: 'token id_token',
-    scope: 'profile',
+    scope: 'openid profile',
     post_logout_redirect_uri: `${BASE_URL}`,
-    automaticSilentRenew: false,
+    automaticSilentRenew: true,
+    silent_redirect_uri: `${BASE_URL}/silent_renew.html`,
     filterProtocolClaims: true,
     loadUserInfo: true,
 };
 
 export const client = new UserManager(userManagerConfig);
+
+client.events.addAccessTokenExpiring(() => {
+    console.log("...RENEW TOKEN...");
+});
+
+client.events.addAccessTokenExpired(() => {
+    console.log("...!TOKEN EXPIRED!...");
+    client.signoutRedirect();
+});
 
 export const getUser = (cb) =>
     client.getUser().then((user) => {
@@ -39,7 +49,7 @@ export const getUser = (cb) =>
         }
         cb(user)
     })
-        .catch(function(error) {
+        .catch((error) => {
             console.log("Error: ",error);
         });
 
