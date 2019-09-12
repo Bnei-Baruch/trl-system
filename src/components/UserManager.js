@@ -5,7 +5,7 @@ const AUTH_URL = 'https://accounts.kbb1.com/auth/realms/main';
 export const BASE_URL = process.env.NODE_ENV === 'production' ? process.env.REACT_APP_TRL_URL : 'http://localhost:3000/';
 
 oidclog.logger = console;
-oidclog.level  = 4;
+oidclog.level  = 0;
 
 const userManagerConfig = {
     authority: AUTH_URL,
