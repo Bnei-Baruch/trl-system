@@ -3,7 +3,7 @@ import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
-import {audios_options, lnglist, SECRET, DANTE_IN_IP} from "../../shared/consts";
+import {audios_options, lnglist, SECRET, DANTE_IN_IP, GEO_IP_INFO} from "../../shared/consts";
 import {client} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
@@ -67,9 +67,9 @@ class TrlClient extends Component {
 
     initClient = (user,error) => {
         checkNotification();
-        geoInfo('https://v4g.kbb1.com/geo.php?action=get', data => {
+        geoInfo(`${GEO_IP_INFO}`, data => {
             Janus.log(data);
-            user.ip = data.external_ip;
+            user.ip = data.ip;
         });
         initJanus(janus => {
             user.session = janus.getSessionId();
@@ -580,7 +580,7 @@ class TrlClient extends Component {
                     let feed = mids[mid].feed_id;
                     Janus.log(" >> This track is coming from feed " + feed + ":", mid);
                     // If we're here, a new track was added
-                    if(track.kind === "audio" && !feedStreams[feed].audio_stream && on) {
+                    if(track.kind === "audio" && on) {
                         // New audio track: create a stream out of it, and use a hidden <audio> element
                         let stream = new MediaStream();
                         stream.addTrack(track.clone());

@@ -1764,8 +1764,9 @@ export function Janus(gatewayCallbacks) {
 					event.track.onmute = event.track.onended;
 					event.track.onunmute = function(ev) {
 						Janus.log("Remote track flowing again:", ev);
+						// Put false here to separate new track callback
 						try {
-							pluginHandle.onremotetrack(ev.target, mid, true);
+							pluginHandle.onremotetrack(ev.target, mid, false);
 						} catch(e) {
 							Janus.error(e);
 						};
