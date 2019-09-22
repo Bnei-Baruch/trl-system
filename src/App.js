@@ -1,7 +1,8 @@
 import React, { Component, Fragment } from 'react';
 import 'semantic-ui-css/semantic.min.css';
-import WeClient from "./apps/WeClient/App";
-// import WeLive from "./apps/WeLive/App";
+// import WeApp from "./apps/WeApp";
+// import WeClient from "./apps/WeClient/App";
+import WeLive from "./apps/WeLive/App";
 // import TrlApp from "./apps/App";
 // import TrlChat from "./apps/Chat/App";
 // import TrlClient from "./apps/Client/App";
@@ -19,8 +20,9 @@ class App extends Component {
                 {/*<TrlChat />*/}
                 {/*<TrlClient/>*/}
                 {/*<TrlAdmin />*/}
-                <WeClient />
-                {/*<WeLive />*/}
+                {/*<WeApp />*/}
+                {/*<WeClient />*/}
+                <WeLive />
             </Fragment>
 
         );
