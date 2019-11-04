@@ -64,6 +64,7 @@ class LoginPage extends Component {
                     </Message.Header>
                     <p>WebRTC Translation System</p>
                     {this.props.user === null ? login : this.props.enter}
+                    <p><Button color='orange' onClick={() => window.open("tt.mp4", "_blank")} >How to use?</Button></p>
                 </Message>
             </Container>
         );
