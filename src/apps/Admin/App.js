@@ -1078,9 +1078,13 @@ class TrlAdmin extends Component {
     addToSupport = (e,id) => {
         e.preventDefault();
         if (e.type === 'contextmenu') {
-            let {support_chat,users,current_room} = this.state;
+            let {support_chat,users,current_room,active_tab} = this.state;
             if(support_chat[id])
                 return;
+            if(Object.keys(support_chat).length === 0) {
+                active_tab = {index: 0, id};
+                this.setState({active_tab});
+            }
             let user = users[id];
             let data = {user, room: current_room,time: getDateString(),type: "question",text: ":: Admin request ::"};
             this.onProtocolData(data);
