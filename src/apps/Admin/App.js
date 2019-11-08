@@ -687,7 +687,7 @@ class TrlAdmin extends Component {
     };
 
     onProtocolData = (data) => {
-        let {users} = this.state;
+        let {users,rooms} = this.state;
 
         if(data.type === "question") {
             if(data.user.role === "admin")
@@ -701,10 +701,12 @@ class TrlAdmin extends Component {
             }
             let {support_chat,active_tab} = this.state;
             if(!support_chat[data.user.id]) {
+                let room  = rooms.filter(r => r.room === data.room);
                 support_chat[data.user.id] = {};
                 support_chat[data.user.id].msgs = [];
                 support_chat[data.user.id].count = 0;
                 support_chat[data.user.id].name = data.user.name;
+                support_chat[data.user.id].lang = room[0].description;
             }
             if(!active_tab) {
                 this.setState({active_tab:{index: 0, id: data.user.id}});
@@ -1169,10 +1171,10 @@ class TrlAdmin extends Component {
       });
 
       let panes = Object.keys(support_chat).map((id, i) => {
-          let {msgs,name,count} = support_chat[id];
+          let {msgs,name,count,lang} = support_chat[id];
           let l = (<Label color='red'>{count}</Label>);
           return (
-              {menuItem: (<Menu.Item key={id} onContextMenu={(e) => this.removeFromSupport(e,id)} >{name} {count > 0 ? l : ""}</Menu.Item>),
+              {menuItem: (<Menu.Item key={id} onContextMenu={(e) => this.removeFromSupport(e,id)} >{name} [<i>{lang}</i>] {count > 0 ? l : ""}</Menu.Item>),
                   render: () => <Tab.Pane>
                       <Message className='messages_list'>
                           <div className="messages-wrapper">
