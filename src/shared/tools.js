@@ -1,5 +1,5 @@
 import {Janus} from "../lib/janus";
-import {JANUS_ADMIN, JANUS_SERVER, ADMIN_SECRET, STUN_SERVER, WFDB_STATE, WFRP_STATE} from "./consts";
+import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV_TRL} from "./consts";
 
 
 export const initJanus = (cb) => {
@@ -7,8 +7,8 @@ export const initJanus = (cb) => {
         debug: process.env.NODE_ENV !== 'production' ? ["log", "error"] : ["error"],
         callback: () => {
             let janus = new Janus({
-                server: JANUS_SERVER,
-                iceServers: [{urls: STUN_SERVER}],
+                server: JANUS_SRV_TRL,
+                iceServers: [{urls: STUN_SRV_TRL}],
                 success: () => {
                     Janus.log(" :: Connected to JANUS");
                     cb(janus);
@@ -281,29 +281,6 @@ export const testDevices = (video,audio,cb) => {
     });
 };
 
-export const getState = (path, cb) => fetch(`${WFRP_STATE}/${path}`)
-    .then((response) => {
-        if (response.ok) {
-            return response.json().then(data => cb(data));
-        } else {
-            let data = {};
-            cb(data);
-        }
-    })
-    .catch(ex => Janus.log(`get ${path}`, ex));
-
-export const putData = (path, data, cb) => fetch(`${WFDB_STATE}/${path}`, {
-    method: 'PUT',
-    headers: {'Content-Type': 'application/json'},
-    body:  JSON.stringify(data)
-})
-    .then((response) => {
-        if (response.ok) {
-            return response.json().then(respond => cb(respond));
-        }
-    })
-    .catch(ex => Janus.log("Put Data error:", ex));
-
 export const getData = (url, request, cb) => fetch(`${url}`,{
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -323,44 +300,11 @@ export const geoInfo = (url,cb) => fetch(`${url}`)
 })
     .catch(ex => Janus.log(`get geoInfo`, ex));
 
-export const getSessions = (cb) => {
-    let request = { "janus": "list_sessions", "transaction": Janus.randomString(12), "admin_secret": ADMIN_SECRET };
-    getData(JANUS_ADMIN,request,(json) => {
-        let sessions = json["sessions"];
-        cb(sessions);
-    })
-};
-
-export const getHandles = (session,cb) => {
-    if(session === null || session === undefined)
-        return;
-    let request = { "janus": "list_handles", "transaction": Janus.randomString(12), "admin_secret": ADMIN_SECRET };
-    getData(`${JANUS_ADMIN}/${session}`,request,(json) => {
-        let handles = json["handles"];
-        cb(handles);
-    })
-};
-
-export const getHandleInfo = (session, handle,cb) => {
-    if(handle === null || handle === undefined)
-        return;
-    let request = { "janus": "handle_info", "transaction": Janus.randomString(12), "admin_secret": ADMIN_SECRET };
-    getData(`${JANUS_ADMIN}/${session}/${handle}`,request,(json) => {
-        let handleInfo = json["info"];
-        if(handleInfo.opaque_id === "videoroom_user" && handleInfo["plugin_specific"]["type"] === "publisher") {
-            let g = handleInfo["plugin_specific"]["display"];
-            let ip = handleInfo.streams["0"].components["0"]["selected-pair"].split(" ")[3].split(":")[0];
-            let json = {name: g, ip: ip};
-            cb(json);
-        }
-    })
-};
-
 export const getPublisherInfo = (session, handle,cb) => {
     if(handle === null || handle === undefined)
         return;
     let request = { "janus": "handle_info", "transaction": Janus.randomString(12), "admin_secret": ADMIN_SECRET };
-    getData(`${JANUS_ADMIN}/${session}/${handle}`,request,(json) => {
+    getData(`${JANUS_SRV_ADMIN}/${session}/${handle}`,request,(json) => {
         cb(json);
     })
 };

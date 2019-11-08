@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
 import { Segment } from 'semantic-ui-react';
-import {JANUS_SRV_EURFR, STUN_SRV_STR,} from "../../shared/consts";
+import {JANUS_SRV_STR, STUN_SRV_STR,} from "../../shared/consts";
 import './App.css'
 
 
@@ -47,7 +47,7 @@ class Stream extends Component {
             debug: ["error"],
             callback: () => {
                 let janus = new Janus({
-                    server: JANUS_SRV_EURFR,
+                    server: JANUS_SRV_STR,
                     iceServers: [{urls: STUN_SRV_STR}],
                     success: () => {
                         Janus.log(" :: Connected to JANUS");
@@ -75,7 +75,7 @@ class Stream extends Component {
             success: (videostream) => {
                 Janus.log(videostream);
                 this.setState({videostream});
-                videostream.send({message: {request: "watch", id: 1}});
+                videostream.send({message: {request: "watch", id: 11}});
             },
             error: (error) => {
                 Janus.log("Error attaching plugin: " + error);
