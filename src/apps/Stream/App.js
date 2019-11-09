@@ -33,9 +33,12 @@ class Stream extends Component {
     };
 
     exitJanus = () => {
-        this.state.videostream.hangup();
-        this.state.audiostream.hangup();
-        this.state.trlstream.hangup();
+        if(this.state.videostream)
+            this.state.videostream.hangup();
+        if(this.state.audiostream)
+            this.state.audiostream.hangup();
+        if(this.state.trlstream)
+            this.state.trlstream.hangup();
         this.setState({video_stream: null, audio_stream: null, trlaudio_stream: null});
         this.state.janus.destroy();
     };
