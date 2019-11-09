@@ -738,7 +738,7 @@ class TrlClient extends Component {
         this.stream.exitJanus();
         this.stopForward(room);
         this.setState({
-            muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: [], mids: [], remoteFeed: null, question: false, trl_room: null
+            muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: [], mids: [], remoteFeed: null, question: false, trl_room: null, video: true
         });
         this.initVideoRoom(reconnect);
         protocol.detach();
@@ -926,7 +926,7 @@ class TrlClient extends Component {
                                 <Segment.Group>
                                     <Stream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} />
                                     <Segment.Group horizontal>
-                                        <Segment>
+                                        <Segment className='stream_langs'>
                                             <Select compact
                                                     upward
                                                     error={!audios}
