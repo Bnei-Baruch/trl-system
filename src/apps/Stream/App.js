@@ -277,6 +277,15 @@ class Stream extends Component {
         }
     };
 
+    videoMute = (video) => {
+        if(video) {
+            this.initVideoStream(this.state.janus);
+        } else {
+            this.state.videostream.hangup();
+            this.setState({videostream: null, video_stream: null});
+        }
+    };
+
 
     render() {
 
@@ -284,6 +293,7 @@ class Stream extends Component {
 
         return (
             <Segment textAlign='center'>
+                {this.props.video ?
                 <div className='video'>
                     <video ref="remoteVideo"
                            id="remoteVideo"
@@ -293,7 +303,7 @@ class Stream extends Component {
                            controls={false}
                            muted={true}
                            playsinline={true}/>
-                </div>
+                </div> : ""}
                 <audio ref="remoteAudio"
                        id="remoteAudio"
                        autoPlay={true}

@@ -47,6 +47,7 @@ class TrlClient extends Component {
         question: false,
         selftest: "Mic Test",
         tested: false,
+        video: true,
     };
 
     checkPermission = (user) => {
@@ -771,6 +772,12 @@ class TrlClient extends Component {
         this.stream.toggleFullScreen();
     };
 
+    videoMute = () => {
+        let {video} = this.state;
+        this.setState({video: !video});
+        this.stream.videoMute(!video);
+    };
+
     setStrVolume = (value,trl) => {
         this.stream.setVolume(value,trl);
     };
@@ -799,7 +806,7 @@ class TrlClient extends Component {
 
     render() {
 
-        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user} = this.state;
+        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -917,7 +924,7 @@ class TrlClient extends Component {
                             <Table.Cell width={8} rowSpan='2'>
                                 <Message color='grey' header='Online Translators:' list={list} />
                                 <Segment.Group>
-                                    <Stream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} />
+                                    <Stream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} />
                                     <Segment.Group horizontal>
                                         <Segment>
                                             <Select compact
@@ -932,6 +939,9 @@ class TrlClient extends Component {
                                             <Button color='blue'
                                                     icon='expand arrows alternate'
                                                     onClick={this.toggleFullScreen}/>
+                                            <Button positive={video} negative={!video}
+                                                    icon={video ? "eye" : "eye slash"}
+                                                    onClick={this.videoMute} />
                                         </Segment>
                                     </Segment.Group>
                                 </Segment.Group>
