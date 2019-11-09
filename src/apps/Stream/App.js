@@ -305,20 +305,20 @@ class Stream extends Component {
                            autoPlay={true}
                            controls={false}
                            muted={true}
-                           playsinline={true}/>
+                           playsInline={true}/>
                 </div> : ""}
                 <audio ref="remoteAudio"
                        id="remoteAudio"
                        autoPlay={true}
                        controls={false}
                        muted={str_muted}
-                       playsinline={true}/>
+                       playsInline={true}/>
                 <audio ref="trlAudio"
                        id="trlAudio"
                        autoPlay={true}
                        controls={false}
                        muted={trl_muted}
-                       playsinline={true}/>
+                       playsInline={true}/>
             </Segment>
         )
     }
