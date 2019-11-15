@@ -92,7 +92,9 @@ class TrlChat extends Component {
                 Janus.log("-- :: It's protocol public message: ", ondata);
                 //this.onProtocolData(ondata);
             });
-        }, er => {}, true);
+        }, er => {
+            client.signoutRedirect();
+        }, true);
     };
 
     getRoomList = () => {

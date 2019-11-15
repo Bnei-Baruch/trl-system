@@ -98,7 +98,9 @@ class TrlAdmin extends Component {
                 Janus.log("-- :: It's protocol public message: ", ondata);
                 this.onProtocolData(ondata);
             });
-        }, er => {}, true);
+        }, er => {
+            client.signoutRedirect();
+        }, true);
         setInterval(() => {
             this.getRoomList();
             if(this.state.feed_user)
