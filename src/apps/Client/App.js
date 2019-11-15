@@ -358,7 +358,7 @@ class TrlClient extends Component {
                 // Any new feed to attach to?
                 if(msg["publishers"] !== undefined && msg["publishers"] !== null) {
                     let list = msg["publishers"];
-                    let feeds = list.filter(feeder => JSON.parse(feeder.display).role === "user");
+                    let feeds = list.filter(feeder => JSON.parse(feeder.display).role.match(/^(user|chat)$/));
                     //let feeds = [];
                     let {feedStreams,users} = this.state;
                     Janus.log(":: Got Pulbishers list: ", feeds);
@@ -843,10 +843,13 @@ class TrlClient extends Component {
         const list = feeds.map((feed,i) => {
             if(feed) {
                 let id = feed.display.rfid;
+                let role = feed.display.role;
                 let talk = feed.talk;
                 //let question = feed.question;
                 let name = feed.display.name;
-                return (<Message key={id} className='trl_name' attached={i === feeds.length-1 ? 'bottom' : true} warning color={talk ? 'green' : 'red'} >{name}</Message>);
+                return (<Message key={id} className='trl_name'
+                                 attached={i === feeds.length-1 ? 'bottom' : true} warning
+                                 color={talk ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
             }
             return true;
         });
