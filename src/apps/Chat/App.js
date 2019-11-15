@@ -179,7 +179,7 @@ class TrlChat extends Component {
                 let mypvtid = msg["private_id"];
                 this.setState({myid ,mypvtid});
                 Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
-                //this.publishOwnFeed();
+                this.publishOwnFeed();
                 // Any new feed to attach to?
                 if(msg["publishers"] !== undefined && msg["publishers"] !== null) {
                     let {feedStreams,users} = this.state;
@@ -522,12 +522,12 @@ class TrlChat extends Component {
         videoroom.createOffer(
             {
                 // Add data:true here if you want to publish datachannels as well
-                media: { audio: false, video: false, data: false },
+                media: { audio: false, video: false, data: true },
                 simulcast: false,
                 success: (jsep) => {
                     Janus.debug("Got publisher SDP!");
                     Janus.debug(jsep);
-                    let publish = { "request": "configure", "audio": false, "video": false, "data": false };
+                    let publish = { "request": "configure", "audio": false, "video": false, "data": true };
                     videoroom.send({"message": publish, "jsep": jsep});
                 },
                 error: (error) => {
