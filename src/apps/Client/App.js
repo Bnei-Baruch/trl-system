@@ -276,10 +276,6 @@ class TrlClient extends Component {
             },
             mediaState: (medium, on) => {
                 Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
-                //this.startForward();
-                setTimeout(() => {
-                    this.listForwarders()
-                }, 3000);
             },
             webrtcState: (on) => {
                 Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
@@ -355,6 +351,9 @@ class TrlClient extends Component {
                 this.setState({myid ,mypvtid});
                 Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
                 this.publishOwnFeed(true);
+                setTimeout(() => {
+                    this.listForwarders()
+                }, 3000);
                 // Any new feed to attach to?
                 if(msg["publishers"] !== undefined && msg["publishers"] !== null) {
                     let list = msg["publishers"];
