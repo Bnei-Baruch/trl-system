@@ -18,6 +18,7 @@ class TrlClient extends Component {
         stream: null,
         audio_devices: [],
         audio_device: "",
+        audio: null,
         janus: null,
         videostream: null,
         audiostream: null,
@@ -34,7 +35,6 @@ class TrlClient extends Component {
         mystream: null,
         forward_id: null,
         mids: [],
-        audio: null,
         muted: false,
         trl_muted: true,
         cammuted: false,
@@ -242,6 +242,50 @@ class TrlClient extends Component {
         }
     };
 
+    iceState = () => {
+        let count = 0;
+        let chk = setInterval(() => {
+            count++;
+            let {ice,user} = this.state;
+            if(count < 11 && ice === "connected") {
+                clearInterval(chk);
+            }
+            if(count >= 10) {
+                clearInterval(chk);
+                this.exitRoom(false);
+                alert("Network setting is changed!");
+                this.initClient(user,true);
+            }
+        },3000);
+    };
+
+    mediaState = (media) => {
+        if(media === "audio") {
+            let count = 0;
+            let chk = setInterval(() => {
+                count++;
+                let {audio,ice} = this.state;
+
+                // Audio is back stop counter
+                if(count < 11 && audio) {
+                    clearInterval(chk);
+                }
+
+                // Network problem handled in iceState
+                if(count < 11 && ice === "disconnected") {
+                    clearInterval(chk);
+                }
+
+                // Audio still not back
+                if(count >= 10 && !audio) {
+                    clearInterval(chk);
+                    this.exitRoom(false);
+                    alert("Server stopped receiving our Audio! Check your Mic");
+                }
+            },3000);
+        }
+    };
+
     initVideoRoom = (reconnect) => {
         if(this.state.videoroom)
             this.state.videoroom.detach();
@@ -273,9 +317,18 @@ class TrlClient extends Component {
             },
             iceState: (state) => {
                 Janus.log("ICE state changed to " + state);
+                this.setState({ice: state});
+                if(state === "disconnected") {
+                    // FIXME: ICE restart does not work properly, so we will do silent reconnect
+                    this.iceState();
+                }
             },
-            mediaState: (medium, on) => {
-                Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
+            mediaState: (media, on) => {
+                Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + media);
+                this.setState({[media]: on});
+                if(!on) {
+                    this.mediaState(media);
+                }
             },
             webrtcState: (on) => {
                 Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
