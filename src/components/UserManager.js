@@ -28,7 +28,7 @@ client.events.addAccessTokenExpiring(() => {
 
 client.events.addAccessTokenExpired(() => {
     console.log("...!TOKEN EXPIRED!...");
-    //client.signoutRedirect();
+    client.signoutRedirect();
 });
 
 export const getUser = (cb) =>
@@ -36,16 +36,8 @@ export const getUser = (cb) =>
         if(user){
             let at = KJUR.jws.JWS.parse(user.access_token);
             let roles = at.payloadObj.realm_access.roles;
-            //user = {...user.profile, roles}
             const {sub,given_name,name,email} = user.profile;
-            user = {
-                id: sub,
-                title: given_name,
-                username: given_name,
-                name,
-                email,
-                roles
-            }
+            user = {id: sub, title: given_name, username: given_name, name, email, roles};
         }
         cb(user)
     })
