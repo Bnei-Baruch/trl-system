@@ -10,7 +10,6 @@ class LoginPage extends Component {
     };
 
     componentDidMount() {
-        setTimeout(() => this.setState({disabled: false, loading: false}), 1000);
         this.appLogin();
     };
 
@@ -26,6 +25,7 @@ class LoginPage extends Component {
                         if(user) this.appLogin();
                     }).catch((error) => {
                         console.log("SigninSilent error: ",error);
+                        this.setState({disabled: false, loading: false});
                     });
                 });
             }
