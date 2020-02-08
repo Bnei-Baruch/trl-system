@@ -16,7 +16,13 @@ class LoginPage extends Component {
     appLogin = () => {
         getUser(user => {
             if(user) {
-                this.props.checkPermission(user);
+                client.querySessionStatus().then(() => {
+                    this.props.checkPermission(user);
+                }).catch((error) => {
+                    console.log("querySessionStatus: ", error);
+                    alert("We detect wrong browser cookies settings");
+                    client.signoutRedirect();
+                });
             } else {
                 client.signinRedirectCallback().then((user) => {
                     if(user.state) window.location = user.state;
