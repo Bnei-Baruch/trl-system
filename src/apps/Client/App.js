@@ -69,20 +69,19 @@ class TrlClient extends Component {
     initClient = (user,error) => {
         checkNotification();
         geoInfo(`${GEO_IP_INFO}`, data => {
-            Janus.log(data);
             user.ip = data.ip;
+            initJanus(janus => {
+                user.session = janus.getSessionId();
+                user.system = navigator.userAgent;
+                this.setState({janus, user});
+                this.chat.initChat(janus);
+                this.initVideoRoom(error);
+            }, er => {
+                setTimeout(() => {
+                    this.initClient(user,er);
+                }, 5000);
+            }, true);
         });
-        initJanus(janus => {
-            user.session = janus.getSessionId();
-            user.system = navigator.userAgent;
-            this.setState({janus, user});
-            this.chat.initChat(janus);
-            this.initVideoRoom(error);
-        }, er => {
-            setTimeout(() => {
-                this.initClient(user,er);
-            }, 5000);
-        }, true);
     };
 
     initDevices = () => {
@@ -404,9 +403,6 @@ class TrlClient extends Component {
                 this.setState({myid ,mypvtid});
                 Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
                 this.publishOwnFeed(true);
-                setTimeout(() => {
-                    this.listForwarders()
-                }, 3000);
                 // Any new feed to attach to?
                 if(msg["publishers"] !== undefined && msg["publishers"] !== null) {
                     let list = msg["publishers"];
@@ -441,7 +437,13 @@ class TrlClient extends Component {
                             //mid: stream.mid		// This is optional (all streams, if missing)
                         });
                     }
-                    this.setState({feeds,feedStreams,users});
+                    this.setState({feeds,feedStreams,users,delay: false});
+                    setTimeout(() => {
+                        this.micMute();
+                    }, 1000);
+                    setTimeout(() => {
+                        this.listForwarders()
+                    }, 3000);
                     if(subscription.length > 0)
                         this.subscribeTo(subscription);
                 }
@@ -710,21 +712,6 @@ class TrlClient extends Component {
         }
     };
 
-    onProtocolData = (data) => {
-        //TODO: Need to add transaction handle (filter and acknowledge)
-        // let {room,feeds,users,user} = this.state;
-        // if (data.type === "question" && data.room === room && user.id !== data.user.id) {
-        //     let rfid = users[data.user.id].rfid;
-        //     for (let i = 0; i < feeds.length; i++) {
-        //         if (feeds[i] && feeds[i].id === rfid) {
-        //             feeds[i].question = data.status;
-        //             break
-        //         }
-        //     }
-        //     this.setState({feeds});
-        // }
-    };
-
     sendDataMessage = (key,value) => {
         let {videoroom,user} = this.state;
         user[key] = value;
@@ -735,9 +722,6 @@ class TrlClient extends Component {
 
     joinRoom = (reconnect) => {
         this.setState({delay: true});
-        setTimeout(() => {
-            this.setState({delay: false});
-        }, 3000);
         let {janus, videoroom, selected_room, user, tested} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
@@ -753,9 +737,6 @@ class TrlClient extends Component {
                 let register = { "request": "join", "room": selected_room, "ptype": "publisher", "display": JSON.stringify(user) };
                 videoroom.send({"message": register});
                 this.setState({user, room: selected_room});
-                setTimeout(() => {
-                    this.micMute();
-                }, 3000);
                 this.chat.initChatRoom(user,selected_room);
                 this.stream.initJanus();
             } else if(type === "chat-broadcast") {
@@ -776,7 +757,6 @@ class TrlClient extends Component {
                 localStorage.setItem("sound_test", true);
                 this.setState({user});
             }
-            this.onProtocolData(ondata);
         });
     };
 
@@ -810,7 +790,6 @@ class TrlClient extends Component {
 
     micMute = () => {
         let {videoroom, muted} = this.state;
-        //mystream.getAudioTracks()[0].enabled = !muted;
         muted ? videoroom.unmuteAudio() : videoroom.muteAudio();
         this.setState({muted: !muted});
     };
