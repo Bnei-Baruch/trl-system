@@ -4,7 +4,7 @@ import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} fro
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
 import {audios_options, lnglist, SECRET, DANTE_IN_IP, GEO_IP_INFO} from "../../shared/consts";
-import {client} from "../../components/UserManager";
+import {kc} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol} from "../../shared/protocol";
@@ -51,14 +51,14 @@ class TrlClient extends Component {
     };
 
     checkPermission = (user) => {
-        let gxy_group = user.roles.filter(role => role === 'trl_user').length > 0;
+        const gxy_group = kc.hasRealmRole("trl_user");
         if (gxy_group) {
             delete user.roles;
             user.role = "user";
             this.initClient(user);
         } else {
             alert("Access denied!");
-            client.signoutRedirect();
+            kc.logout();
         }
     };
 

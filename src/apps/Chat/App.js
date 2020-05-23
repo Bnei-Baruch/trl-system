@@ -4,7 +4,7 @@ import {Segment, Button, Input, Table, Grid, Message, Icon} from "semantic-ui-re
 import {initJanus, initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import './App.css';
 import {initGxyProtocol} from "../../shared/protocol";
-import {client} from "../../components/UserManager";
+import {kc} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 
 class TrlChat extends Component {
@@ -52,7 +52,7 @@ class TrlChat extends Component {
     };
 
     checkPermission = (user) => {
-        let gxy_group = user.roles.filter(role => role === 'bb_user').length > 0;
+        const gxy_group = kc.hasRealmRole("bb_user");
         if (gxy_group) {
             delete user.roles;
             user.role = "chat";
@@ -60,7 +60,7 @@ class TrlChat extends Component {
             this.initShidurAdmin(user);
         } else {
             alert("Access denied!");
-            client.signoutRedirect();
+            kc.logout();
         }
     };
 
@@ -93,7 +93,7 @@ class TrlChat extends Component {
                 //this.onProtocolData(ondata);
             });
         }, er => {
-            client.signoutRedirect();
+            kc.logout();
         }, true);
     };
 

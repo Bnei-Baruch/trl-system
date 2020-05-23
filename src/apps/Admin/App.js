@@ -6,7 +6,7 @@ import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, 
 import './App.css';
 import {SECRET} from "../../shared/consts";
 import {initGxyProtocol,sendProtocolMessage} from "../../shared/protocol";
-import {client} from "../../components/UserManager";
+import {kc} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
 
@@ -62,8 +62,8 @@ class TrlAdmin extends Component {
     };
 
     checkPermission = (user) => {
-        let gxy_group = user.roles.filter(role => role === 'trl_admin').length > 0;
-        let gxy_root = user.roles.filter(role => role === 'trl_root').length > 0;
+        const gxy_group = kc.hasRealmRole("trl_admin");
+        const gxy_root = kc.hasRealmRole("trl_root");
         if (gxy_group) {
             this.setState({root: gxy_root});
             delete user.roles;
@@ -71,7 +71,7 @@ class TrlAdmin extends Component {
             this.initShidurAdmin(user);
         } else {
             alert("Access denied!");
-            client.signoutRedirect();
+            kc.logout();
         }
     };
 
@@ -99,7 +99,7 @@ class TrlAdmin extends Component {
                 this.onProtocolData(ondata);
             });
         }, er => {
-            client.signoutRedirect();
+            kc.logout();
         }, true);
         setInterval(() => {
             this.getRoomList();

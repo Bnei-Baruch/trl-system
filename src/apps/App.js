@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import {Button} from "semantic-ui-react";
 import LoginPage from '../components/LoginPage';
-import {client} from "../components/UserManager";
+import {kc} from "../components/UserManager";
 
 class TrlApp extends Component {
 
@@ -12,12 +12,12 @@ class TrlApp extends Component {
     };
 
     checkPermission = (user) => {
-        let trl_public = user.roles.filter(role => role === 'bb_user').length === 0;
+        const trl_public = kc.hasRealmRole("bb_user");
         if(!trl_public) {
             this.setState({user, roles: user.roles});
         } else {
             alert("Access denied!");
-            client.signoutRedirect();
+            kc.logout();
         }
     };
 
