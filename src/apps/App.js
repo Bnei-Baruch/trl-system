@@ -13,7 +13,7 @@ class TrlApp extends Component {
 
     checkPermission = (user) => {
         const trl_public = kc.hasRealmRole("bb_user");
-        if(!trl_public) {
+        if(trl_public) {
             this.setState({user, roles: user.roles});
         } else {
             alert("Access denied!");
