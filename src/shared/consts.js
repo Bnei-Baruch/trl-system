@@ -11,6 +11,7 @@ export const ADMIN_SECRET = process.env.REACT_APP_ADMIN_SECRET;
 export const SECRET = process.env.REACT_APP_SECRET;
 
 export const audios_options = [
+    { key: 'sr', value: 61, text: 'Source' },
     { key: 'he', value: 15, text: 'Hebrew' },
     { key: 'ru', value: 23, text: 'Russian' },
     { key: 'en', value: 24, text: 'English' },
