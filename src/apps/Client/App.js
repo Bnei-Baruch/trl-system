@@ -22,8 +22,7 @@ class TrlClient extends Component {
         janus: null,
         videostream: null,
         audiostream: null,
-        feeds: [],
-        feedStreams: {},
+        feeds: {},
         trl_room: localStorage.getItem("trl_room"),
         rooms: [],
         room: "",
@@ -34,7 +33,6 @@ class TrlClient extends Component {
         mypvtid: null,
         mystream: null,
         forward_id: null,
-        mids: [],
         muted: false,
         trl_muted: true,
         cammuted: false,
@@ -44,7 +42,6 @@ class TrlClient extends Component {
         audios: Number(localStorage.getItem("lang")) || 15,
         users: {},
         visible: true,
-        question: false,
         selftest: "Mic Test",
         tested: false,
         video: true,
@@ -297,7 +294,7 @@ class TrlClient extends Component {
                 Janus.log("  -- This is a publisher/manager");
                 let {user} = this.state;
                 user.handle = audiobridge.getId();
-                this.setState({audiobridge, user, remoteFeed: null});
+                this.setState({audiobridge, user, delay: false});
                 this.getRoomList();
                 this.initDevices(true);
                 if(reconnect) {
@@ -335,19 +332,15 @@ class TrlClient extends Component {
                     " packets on this PeerConnection (" + nacks + " NACKs/s " + (uplink ? "received" : "sent") + ")");
             },
             onmessage: (msg, jsep) => {
-                this.onBridgeMessage(this.state.audiobridge, msg, jsep, false);
+                this.onBridgeMessage(this.state.audiobridge, msg, jsep);
             },
             onlocaltrack: (track, on) => {
                 Janus.log(" ::: Got a local track event :::");
                 Janus.log("Local track " + (on ? "added" : "removed") + ":", track);
-                //this.state.audiobridge.muteAudio();
                 this.setState({mystream: track});
             },
             onremotetrack: (track, mid, on) => {
                 Janus.log(" ::: Got a remote track event ::: (remote feed)");
-                if(!mid) {
-                    mid = track.id.split("janus")[1];
-                }
                 Janus.log("Remote track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
                 // If we're here, a new track was added
                 if(track.kind === "audio" && on) {
@@ -394,8 +387,8 @@ class TrlClient extends Component {
     };
 
     onBridgeMessage = (audiobridge, msg, jsep) => {
-        Janus.debug(" ::: Got a message :::");
-        Janus.debug(msg);
+        Janus.log(" ::: Got a message :::");
+        Janus.log(msg);
         let event = msg["audiobridge"];
         Janus.debug("Event: " + event);
         if(event) {
@@ -404,21 +397,21 @@ class TrlClient extends Component {
                 let myid = msg["id"];
                 Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
                 this.publishOwnFeed();
+                setTimeout(() => {
+                    this.micMute();
+                }, 1000);
                 // Any room participant?
                 if(msg["participants"]) {
-                    let feeds = [];
+                    const {feeds} = this.state;
                     let list = msg["participants"];
                     Janus.log("Got a list of participants:");
                     Janus.log(list);
-                    // for(let f in list) {
-                    //     let id = list[f]["id"];
-                    //     let display = JSON.parse(list[f]["display"]);
-                    //     let setup = list[f]["setup"];
-                    //     let muted = list[f]["muted"];
-                    //     feeds.push({id, display, setup, muted});
-                    //     Janus.debug("  >> [" + id + "] " + list[f] + " (setup=" + setup + ", muted=" + muted + ")");
-                    // }
-                    // this.setState({feeds});
+                    for(let f in list) {
+                        let id = list[f]["id"];
+                        list[f]["display"] = JSON.parse(list[f]["display"]);
+                        feeds[id] = list[f];
+                    }
+                    this.setState({feeds});
                 }
             } else if(event === "roomchanged") {
                 // The user switched to a different room
@@ -426,34 +419,28 @@ class TrlClient extends Component {
                 Janus.log("Moved to room " + msg["room"] + ", new ID: " + myid);
                 // Any room participant?
                 if(msg["participants"]) {
+                    const {feeds} = this.state;
                     let list = msg["participants"];
                     Janus.log("Got a list of participants:");
                     Janus.log(list);
                     for(let f in list) {
                         let id = list[f]["id"];
-                        let display = list[f]["display"];
-                        let setup = list[f]["setup"];
-                        let muted = list[f]["muted"];
-                        Janus.debug("  >> [" + id + "] " + display + " (setup=" + setup + ", muted=" + muted + ")");
+                        list[f]["display"] = JSON.parse(list[f]["display"]);
+                        feeds[id] = list[f];
                     }
+                    this.setState({feeds});
                 }
             } else if(event === "talking") {
                 const {feeds} = this.state;
                 const id = msg["id"];
-                for(let i=0; i<feeds.length; i++) {
-                    if(feeds[i] && feeds[i].id === id) {
-                        feeds[i].talk = true;
-                    }
-                }
+                if(!feeds[id]) return;
+                feeds[id].talking = true;
                 this.setState({feeds});
             } else if(event === "stopped-talking") {
                 const {feeds} = this.state;
                 const id = msg["id"];
-                for(let i=0; i<feeds.length; i++) {
-                    if(feeds[i] && feeds[i].id === id) {
-                        feeds[i].talk = false;
-                    }
-                }
+                if(!feeds[id]) return;
+                feeds[id].talking = false;
                 this.setState({feeds});
             } else if(event === "destroyed") {
                 // The room has been destroyed
@@ -466,20 +453,13 @@ class TrlClient extends Component {
                     const {feeds} = this.state;
                     for(let f in list) {
                         let id = list[f]["id"];
-                        let display = JSON.parse(list[f]["display"]);
-                        let setup = list[f]["setup"];
-                        let muted = list[f]["muted"];
-                        Janus.debug("  >> [" + id + "] " + list[f] + " (setup=" + setup + ", muted=" + muted + ")");
-                        feeds.push({id, display, setup, muted});
+                        if(feeds[id]) return;
+                        list[f]["display"] = JSON.parse(list[f]["display"]);
+                        feeds[id] = list[f];
                     }
-                    this.setState({feeds})
+                    this.setState({feeds});
                 } else if(msg["error"]) {
-                    if(msg["error_code"] === 485) {
-                        // This is a "no such room" error: give a more meaningful description
-                    } else {
-                        console.error(msg["error"]);
-                    }
-                    return;
+                    console.error(msg["error"]);
                 }
                 // Any new feed to attach to?
                 if(msg["leaving"]) {
@@ -487,15 +467,8 @@ class TrlClient extends Component {
                     let leaving = msg["leaving"];
                     Janus.log("Participant left: " + leaving + " elements with ID #rp" +leaving + ")");
                     const {feeds} = this.state;
-                    for (let i=0; i<feeds.length; i++) {
-                        if (feeds[i].id === leaving) {
-                            Janus.log("Feed " + feeds[i] + " (" + leaving + ") has left the room, detaching");
-                            feeds.splice(i, 1);
-                            // Send an unsubscribe request
-                            this.setState({feeds});
-                            break
-                        }
-                    }
+                    delete feeds[leaving];
+                    this.setState({feeds});
                 }
             }
         }
@@ -520,7 +493,7 @@ class TrlClient extends Component {
                 alert(ondata.error);
                 this.state.protocol.hangup();
             } else if(type === "joined") {
-                let register = { "request": "join", "room": selected_room, "ptype": "publisher", "display": JSON.stringify(user) };
+                let register = { "request": "join", "room": selected_room, muted : true, "display": JSON.stringify(user) };
                 audiobridge.send({"message": register});
                 this.setState({user, room: selected_room});
                 this.chat.initChatRoom(user,selected_room);
@@ -552,10 +525,8 @@ class TrlClient extends Component {
         audiobridge.send({"message": leave});
         this.chat.exitChatRoom(room);
         this.stream.exitJanus();
-        this.stopForward(room);
-        this.setState({
-            muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: [], mids: [], remoteFeed: null, question: false, trl_room: null, video: true
-        });
+        //this.stopForward(room);
+        this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null});
         this.initVideoRoom(reconnect);
         protocol.detach();
     };
@@ -607,10 +578,7 @@ class TrlClient extends Component {
     };
 
     setTrlVolume = (value) => {
-        const {feeds} = this.state;
-        for(let i=0; i<feeds.length; i++) {
-            this.refs["remoteAudio" + feeds[i].id].volume = value;
-        }
+        this.refs.remoteAudio.volume = value;
     };
 
     initConnection = () => {
@@ -635,36 +603,18 @@ class TrlClient extends Component {
             return ({ key: i, text: label, value: deviceId})
         });
 
-        let trlaudio = this.state.feeds.map((feed) => {
-            if(feed) {
-                let id = feed.display.rfid;
-                //let talk = feed.talk;
-                //let question = feed.question;
-                //let name = feed.display.display;
-                return (<audio
-                        key={id}
-                        ref={"remoteAudio" + id}
-                        id={"remoteAudio" + id}
-                        autoPlay={autoPlay}
-                        controls={controls}
-                        muted={trl_muted}
-                        playsInline={true} />);
-            }
-            return true;
-        });
-
         //let l = (<Label key='Carbon' floating size='mini' color='red'>{count}</Label>);
 
-        const list = feeds.map((feed,i) => {
+        const list = Object.values(feeds).map((feed,i) => {
             if(feed) {
                 let id = feed.display.rfid;
                 let role = feed.display.role;
-                let talk = feed.talk;
+                let talking = feed.talking;
                 //let question = feed.question;
                 let name = feed.display.name;
                 return (<Message key={id} className='trl_name'
                                  attached={i === feeds.length-1 ? 'bottom' : true} warning
-                                 color={talk ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
+                                 color={talking ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
             }
             return true;
         });
@@ -739,8 +689,6 @@ class TrlClient extends Component {
                     controls={controls}
                     muted={trl_muted}
                     playsInline={true} />
-
-                {trlaudio}
 
                 {mystream ? '' : <Divider fitted />}
 
