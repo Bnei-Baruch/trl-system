@@ -4,7 +4,7 @@ import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV_TRL} from "./cons
 
 export const initJanus = (cb) => {
     Janus.init({
-        debug: process.env.NODE_ENV !== 'production' ? ["log", "error"] : ["error"],
+        debug: process.env.NODE_ENV !== 'production' ? ["log", "error"] : ["log", "error"],
         callback: () => {
             let janus = new Janus({
                 server: JANUS_SRV_TRL,

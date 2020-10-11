@@ -349,19 +349,13 @@ class TrlClient extends Component {
                     mid = track.id.split("janus")[1];
                 }
                 Janus.log("Remote track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
-                // Which publisher are we getting on this mid?
-                let {mids,feedStreams} = this.state;
-                let feed = mids[mid].feed_id;
-                Janus.log(" >> This track is coming from feed " + feed + ":", mid);
                 // If we're here, a new track was added
                 if(track.kind === "audio" && on) {
                     // New audio track: create a stream out of it, and use a hidden <audio> element
                     let stream = new MediaStream();
                     stream.addTrack(track.clone());
                     Janus.log("Created remote audio stream:", stream);
-                    feedStreams[feed].audio_stream = stream;
-                    this.setState({feedStreams});
-                    let remoteaudio = this.refs["remoteAudio" + feed];
+                    let remoteaudio = this.refs.remoteAudio;
                     Janus.attachMediaStream(remoteaudio, stream);
                 } else if(track.kind === "data") {
                     Janus.log("Created remote data channel");
@@ -399,7 +393,7 @@ class TrlClient extends Component {
             });
     };
 
-    onBridgeMessage = (audiobridge, msg, jsep, initdata) => {
+    onBridgeMessage = (audiobridge, msg, jsep) => {
         Janus.debug(" ::: Got a message :::");
         Janus.debug(msg);
         let event = msg["audiobridge"];
@@ -412,16 +406,19 @@ class TrlClient extends Component {
                 this.publishOwnFeed();
                 // Any room participant?
                 if(msg["participants"]) {
+                    let feeds = [];
                     let list = msg["participants"];
-                    Janus.debug("Got a list of participants:");
-                    Janus.debug(list);
-                    for(let f in list) {
-                        let id = list[f]["id"];
-                        let display = list[f]["display"];
-                        let setup = list[f]["setup"];
-                        let muted = list[f]["muted"];
-                        Janus.debug("  >> [" + id + "] " + display + " (setup=" + setup + ", muted=" + muted + ")");
-                    }
+                    Janus.log("Got a list of participants:");
+                    Janus.log(list);
+                    // for(let f in list) {
+                    //     let id = list[f]["id"];
+                    //     let display = JSON.parse(list[f]["display"]);
+                    //     let setup = list[f]["setup"];
+                    //     let muted = list[f]["muted"];
+                    //     feeds.push({id, display, setup, muted});
+                    //     Janus.debug("  >> [" + id + "] " + list[f] + " (setup=" + setup + ", muted=" + muted + ")");
+                    // }
+                    // this.setState({feeds});
                 }
             } else if(event === "roomchanged") {
                 // The user switched to a different room
@@ -430,8 +427,8 @@ class TrlClient extends Component {
                 // Any room participant?
                 if(msg["participants"]) {
                     let list = msg["participants"];
-                    Janus.debug("Got a list of participants:");
-                    Janus.debug(list);
+                    Janus.log("Got a list of participants:");
+                    Janus.log(list);
                     for(let f in list) {
                         let id = list[f]["id"];
                         let display = list[f]["display"];
@@ -440,21 +437,42 @@ class TrlClient extends Component {
                         Janus.debug("  >> [" + id + "] " + display + " (setup=" + setup + ", muted=" + muted + ")");
                     }
                 }
+            } else if(event === "talking") {
+                const {feeds} = this.state;
+                const id = msg["id"];
+                for(let i=0; i<feeds.length; i++) {
+                    if(feeds[i] && feeds[i].id === id) {
+                        feeds[i].talk = true;
+                    }
+                }
+                this.setState({feeds});
+            } else if(event === "stopped-talking") {
+                const {feeds} = this.state;
+                const id = msg["id"];
+                for(let i=0; i<feeds.length; i++) {
+                    if(feeds[i] && feeds[i].id === id) {
+                        feeds[i].talk = false;
+                    }
+                }
+                this.setState({feeds});
             } else if(event === "destroyed") {
                 // The room has been destroyed
                 Janus.warn("The room has been destroyed!");
             } else if(event === "event") {
                 if(msg["participants"]) {
                     let list = msg["participants"];
-                    Janus.debug("Got a list of participants:");
-                    Janus.debug(list);
+                    Janus.log("New feed joined:");
+                    Janus.log(list);
+                    const {feeds} = this.state;
                     for(let f in list) {
                         let id = list[f]["id"];
-                        let display = list[f]["display"];
+                        let display = JSON.parse(list[f]["display"]);
                         let setup = list[f]["setup"];
                         let muted = list[f]["muted"];
-                        Janus.debug("  >> [" + id + "] " + display + " (setup=" + setup + ", muted=" + muted + ")");
+                        Janus.debug("  >> [" + id + "] " + list[f] + " (setup=" + setup + ", muted=" + muted + ")");
+                        feeds.push({id, display, setup, muted});
                     }
+                    this.setState({feeds})
                 } else if(msg["error"]) {
                     if(msg["error_code"] === 485) {
                         // This is a "no such room" error: give a more meaningful description
@@ -468,163 +486,20 @@ class TrlClient extends Component {
                     // One of the participants has gone away?
                     let leaving = msg["leaving"];
                     Janus.log("Participant left: " + leaving + " elements with ID #rp" +leaving + ")");
+                    const {feeds} = this.state;
+                    for (let i=0; i<feeds.length; i++) {
+                        if (feeds[i].id === leaving) {
+                            Janus.log("Feed " + feeds[i] + " (" + leaving + ") has left the room, detaching");
+                            feeds.splice(i, 1);
+                            // Send an unsubscribe request
+                            this.setState({feeds});
+                            break
+                        }
+                    }
                 }
             }
         }
         if(jsep) {
-            Janus.debug("Handling SDP as well...");
-            Janus.debug(jsep);
-            audiobridge.handleRemoteJsep({jsep: jsep});
-        }
-    };
-
-    onMessage = (audiobridge, msg, jsep, initdata) => {
-        Janus.log(" ::: Got a message (publisher) :::");
-        Janus.log(msg);
-        let event = msg["audiobridge"];
-        if(event !== undefined && event !== null) {
-            if(event === "joined") {
-                // Publisher/manager created, negotiate WebRTC and attach to existing feeds, if any
-                let myid = msg["id"];
-                let mypvtid = msg["private_id"];
-                this.setState({myid ,mypvtid});
-                Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
-                this.publishOwnFeed();
-                // Any new feed to attach to?
-                if(msg["publishers"] !== undefined && msg["publishers"] !== null) {
-                    let list = msg["publishers"];
-                    let feeds = list.filter(feeder => JSON.parse(feeder.display).role.match(/^(user|chat)$/));
-                    //let feeds = [];
-                    let {feedStreams,users} = this.state;
-                    Janus.log(":: Got Pulbishers list: ", feeds);
-                    if(feeds.length > 9) {
-                        alert("Max users in this room is reached");
-                        window.location.reload();
-                    }
-                    Janus.debug("Got a list of available publishers/feeds:");
-                    Janus.log(list);
-                    let subscription = [];
-                    for(let f in feeds) {
-                        let id = feeds[f]["id"];
-                        let display = JSON.parse(feeds[f]["display"]);
-                        let talk = feeds[f]["talking"];
-                        let streams = feeds[f]["streams"];
-                        feeds[f].display = display;
-                        feeds[f].talk = talk;
-                        for (let i in streams) {
-                            let stream = streams[i];
-                            stream["id"] = id;
-                            stream["display"] = display;
-                        }
-                        feedStreams[id] = {id, display, streams};
-                        users[display.id] = display;
-                        users[display.id].rfid = id;
-                        subscription.push({
-                            feed: id,	// This is mandatory
-                            //mid: stream.mid		// This is optional (all streams, if missing)
-                        });
-                    }
-                    this.setState({feeds,feedStreams,users,delay: false});
-                    setTimeout(() => {
-                        this.micMute();
-                    }, 1000);
-                    setTimeout(() => {
-                        this.listForwarders()
-                    }, 3000);
-                    if(subscription.length > 0)
-                        this.subscribeTo(subscription);
-                }
-            } else if(event === "talking") {
-                let {feeds} = this.state;
-                let id = msg["id"];
-                Janus.log("User: "+id+" - start talking");
-                for(let i=0; i<feeds.length; i++) {
-                    if(feeds[i] && feeds[i].id === id) {
-                        feeds[i].talk = true;
-                    }
-                }
-                this.setState({feeds});
-            } else if(event === "stopped-talking") {
-                let {feeds} = this.state;
-                let id = msg["id"];
-                Janus.log("User: "+id+" - stop talking");
-                for(let i=0; i<feeds.length; i++) {
-                    if(feeds[i] && feeds[i].id === id) {
-                        feeds[i].talk = false;
-                    }
-                }
-                this.setState({feeds});
-            } else if(event === "destroyed") {
-                // The room has been destroyed
-                Janus.warn("The room has been destroyed!");
-            } else if(event === "event") {
-                // Any info on our streams or a new feed to attach to?
-                let {feedStreams,user,myid} = this.state;
-                if(msg["streams"] !== undefined && msg["streams"] !== null) {
-                    let streams = msg["streams"];
-                    for (let i in streams) {
-                        let stream = streams[i];
-                        stream["id"] = myid;
-                        stream["display"] = user;
-                    }
-                    feedStreams[myid] = {id: myid, display: user, streams: streams};
-                    this.setState({feedStreams})
-                } else if(msg["publishers"] !== undefined && msg["publishers"] !== null) {
-                    let feed = msg["publishers"];
-                    let {feeds,feedStreams,users} = this.state;
-                    Janus.debug("Got a list of available publishers/feeds:");
-                    Janus.log(feed);
-                    let subscription = [];
-                    for(let f in feed) {
-                        let id = feed[f]["id"];
-                        let display = JSON.parse(feed[f]["display"]);
-                        if(display.role !== "user")
-                            return;
-                        let streams = feed[f]["streams"];
-                        feed[f].display = display;
-                        for (let i in streams) {
-                            let stream = streams[i];
-                            stream["id"] = id;
-                            stream["display"] = display;
-                        }
-                        feedStreams[id] = {id, display, streams};
-                        users[display.id] = display;
-                        users[display.id].rfid = id;
-                        subscription.push({
-                            feed: id,	// This is mandatory
-                            //mid: stream.mid		// This is optional (all streams, if missing)
-                        });
-                    }
-                    feeds.push(feed[0]);
-                    this.setState({feeds,feedStreams,users});
-                    if(subscription.length > 0)
-                        this.subscribeTo(subscription);
-                } else if(msg["leaving"] !== undefined && msg["leaving"] !== null) {
-                    // One of the publishers has gone away?
-                    let leaving = msg["leaving"];
-                    Janus.log("Publisher left: " + leaving);
-                    this.unsubscribeFrom(leaving);
-
-                } else if(msg["unpublished"] !== undefined && msg["unpublished"] !== null) {
-                    let unpublished = msg["unpublished"];
-                    Janus.log("Publisher left: " + unpublished);
-                    if(unpublished === 'ok') {
-                        // That's us
-                        audiobridge.hangup();
-                        return;
-                    }
-                    this.unsubscribeFrom(unpublished);
-
-                } else if(msg["error"] !== undefined && msg["error"] !== null) {
-                    if(msg["error_code"] === 426) {
-                        Janus.log("This is a no such room");
-                    } else {
-                        Janus.log(msg["error"]);
-                    }
-                }
-            }
-        }
-        if(jsep !== undefined && jsep !== null) {
             Janus.debug("Handling SDP as well...");
             Janus.debug(jsep);
             audiobridge.handleRemoteJsep({jsep: jsep});
@@ -856,6 +731,14 @@ class TrlClient extends Component {
                     controls={controls}
                     muted={true}
                     playsinline={true}/>
+
+                <audio
+                    ref={"remoteAudio"}
+                    id={"remoteAudio"}
+                    autoPlay={autoPlay}
+                    controls={controls}
+                    muted={trl_muted}
+                    playsInline={true} />
 
                 {trlaudio}
 
