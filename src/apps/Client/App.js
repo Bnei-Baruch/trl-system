@@ -383,7 +383,7 @@ class TrlClient extends Component {
                     const {feeds} = this.state;
                     for(let f in list) {
                         let id = list[f]["id"];
-                        if(feeds[id]) return;
+                        //if(feeds[id]) return;
                         let user = JSON.parse(list[f]["display"]);
                         if(user.role !== "user")
                             continue
@@ -543,11 +543,12 @@ class TrlClient extends Component {
                 let id = feed.display.rfid;
                 let role = feed.display.role;
                 let talking = feed.talking;
+                let muted = feed.muted;
                 //let question = feed.question;
                 let name = feed.display.name;
                 return (<Message key={id} className='trl_name'
                                  attached={i === feeds.length-1 ? 'bottom' : true} warning
-                                 color={talking ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
+                                 color={!muted || talking ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
             }
             return true;
         });
