@@ -105,11 +105,10 @@ class TrlAdmin extends Component {
     };
 
     getRoomList = () => {
-        const {audiobridge,current_room} = this.state;
+        const {audiobridge} = this.state;
         if (audiobridge) {
             audiobridge.send({message: {request: "list"},
                 success: (data) => {
-                    //Janus.log(" :: Get Rooms List: ", data.list)
                     data.list.sort((a, b) => {
                         // if (a.num_participants > b.num_participants) return -1;
                         // if (a.num_participants < b.num_participants) return 1;
@@ -118,9 +117,6 @@ class TrlAdmin extends Component {
                         return 0;
                     });
                     this.setState({rooms: data.list});
-                    // if(current_room !== "") {
-                    //     this.listForward(current_room);
-                    // }
                 }
             });
         }
@@ -285,7 +281,7 @@ class TrlAdmin extends Component {
                 this.publishOwnFeed();
                 // Any room participant?
                 if(msg["participants"]) {
-                    const {feeds} = this.state;
+                    const {feeds, users} = this.state;
                     let list = msg["participants"];
                     Janus.log("Got a list of participants:");
                     Janus.log(list);
@@ -296,8 +292,10 @@ class TrlAdmin extends Component {
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];
+                        users[user.id] = user;
+                        users[user.id].rfid = id;
                     }
-                    this.setState({feeds});
+                    this.setState({feeds, users});
                 }
             } else if(event === "roomchanged") {
                 // The user switched to a different room
@@ -305,7 +303,7 @@ class TrlAdmin extends Component {
                 Janus.log("Moved to room " + msg["room"] + ", new ID: " + myid);
                 // Any room participant?
                 if(msg["participants"]) {
-                    const {feeds} = this.state;
+                    const {feeds, users} = this.state;
                     let list = msg["participants"];
                     Janus.log("Got a list of participants:");
                     Janus.log(list);
@@ -316,8 +314,10 @@ class TrlAdmin extends Component {
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];
+                        users[user.id] = user;
+                        users[user.id].rfid = id;
                     }
-                    this.setState({feeds});
+                    this.setState({feeds, users});
                 }
             } else if(event === "talking") {
                 const {feeds} = this.state;
@@ -339,7 +339,7 @@ class TrlAdmin extends Component {
                     let list = msg["participants"];
                     Janus.log("New feed joined:");
                     Janus.log(list);
-                    const {feeds} = this.state;
+                    const {feeds, users} = this.state;
                     for(let f in list) {
                         let id = list[f]["id"];
                         let user = JSON.parse(list[f]["display"]);
@@ -347,8 +347,10 @@ class TrlAdmin extends Component {
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];
+                        users[user.id] = user;
+                        users[user.id].rfid = id;
                     }
-                    this.setState({feeds});
+                    this.setState({feeds, users});
                 } else if(msg["error"]) {
                     console.error(msg["error"]);
                 }
@@ -373,13 +375,6 @@ class TrlAdmin extends Component {
     onData = (data) => {
         Janus.debug(":: We got message from Data Channel: ",data);
         let json = JSON.parse(data);
-        // var transaction = json["transaction"];
-        // if (transactions[transaction]) {
-        //     // Someone was waiting for this
-        //     transactions[transaction](json);
-        //     delete transactions[transaction];
-        //     return;
-        // }
         let what = json["textroom"];
         if (what === "message") {
             // Incoming message: public or private?
@@ -977,8 +972,8 @@ class TrlAdmin extends Component {
                               <Table selectable compact='very' basic structured className="admin_table" unstackable>
                                   <Table.Body>
                                       <Table.Row disabled>
-                                          <Table.Cell width={10}></Table.Cell>
-                                          <Table.Cell width={1}></Table.Cell>
+                                          <Table.Cell width={10} />
+                                          <Table.Cell width={1} />
                                       </Table.Row>
                                       {users_grid}
                                       <audio
@@ -1019,11 +1014,7 @@ class TrlAdmin extends Component {
               </Grid>
 
               <Segment className='chat_segment'>
-
-                  {this.state.active_tab ?
-
-                  <Tab panes={panes} onTabChange={this.tabChange} />
-                      : ""}
+                  {this.state.active_tab ? <Tab panes={panes} onTabChange={this.tabChange} /> : ""}
                   <Input fluid type='text' placeholder='Type your message' action value={this.state.input_value}
                          onChange={(v,{value}) => this.setState({input_value: value})}>
                       <input />
@@ -1033,9 +1024,8 @@ class TrlAdmin extends Component {
                               onChange={(e,{value}) => this.setState({msg_type: value})} />
                       <Button positive negative={msg_type === "all"} onClick={this.sendMessage}>Send</Button>
                   </Input>
-
-
               </Segment>
+
           </Segment>
       );
 
