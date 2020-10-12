@@ -342,7 +342,6 @@ class TrlAdmin extends Component {
                     const {feeds} = this.state;
                     for(let f in list) {
                         let id = list[f]["id"];
-                        if(feeds[id]) return;
                         let user = JSON.parse(list[f]["display"]);
                         if(user.role !== "user")
                             continue
@@ -838,12 +837,13 @@ class TrlAdmin extends Component {
       let users_grid = Object.values(feeds).map((feed,i) => {
           if(feed) {
               let talking = feed.talking;
+              let muted = feed.muted;
               return (
-                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={talking}
+                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={!muted || talking}
                              onClick={() => this.getUserInfo(feed)}
                              onContextMenu={(e) => this.addToSupport(e,feed.display.id)} >
                       <Table.Cell width={10}>{feed.display.name}</Table.Cell>
-                      <Table.Cell width={1}>{talking ? f : ""}</Table.Cell>
+                      <Table.Cell width={1}>{!muted || talking ? f : ""}</Table.Cell>
                   </Table.Row>
               )
           }
