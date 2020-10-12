@@ -3,7 +3,7 @@ import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
-import {audios_options, lnglist, SECRET, DANTE_IN_IP, GEO_IP_INFO} from "../../shared/consts";
+import {audios_options, lnglist, GEO_IP_INFO} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
@@ -159,81 +159,7 @@ class TrlClient extends Component {
                     this.setState({rooms: data.list});
                     if(this.state.trl_room !== null)
                         this.selectRoom(Number(this.state.trl_room));
-                    //this.getFeedsList(data.list)
                 }
-            });
-        }
-    };
-
-    listForwarders = () => {
-        const {audiobridge,room} = this.state;
-        let fwlist = [];
-        let req = {request:"listforwarders", room:room, secret:`${SECRET}`};
-        audiobridge.send ({"message": req,
-            success: (data) => {
-                for(let i=0; i<data.publishers.length; i++) {
-                    if(data.publishers[i].forwarders) {
-                        for(let f=0; f<data.publishers[i].forwarders.length; f++) {
-                            let port = data.publishers[i].forwarders[f].port;
-                            fwlist.push(port);
-                        }
-                    }
-                }
-                Janus.log(fwlist);
-                this.setPort(fwlist);
-            }
-        });
-    };
-
-    setPort = (fwlist) => {
-        let {name} = this.state;
-        let fwport = lnglist[name].port;
-        if(fwlist.length === 0) {
-            Janus.log("-- ::We alone here");
-            this.startForward(fwport);
-        } else if(fwlist.length === 9) {
-            Janus.log("-- ::Only 9 Translator avalabale - exiting!");
-            alert("Only 9 connection possible");
-            this.state.janus.destroy();
-        } else {
-            do {
-                Janus.debug("--  Port: "+fwport+" TAFUS");
-                fwport = fwport + 1;
-                Janus.debug("--  Let's check: "+fwport+" port");
-                // eslint-disable-next-line no-loop-func
-            } while (fwlist.find(p => p === fwport) !== undefined);
-            Janus.log("--  Going to set: "+fwport+" port");
-            this.startForward(fwport);
-        }
-    };
-
-
-    startForward = (port) => {
-        let {room,myid} = this.state;
-        const {audiobridge} = this.state;
-        Janus.log(" :: Start forward from room: ", room);
-        let forward = { request: "rtp_forward", publisher_id:myid, room:room, secret:`${SECRET}` ,host:`${DANTE_IN_IP}`, audio_port:port};
-        audiobridge.send({"message": forward,
-            success: (data) => {
-                Janus.log(":: Forward callback: ", data);
-                let forward_id = data["rtp_stream"]["audio_stream_id"];
-                // Janus.log(":: Forward ID: ", forward_id);
-                this.setState({forward_id});
-            },
-        });
-    };
-
-    stopForward = (room) => {
-        const {forward_id,myid} = this.state;
-        const {audiobridge} = this.state;
-        if(forward_id) {
-            Janus.log(" :: Stop forward from room: ", room);
-            let stopfw = { request:"stop_rtp_forward", stream_id:forward_id, publisher_id:myid, room:room, secret:`${SECRET}` };
-            audiobridge.send({"message": stopfw,
-                success: (data) => {
-                    Janus.log(":: Forward callback: ", data);
-                    this.setState({forward_id: null});
-                },
             });
         }
     };
@@ -408,7 +334,10 @@ class TrlClient extends Component {
                     Janus.log(list);
                     for(let f in list) {
                         let id = list[f]["id"];
-                        list[f]["display"] = JSON.parse(list[f]["display"]);
+                        let user = JSON.parse(list[f]["display"]);
+                        if(user.role !== "user")
+                            continue
+                        list[f]["display"] = user;
                         feeds[id] = list[f];
                     }
                     this.setState({feeds});
@@ -425,7 +354,10 @@ class TrlClient extends Component {
                     Janus.log(list);
                     for(let f in list) {
                         let id = list[f]["id"];
-                        list[f]["display"] = JSON.parse(list[f]["display"]);
+                        let user = JSON.parse(list[f]["display"]);
+                        if(user.role !== "user")
+                            continue
+                        list[f]["display"] = user;
                         feeds[id] = list[f];
                     }
                     this.setState({feeds});
@@ -454,7 +386,10 @@ class TrlClient extends Component {
                     for(let f in list) {
                         let id = list[f]["id"];
                         if(feeds[id]) return;
-                        list[f]["display"] = JSON.parse(list[f]["display"]);
+                        let user = JSON.parse(list[f]["display"]);
+                        if(user.role !== "user")
+                            continue
+                        list[f]["display"] = user;
                         feeds[id] = list[f];
                     }
                     this.setState({feeds});
