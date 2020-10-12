@@ -303,7 +303,7 @@ class TrlClient extends Component {
                 success: (jsep) => {
                     Janus.debug("Got SDP!");
                     Janus.debug(jsep);
-                    let publish = { "request": "configure", "muted": false };
+                    let publish = { "request": "configure", "muted": true };
                     audiobridge.send({"message": publish, "jsep": jsep});
                 },
                 error: (error) => {
@@ -323,9 +323,7 @@ class TrlClient extends Component {
                 let myid = msg["id"];
                 Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
                 this.publishOwnFeed();
-                setTimeout(() => {
-                    this.micMute();
-                }, 1000);
+                this.setState({muted: true});
                 // Any room participant?
                 if(msg["participants"]) {
                     const {feeds} = this.state;
@@ -460,7 +458,6 @@ class TrlClient extends Component {
         audiobridge.send({"message": leave});
         this.chat.exitChatRoom(room);
         this.stream.exitJanus();
-        //this.stopForward(room);
         this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null});
         this.initVideoRoom(reconnect);
         protocol.detach();
@@ -480,7 +477,8 @@ class TrlClient extends Component {
 
     micMute = () => {
         let {audiobridge, muted} = this.state;
-        muted ? audiobridge.unmuteAudio() : audiobridge.muteAudio();
+        let req = {request : "configure", muted: !muted}
+        audiobridge.send({"message": req});
         this.setState({muted: !muted});
     };
 
