@@ -320,25 +320,27 @@ class TrlClient extends Component {
         if(event) {
             if(event === "joined") {
                 // Successfully joined, negotiate WebRTC now
-                let myid = msg["id"];
-                Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
-                this.publishOwnFeed();
-                this.setState({muted: true});
-                // Any room participant?
-                if(msg["participants"]) {
-                    const {feeds} = this.state;
-                    let list = msg["participants"];
-                    Janus.log("Got a list of participants:");
-                    Janus.log(list);
-                    for(let f in list) {
-                        let id = list[f]["id"];
-                        let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
-                            continue
-                        list[f]["display"] = user;
-                        feeds[id] = list[f];
+                if(msg["id"]) {
+                    let myid = msg["id"];
+                    Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
+                    this.publishOwnFeed();
+                    this.setState({muted: true});
+                    // Any room participant?
+                    if(msg["participants"]) {
+                        const {feeds} = this.state;
+                        let list = msg["participants"];
+                        Janus.log("Got a list of participants:");
+                        Janus.log(list);
+                        for(let f in list) {
+                            let id = list[f]["id"];
+                            let user = JSON.parse(list[f]["display"]);
+                            if(user.role !== "user")
+                                continue
+                            list[f]["display"] = user;
+                            feeds[id] = list[f];
+                        }
+                        this.setState({feeds});
                     }
-                    this.setState({feeds});
                 }
             } else if(event === "roomchanged") {
                 // The user switched to a different room

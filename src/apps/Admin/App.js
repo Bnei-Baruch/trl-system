@@ -206,7 +206,7 @@ class TrlAdmin extends Component {
         Janus.log(" :: Enter to room: ", room);
 
         if(!current_room) {
-            let register = { "request": "join", "room": room, "display": JSON.stringify(user) };
+            let register = { "request": "join", "room": room, muted : true, "display": JSON.stringify(user) };
             audiobridge.send({"message": register});
             this.setState({switch_mode: false, current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
             joinChatRoom(chatroom,room,user);
@@ -276,26 +276,28 @@ class TrlAdmin extends Component {
         if(event) {
             if(event === "joined") {
                 // Successfully joined, negotiate WebRTC now
-                let myid = msg["id"];
-                Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
-                this.publishOwnFeed();
-                // Any room participant?
-                if(msg["participants"]) {
-                    const {feeds, users} = this.state;
-                    let list = msg["participants"];
-                    Janus.log("Got a list of participants:");
-                    Janus.log(list);
-                    for(let f in list) {
-                        let id = list[f]["id"];
-                        let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
-                            continue
-                        list[f]["display"] = user;
-                        feeds[id] = list[f];
-                        users[user.id] = user;
-                        users[user.id].rfid = id;
+                if(msg["id"]) {
+                    let myid = msg["id"];
+                    Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
+                    this.publishOwnFeed();
+                    // Any room participant?
+                    if(msg["participants"]) {
+                        const {feeds, users} = this.state;
+                        let list = msg["participants"];
+                        Janus.log("Got a list of participants:");
+                        Janus.log(list);
+                        for(let f in list) {
+                            let id = list[f]["id"];
+                            let user = JSON.parse(list[f]["display"]);
+                            if(user.role !== "user")
+                                continue
+                            list[f]["display"] = user;
+                            feeds[id] = list[f];
+                            users[user.id] = user;
+                            users[user.id].rfid = id;
+                        }
+                        this.setState({feeds, users});
                     }
-                    this.setState({feeds, users});
                 }
             } else if(event === "roomchanged") {
                 // The user switched to a different room
