@@ -40,7 +40,6 @@ class TrlAdmin extends Component {
         messages: [],
         visible: false,
         input_value: "",
-        switch_mode: false,
         users: {},
         root: false,
         support_chat: {},
@@ -208,14 +207,14 @@ class TrlAdmin extends Component {
         if(!current_room) {
             let register = { "request": "join", "room": room, muted : true, "display": JSON.stringify(user) };
             audiobridge.send({"message": register});
-            this.setState({switch_mode: false, current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
+            this.setState({current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
             joinChatRoom(chatroom,room,user);
             return;
         }
 
         this.switchRoom(room);
-        let chatreq = {textroom : "leave", transaction: Janus.randomString(12) ,"room": room};
-        this.setState({switch_mode: false, current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
+        let chatreq = {textroom : "leave", transaction: Janus.randomString(12) ,"room": current_room};
+        this.setState({current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
         chatroom.data({text: JSON.stringify(chatreq),
             success: () => {
                 Janus.log(":: Text room leave callback: ");
