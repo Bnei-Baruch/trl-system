@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import platform from "platform";
 import { Janus } from "../../lib/janus";
-import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label} from "semantic-ui-react";
+import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label, Confirm, Header} from "semantic-ui-react";
 import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, notifyMe} from "../../shared/tools";
 import './App.css';
 import {SECRET} from "../../shared/consts";
@@ -561,6 +561,13 @@ class TrlAdmin extends Component {
 
     sendRemoteCommand = (command_type) => {
         const {protocol,feed_user,user} = this.state;
+
+        if (command_type === "client-reload-all") {
+            const msg = {type: "client-reload-all", status: true, id: null, user: null, room: null};
+            sendProtocolMessage(protocol, user, msg);
+            return;
+        }
+
         if(feed_user) {
             let msg = { type: command_type, id: feed_user.id};
             sendProtocolMessage(protocol, user, msg);
@@ -791,10 +798,20 @@ class TrlAdmin extends Component {
         }
     };
 
+    onConfirmReloadAllCancel = (e, data) => {
+        this.setState({showConfirmReloadAll: false});
+    };
+
+    onConfirmReloadAllConfirm = (e, data) => {
+        console.log("RELOAD ALL")
+        this.setState({showConfirmReloadAll: false});
+        this.sendRemoteCommand("client-reload-all");
+    };
+
 
   render() {
 
-      const { bitrate,rooms,current_room,user,feeds,feed_id,feed_info,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,users} = this.state;
+      const { bitrate,rooms,current_room,user,feeds,feed_id,feed_info,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,showConfirmReloadAll} = this.state;
 
       const f = (<Icon name='volume up' />);
       const q = (<Icon color='red' name='help' />);
@@ -966,7 +983,17 @@ class TrlAdmin extends Component {
                                       <Popup trigger={<Button color="olive" icon='redo alternate' onClick={() => this.sendRemoteCommand("client-reload")} />} content='Reload page(LOST FEED HERE!)' inverted />
                                       <Popup trigger={<Button color="teal" icon='microphone' onClick={() => this.sendRemoteCommand("client-mute")} />} content='Mute/Unmute' inverted />
                                       <Popup trigger={<Button color="blue" icon='power off' onClick={() => this.sendRemoteCommand("client-disconnect")} />} content='Disconnect(LOST FEED HERE!)' inverted />
+                                      <Popup trigger={<Button color="red" icon='redo' onClick={() => this.setState({showConfirmReloadAll: !showConfirmReloadAll})} />} content='RELOAD ALL' inverted />
                                       {/*<Popup trigger={<Button color="yellow" icon='question' onClick={() => this.sendRemoteCommand("client-question")} />} content='Set/Unset question' inverted />*/}
+                                  <Confirm
+                                      open={showConfirmReloadAll}
+                                      header={
+                                          <Header><Icon name="warning circle" color="red"/>Caution</Header>
+                                      }
+                                      content="Are you sure you want to force ALL USERS to reload their page ?!"
+                                      onCancel={this.onConfirmReloadAllCancel}
+                                      onConfirm={this.onConfirmReloadAllConfirm}
+                                  />
                               </Segment>
                                   : ""}
                           <Segment textAlign='center' className="group_list" raised>

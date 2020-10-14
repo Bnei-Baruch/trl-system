@@ -441,6 +441,8 @@ class TrlClient extends Component {
                 this.exitRoom(true);
             } else if(type === "client-reload" && user.id === id) {
                 window.location.reload();
+            } else if (type === 'client-reload-all') {
+                window.location.reload();
             } else if(type === "client-disconnect" && user.id === id) {
                 this.exitRoom();
             } else if(type === "client-mute" && user.id === id) {
