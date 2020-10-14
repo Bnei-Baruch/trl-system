@@ -977,8 +977,8 @@ class TrlAdmin extends Component {
                           <Segment.Group>
                               { root ?
                               <Segment textAlign='center'>
-                                  <Popup trigger={<Button color="orange" icon='bell slash' onClick={() => this.stopForward(feed_id)} />} content='Stop forward' inverted />
-                                  <Popup trigger={<Button negative icon='user x' onClick={this.kickUser} />} content='Kick' inverted />
+                                  {/*<Popup trigger={<Button color="orange" icon='bell slash' onClick={() => this.stopForward(feed_id)} />} content='Stop forward' inverted />*/}
+                                  {/*<Popup trigger={<Button negative icon='user x' onClick={this.kickUser} />} content='Kick' inverted />*/}
                                       {/*<Popup trigger={<Button color="brown" icon='sync alternate' alt="test" onClick={() => this.sendRemoteCommand("client-reconnect")} />} content='Reconnect' inverted />*/}
                                       <Popup trigger={<Button color="olive" icon='redo alternate' onClick={() => this.sendRemoteCommand("client-reload")} />} content='Reload page(LOST FEED HERE!)' inverted />
                                       <Popup trigger={<Button color="teal" icon='microphone' onClick={() => this.sendRemoteCommand("client-mute")} />} content='Mute/Unmute' inverted />
