@@ -338,6 +338,7 @@ class TrlClient extends Component {
                                 continue
                             list[f]["display"] = user;
                             feeds[id] = list[f];
+                            feeds[id].talking = false;
                         }
                         this.setState({feeds});
                     }
@@ -359,6 +360,7 @@ class TrlClient extends Component {
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];
+                        feeds[id].talking = false;
                     }
                     this.setState({feeds});
                 }
@@ -390,6 +392,7 @@ class TrlClient extends Component {
                         if(user.role !== "user")
                             continue
                         list[f]["display"] = user;
+                        feeds[id].talking = false;
                         feeds[id] = list[f];
                     }
                     this.setState({feeds});

@@ -292,6 +292,7 @@ class TrlAdmin extends Component {
                                 continue
                             list[f]["display"] = user;
                             feeds[id] = list[f];
+                            feeds[id].talking = false;
                             users[user.id] = user;
                             users[user.id].rfid = id;
                         }
@@ -315,6 +316,7 @@ class TrlAdmin extends Component {
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];
+                        feeds[id].talking = false;
                         users[user.id] = user;
                         users[user.id].rfid = id;
                     }
@@ -348,6 +350,7 @@ class TrlAdmin extends Component {
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];
+                        feeds[id].talking = false;
                         users[user.id] = user;
                         users[user.id].rfid = id;
                     }
