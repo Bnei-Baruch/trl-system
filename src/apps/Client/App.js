@@ -392,8 +392,8 @@ class TrlClient extends Component {
                         if(user.role !== "user")
                             continue
                         list[f]["display"] = user;
-                        feeds[id].talking = false;
                         feeds[id] = list[f];
+                        feeds[id].talking = false;
                     }
                     this.setState({feeds});
                 } else if(msg["error"]) {
