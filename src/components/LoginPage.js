@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import {kc,getUser} from './UserManager';
 import { Container,Message,Button,Dropdown } from 'semantic-ui-react';
 
+//test
+
 class LoginPage extends Component {
 
     state = {
