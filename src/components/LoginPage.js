@@ -2,8 +2,6 @@ import React, { Component } from 'react';
 import {kc,getUser} from './UserManager';
 import { Container,Message,Button,Dropdown } from 'semantic-ui-react';
 
-//test
-
 class LoginPage extends Component {
 
     state = {
@@ -18,7 +16,7 @@ class LoginPage extends Component {
     appLogin = () => {
         getUser((user) => {
             if(user) {
-                this.setState({loading: false})
+                this.setState({loading: false});
                 this.props.checkPermission(user);
             } else {
                 this.setState({disabled: false, loading: false});
