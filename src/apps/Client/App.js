@@ -621,7 +621,7 @@ class TrlClient extends Component {
                     autoPlay={autoPlay}
                     controls={controls}
                     muted={true}
-                    playsinline={true}/>
+                    playsInline={true}/>
 
                 <audio
                     ref={"remoteAudio"}
