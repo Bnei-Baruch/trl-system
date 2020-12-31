@@ -1,4 +1,5 @@
 import Keycloak from 'keycloak-js';
+import {updateSentryUser} from "../shared/sentry";
 
 const userManagerConfig = {
     url: 'https://accounts.kab.info/auth',
@@ -52,6 +53,7 @@ export const getUser = (callback) => {
         if(authenticated) {
             const {realm_access: {roles},sub,given_name,name,email} = kc.tokenParsed;
             let user = {id: sub, title: given_name, username: given_name, name, email, roles};
+            updateSentryUser(user);
             callback(user)
         } else {
             callback(null)
