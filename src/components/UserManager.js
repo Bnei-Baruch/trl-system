@@ -56,6 +56,7 @@ export const getUser = (callback) => {
             updateSentryUser(user);
             callback(user)
         } else {
+            updateSentryUser(null);
             callback(null)
         }
     }).catch((err) => console.log(err));
