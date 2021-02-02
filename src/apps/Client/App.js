@@ -295,8 +295,8 @@ class TrlClient extends Component {
                 media: {video: false, audio: {
                         autoGainControl: false,
                         echoCancellation: false,
-                        highpassFilter: false,
-                        noiseSuppression: false,
+                        // highpassFilter: false,
+                        // noiseSuppression: false,
                         deviceId: {exact: audio_device}
                         }
                     },	// This is an audio only room
@@ -431,7 +431,7 @@ class TrlClient extends Component {
                 alert(ondata.error);
                 this.state.protocol.hangup();
             } else if(type === "joined") {
-                let register = { "request": "join", "room": selected_room, muted : true, "display": JSON.stringify(user) };
+                let register = { request: "join", default_prebuffering: 10, quality: 10, volume: 200, room: selected_room, muted : true, display: JSON.stringify(user) };
                 audiobridge.send({"message": register});
                 this.setState({user, room: selected_room});
                 this.chat.initChatRoom(user,selected_room);
