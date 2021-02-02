@@ -242,7 +242,7 @@ class TrlAdmin extends Component {
 
     switchRoom = (room_id) => {
         let {audiobridge, user} = this.state;
-        let switchroom = {request: "changeroom", room: room_id, display: JSON.stringify(user)};
+        let switchroom = {request: "changeroom", room: room_id, muted: true, display: JSON.stringify(user)};
             audiobridge.send ({"message": switchroom,
             success: (cb) => {
                 Janus.log(" :: Switch Room: ", room_id, cb);
@@ -258,7 +258,7 @@ class TrlAdmin extends Component {
                 success: (jsep) => {
                     Janus.debug("Got SDP!");
                     Janus.debug(jsep);
-                    let publish = { "request": "configure", "muted": true };
+                    let publish = {request: "configure", muted: true};
                     audiobridge.send({"message": publish, "jsep": jsep});
                 },
                 error: (error) => {
