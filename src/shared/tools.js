@@ -247,7 +247,7 @@ export const checkNotification = () => {
 };
 
 export const getDevicesStream = (audioid,cb) => {
-    let audio = audioid ? {autoGainControl: false, deviceId: {exact: audioid}} : "";
+    let audio = audioid ? {noiseSuppression: true, highpassFilter: true, deviceId: {exact: audioid}} : "";
         navigator.mediaDevices
             .getUserMedia({ audio: audio, video: false }).then(stream => {
             cb(stream);
