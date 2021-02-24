@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} from "semantic-ui-react";
+import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
 import './App.scss'
 import {audios_options, lnglist, GEO_IP_INFO} from "../../shared/consts";
@@ -10,6 +10,7 @@ import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol} from "../../shared/protocol";
 import Stream from "../Stream/App";
 import LoginPage from "../../components/LoginPage";
+import HomerLimud from "../../components/HomerLimud";
 
 class TrlClient extends Component {
 
@@ -600,6 +601,12 @@ class TrlClient extends Component {
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
                         {!mystream ?
                             <Button attached='right' size='huge' positive loading={delay} icon='sign-in' disabled={delay || !selected_room || !audio_device} onClick={this.joinRoom} />:""}
+                        <Modal
+                            trigger={<Menu.Item icon='book' name='Study Material'/>}
+                            on='click'
+                            closeIcon>
+                            <HomerLimud />
+                        </Modal>
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
                         {!mystream ?
