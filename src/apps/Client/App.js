@@ -432,7 +432,7 @@ class TrlClient extends Component {
                 alert(ondata.error);
                 this.state.protocol.hangup();
             } else if(type === "joined") {
-                let register = { request: "join", prebuffer: 10, quality: 10, volume: 130, room: selected_room, muted : true, display: JSON.stringify(user) };
+                let register = { request: "join", prebuffer: 10, quality: 10, volume: 100, room: selected_room, muted : true, display: JSON.stringify(user) };
                 audiobridge.send({"message": register});
                 this.setState({user, room: selected_room});
                 this.chat.initChatRoom(user,selected_room);
