@@ -295,7 +295,7 @@ export const geoInfo = (url,cb) => fetch(`${url}`)
         return response.json().then(data => cb(data));
     }
 })
-    .catch(ex => Janus.log(`get geoInfo`, ex));
+    .catch(ex => console.log(`get geoInfo`, ex));
 
 export const getPublisherInfo = (session, handle,cb) => {
     if(handle === null || handle === undefined)

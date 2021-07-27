@@ -10,7 +10,7 @@ import VolumeSlider from "../../components/VolumeSlider";
 import {initGxyProtocol} from "../../shared/protocol";
 import Stream from "../Stream/App";
 import LoginPage from "../../components/LoginPage";
-import HomerLimud from "../../components/HomerLimud";
+//import HomerLimud from "../../components/HomerLimud";
 
 class TrlClient extends Component {
 
@@ -605,7 +605,7 @@ class TrlClient extends Component {
                             trigger={<Menu.Item icon='book' name='Study Material'/>}
                             on='click'
                             closeIcon>
-                            <HomerLimud />
+                            {/*<HomerLimud />*/}
                         </Modal>
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
