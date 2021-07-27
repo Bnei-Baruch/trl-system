@@ -4,6 +4,7 @@ import {Message, Button, Input, Tab, Label, Menu} from "semantic-ui-react";
 import {initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import {SHIDUR_ID} from "../../shared/consts";
 import {sendProtocolMessage} from "../../shared/protocol";
+import mqtt from "../../shared/mqtt";
 
 
 class Chat extends Component {
@@ -26,6 +27,37 @@ class Chat extends Component {
 
     componentWillUnmount() {
         document.removeEventListener("keydown", this.onKeyPressed);
+    };
+
+    initChatEvents = () => {
+        // Public chat
+        mqtt.mq.on("MqttChatEvent", (data) => {
+            let json = JSON.parse(data);
+            if(json?.type === "client-chat") {
+                this.onChatMessage(json);
+            } else {
+                this.onData(json);
+            }
+        });
+
+        // Private chat
+        mqtt.mq.on("MqttPrivateMessage", (data) => {
+            let json = JSON.parse(data);
+            json["whisper"] = true;
+            if(json?.type === "client-chat") {
+                this.onChatMessage(json);
+            } else {
+                this.onData(json);
+            }
+        });
+
+        // Broadcast message
+        mqtt.mq.on("MqttBroadcastMessage", (data) => {
+            let json = JSON.parse(data);
+            let message = JSON.parse(json.text);
+            message.time = getDateString(json["date"]);
+            notifyMe("Arvut System", message.text, true);
+        });
     };
 
     initChat = (janus) => {

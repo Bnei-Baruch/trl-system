@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import mqtt from "../../shared/mqtt";
 import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
@@ -65,6 +66,18 @@ class TrlClient extends Component {
     };
 
     initClient = (user,error) => {
+
+        // Protocol init
+        mqtt.init(user, (data) => {
+            console.log("[mqtt] init: ", data);
+            mqtt.join("trl/users/broadcast");
+            mqtt.join("trl/users/" + user.id);
+            this.chat.initChatEvents();
+            mqtt.watch((message) => {
+                this.handleCmdData(message);
+            });
+        });
+
         checkNotification();
         geoInfo(`${GEO_IP_INFO}`, data => {
             user.ip = data.ip;
@@ -324,6 +337,16 @@ class TrlClient extends Component {
                 if(msg["id"]) {
                     let myid = msg["id"];
                     Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
+
+                    // Subscribe to mqtt topic
+                    // FIXME: Make sure here the stream is initialized
+                    setTimeout(() => {
+                        mqtt.join("trl/room/" + msg["room"]);
+                        mqtt.join("trl/room/" + msg["room"] + "/chat", true);
+                    }, 3000);
+
+                    this.stream.initJanus();
+
                     this.publishOwnFeed();
                     this.setState({muted: true});
                     // Any room participant?
@@ -415,6 +438,33 @@ class TrlClient extends Component {
             Janus.debug("Handling SDP as well...");
             Janus.debug(jsep);
             audiobridge.handleRemoteJsep({jsep: jsep});
+        }
+    };
+
+    handleCmdData = (ondata) => {
+        Janus.log("-- :: It's protocol public message: ", ondata);
+        const {user} = this.state;
+        const {type, id, to} = ondata;
+
+        if(type === "chat-broadcast") {
+            this.chat.showSupportMessage(ondata);
+        } else if(type === "question" && user.id === to) {
+            this.chat.showSupportMessage(ondata);
+        } else if(type === "client-reconnect" && user.id === id) {
+            this.exitRoom(true);
+        } else if(type === "client-reload" && user.id === id) {
+            window.location.reload();
+        } else if (type === 'client-reload-all') {
+            window.location.reload();
+        } else if(type === "client-disconnect" && user.id === id) {
+            this.exitRoom();
+        } else if(type === "client-mute" && user.id === id) {
+            this.micMute();
+        } else if(type === "sound-test" && user.id === id) {
+            let {user} = this.state;
+            user.sound_test = true;
+            localStorage.setItem("sound_test", true);
+            this.setState({user});
         }
     };
 

@@ -1,4 +1,5 @@
 import Keycloak from 'keycloak-js';
+import mqtt from "../shared/mqtt";
 import {updateSentryUser} from "../shared/sentry";
 
 const userManagerConfig = {
@@ -26,6 +27,7 @@ const renewToken = (retry) => {
         .then(refreshed => {
             if(refreshed) {
                 console.debug("-- Refreshed --");
+                mqtt.setToken(kc.token);
             } else {
                 console.warn('Token is still valid?..');
             }
@@ -53,6 +55,7 @@ export const getUser = (callback) => {
         if(authenticated) {
             const {realm_access: {roles},sub,given_name,name,email} = kc.tokenParsed;
             let user = {id: sub, title: given_name, username: given_name, name, email, roles};
+            mqtt.setToken(kc.token);
             updateSentryUser(user);
             callback(user)
         } else {

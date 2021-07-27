@@ -1,6 +1,15 @@
 import {Janus} from "../lib/janus";
 import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV_TRL} from "./consts";
 
+export const randomString = (len) => {
+    let charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let randomString = "";
+    for (let i = 0; i < len; i++) {
+        let randomPoz = Math.floor(Math.random() * charSet.length);
+        randomString += charSet.substring(randomPoz, randomPoz + 1);
+    }
+    return randomString;
+};
 
 export const initJanus = (cb) => {
     Janus.init({

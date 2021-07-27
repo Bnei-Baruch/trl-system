@@ -1,4 +1,5 @@
 export const PROTOCOL_ROOM = 1000;
+export const MQTT_URL = process.env.REACT_APP_MQTT_URL;
 export const SHIDUR_ID = "ce332655-d702-40d0-83eb-a6b950976984";
 export const GEO_IP_INFO = process.env.REACT_APP_GEO_IP_INFO;
 export const DANTE_IN_IP = process.env.REACT_APP_DANTE_IN_IP;
