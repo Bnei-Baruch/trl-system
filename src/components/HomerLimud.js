@@ -1,21 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {Accordion, Box, AccordionSummary, Typography, AccordionDetails} from '@material-ui/core';
-import {makeStyles} from "@material-ui/core/styles";
+import { Accordion, Segment } from 'semantic-ui-react'
 import {STUDY_MATERIALS} from "../shared/consts";
-
-
-const useStyles = makeStyles(
-  {
-    title: {
-      fontWeight: 'bold',
-    },
-    content: {
-      overflow: 'auto',
-      textOverflow: 'ellipsis',
-      textAlign: 'initial'
-    }
-  }
-);
 
 const fetchMessages = async () => {
   try {
@@ -30,7 +15,18 @@ const HomerLimud = () => {
   const [messages, setMessages] = useState([]);
   const [expanded, setExpanded] = useState();
 
-  const classes = useStyles();
+  const classes = {
+    title: {
+      fontWeight: 'bold',
+      fontSize: '20px',
+      textAlign: 'initial'
+    },
+    content: {
+      overflow: 'auto',
+      textOverflow: 'ellipsis',
+      textAlign: 'initial'
+    }
+  };
 
   useEffect(() => {
     initMessages();
@@ -42,27 +38,27 @@ const HomerLimud = () => {
       setMessages(msgs);
   };
 
-  const handleAccordionChange = (name) => name !== expanded ? setExpanded(name) : setExpanded(null);
+  const handleAccordionChange = (i) => i !== expanded ? setExpanded(i) : setExpanded(null);
 
   const renderMessage = ({Title, Description: __html}, i) => {
     return (
-      <Accordion key={i} expanded={expanded === `panel${i}`} onChange={() => handleAccordionChange(`panel${i}`)}>
-        <AccordionSummary>
-          <Typography className={classes.title}>{Title}</Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography className={classes.content}>
-            <div dangerouslySetInnerHTML={{__html}}></div>
-          </Typography>
-        </AccordionDetails>
+      <Accordion key={i} >
+        <Accordion.Title onClick={() => handleAccordionChange(i)}>
+          <p style={classes.title}>{Title}</p>
+        </Accordion.Title>
+        <Accordion.Content active={expanded === i}>
+          <p style={classes.content}>
+            <div dangerouslySetInnerHTML={{__html}} />
+          </p>
+        </Accordion.Content>
       </Accordion>
     );
   };
 
   return (
-    <Box style={{height: 'calc(100vh - 140px)', overflow: 'auto'}}>
+    <Segment basic style={{height: 'calc(100vh - 140px)', overflow: 'auto'}}>
       {messages.map(renderMessage)}
-    </Box>
+    </Segment>
   );
 
 };
