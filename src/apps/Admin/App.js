@@ -2,10 +2,9 @@ import React, { Component } from 'react';
 import platform from "platform";
 import { Janus } from "../../lib/janus";
 import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label, Confirm, Header} from "semantic-ui-react";
-import {initJanus, initChatRoom, getDateString, joinChatRoom, getPublisherInfo, notifyMe} from "../../shared/tools";
+import {initJanus, getDateString, getPublisherInfo, notifyMe} from "../../shared/tools";
 import './App.css';
 import {SECRET} from "../../shared/consts";
-import {initGxyProtocol,sendProtocolMessage} from "../../shared/protocol";
 import {kc} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
@@ -435,14 +434,14 @@ class TrlAdmin extends Component {
     onData = (data) => {
         let {users,rooms} = this.state;
 
-        if(data.type === "question") {
+        if(data.type === "support") {
             if(data.user.role === "admin")
                 return;
             if(users[data.user.id]) {
-                users[data.user.id].question = data.status;
+                users[data.user.id].support = data.status;
                 this.setState({users});
             } else {
-                users[data.user.id] = {question: data.status};
+                users[data.user.id] = {support: data.status};
                 this.setState({users});
             }
             let {support_chat,active_tab} = this.state;
@@ -464,7 +463,7 @@ class TrlAdmin extends Component {
             }
             //data.text = "test";
             support_chat[data.user.id].msgs.push(data);
-            this.setState({support_chat,msg_type: "support"},() => {
+            this.setState({support_chat, msg_type: "support"},() => {
                 this.scrollToBottom();
             });
             if(document.hidden)
@@ -481,7 +480,7 @@ class TrlAdmin extends Component {
     };
 
     sendDataMessage = () => {
-        const {current_room, user, input_value, feed_user} = this.state;
+        const {current_room, user, input_value} = this.state;
         let {id, role, name} = user;
 
         if (input_value === "") {
@@ -489,7 +488,7 @@ class TrlAdmin extends Component {
         }
 
         const msg = {user: {id, role, name}, type: "client-chat", text: input_value};
-        const topic = feed_user?.id ? `trl/users/${user.id}` : `trl/room/${current_room}/chat`;
+        const topic = `trl/room/${current_room}/chat`;
 
         mqtt.send(JSON.stringify(msg), false, topic);
 
@@ -499,11 +498,11 @@ class TrlAdmin extends Component {
 
     supportMessage = () => {
         const {current_room,input_value,user,active_tab,support_chat} = this.state;
-        let msg = { type: "client-chat", room: current_room, user, text: input_value, to: active_tab.id};
+        let msg = { type: "support", room: current_room, user, text: input_value, to: active_tab.id};
         msg.time = getDateString();
         support_chat[active_tab.id].msgs.push(msg);
 
-        const topic = `trl/users/${user.id}`
+        const topic = `trl/users/${active_tab.id}`
         mqtt.send(JSON.stringify(msg), false, topic);
 
         Janus.log("-:: It's support message: "+msg);
@@ -513,31 +512,27 @@ class TrlAdmin extends Component {
     };
 
     sendBroadcastMessage = () => {
-        const { protocol, current_room, input_value, messages, user } = this.state;
-        let msg = { type: "chat-broadcast", room: current_room, user, text: input_value};
-        sendProtocolMessage(protocol, null, msg );
-        msg.time = getDateString();
-        msg.to = "ALL";
-        Janus.log("-:: It's broadcast message: "+msg);
-        messages.push(msg);
-        this.setState({messages, input_value: "", msg_type: "room"}, () => {
-            this.scrollToBottom();
-        });
+        const {current_room, input_value, user} = this.state;
+        let msg = { type: "client-chat", room: current_room, user, text: input_value};
+        const topic = `trl/users/broadcast`;
+        mqtt.send(JSON.stringify(msg), false, topic);
+        this.setState({input_value: ""});
     };
 
     sendRemoteCommand = (command_type) => {
-        const {protocol,feed_user,user} = this.state;
+        const {feed_user} = this.state;
+        let msg
 
         if (command_type === "client-reload-all") {
-            const msg = {type: "client-reload-all", status: true, id: null, user: null, room: null};
-            sendProtocolMessage(protocol, user, msg);
-            return;
+            msg = {type: "client-reload-all", status: true, id: null, user: null, room: null};
         }
 
         if(feed_user) {
-            let msg = { type: command_type, id: feed_user.id};
-            sendProtocolMessage(protocol, user, msg);
+            msg = {type: command_type, id: feed_user.id};
         }
+
+        const topic = `trl/users/${feed_user.id}`
+        mqtt.send(JSON.stringify(msg), false, topic);
     };
 
     sendMessage = () => {
@@ -759,8 +754,8 @@ class TrlAdmin extends Component {
                 this.setState({active_tab});
             }
             let user = users[id];
-            let data = {user, room: current_room,time: getDateString(),type: "question",text: ":: Admin request ::"};
-            this.onProtocolData(data);
+            let data = {user, room: current_room, time: getDateString(), type:"support", text:":: Admin request ::"};
+            this.onData(data);
         }
     };
 

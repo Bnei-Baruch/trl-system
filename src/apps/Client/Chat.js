@@ -46,7 +46,7 @@ class Chat extends Component {
             if(json?.type === "client-chat") {
                 this.onChatMessage(json);
             } else {
-                this.onData(json);
+                this.showSupportMessage(json);
             }
         });
 
@@ -119,11 +119,10 @@ class Chat extends Component {
     };
 
     supportMessage = () => {
-        //TODO: only when shidur user is online will be avelable send question event, so we need to add check
-        const {user, room, question} = this.props;
+        const {user, room} = this.props;
         let {support_msgs,input_value} = this.state;
         let text = input_value || " :: Support request :: ";
-        let msg = { type: "question", status: !question, room, user, text, time: getDateString()};
+        let msg = {type: "support", status: true, room, user, text, time: getDateString()};
         mqtt.send(JSON.stringify(msg), false, "trl/users/support");
         support_msgs.push(msg);
         this.setState({support_msgs, input_value: ""}, () => {

@@ -446,7 +446,7 @@ class TrlClient extends Component {
 
         if(type === "chat-broadcast") {
             this.chat.showSupportMessage(ondata);
-        } else if(type === "question" && user.id === to) {
+        } else if(type === "support" && user.id === to) {
             this.chat.showSupportMessage(ondata);
         } else if(type === "client-reconnect" && user.id === id) {
             this.exitRoom(true);
