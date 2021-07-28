@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
-import {Segment, Button, Input, Table, Grid, Message, Icon} from "semantic-ui-react";
+import {Segment, Button, Input, Table, Grid, Message} from "semantic-ui-react";
 import {initJanus, initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
 import './App.css';
 import {initGxyProtocol} from "../../shared/protocol";

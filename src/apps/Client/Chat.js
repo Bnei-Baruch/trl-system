@@ -34,8 +34,6 @@ class Chat extends Component {
             let json = JSON.parse(data);
             if(json?.type === "client-chat") {
                 this.onChatMessage(json);
-            } else {
-                this.onData(json);
             }
         });
 
@@ -45,8 +43,10 @@ class Chat extends Component {
             json["whisper"] = true;
             if(json?.type === "client-chat") {
                 this.onChatMessage(json);
-            } else {
+            } else if(json?.type === "support") {
                 this.showSupportMessage(json);
+            } else {
+                this.props.onCmdMsg(json);
             }
         });
 
