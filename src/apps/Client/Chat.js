@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
 import {Message, Button, Input, Tab, Label, Menu} from "semantic-ui-react";
-import {initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
-import {SHIDUR_ID} from "../../shared/consts";
-import {sendProtocolMessage} from "../../shared/protocol";
+import {getDateString, notifyMe} from "../../shared/tools";
+//import {SHIDUR_ID} from "../../shared/consts";
 import mqtt from "../../shared/mqtt";
 
 
@@ -54,24 +53,14 @@ class Chat extends Component {
         // Broadcast message
         mqtt.mq.on("MqttBroadcastMessage", (data) => {
             let json = JSON.parse(data);
-            let message = JSON.parse(json.text);
-            message.time = getDateString(json["date"]);
-            notifyMe("Arvut System", message.text, true);
-        });
-    };
+            if(json?.type === "client-chat") {
+                json.time = getDateString(json["date"]);
+                notifyMe("Arvut System", json.text, true);
+            } else {
+                this.props.onCmdMsg(json);
+            }
 
-    initChat = (janus) => {
-        initChatRoom(janus, null, chatroom => {
-            Janus.log(":: Got Chat Handle: ", chatroom);
-            this.setState({chatroom});
-        }, data => {
-            this.onData(data);
         });
-    };
-
-    initChatRoom = (user, room) => {
-        joinChatRoom(this.state.chatroom,room,user);
-        this.setState({room});
     };
 
     onKeyPressed = (e) => {
@@ -79,82 +68,37 @@ class Chat extends Component {
             this.sendMessage();
     };
 
-    exitChatRoom = (room) => {
-        let {chatroom} = this.state;
-        let chatreq = {textroom : "leave", transaction: Janus.randomString(12),"room": room};
-        chatroom.data({text: JSON.stringify(chatreq),
-            success: () => {
-                Janus.log(":: Text room leave callback: ");
-                this.setState({messages:[]});
-            }
-        });
-    };
+    onChatMessage = (message) => {
+        const dateString = getDateString();
+        message.time = dateString;
 
-    onData = (data) => {
-        Janus.log(":: We got message from Data Channel: ",data);
-        var json = JSON.parse(data);
-        // var transaction = json["transaction"];
-        // if (transactions[transaction]) {
-        //     // Someone was waiting for this
-        //     transactions[transaction](json);
-        //     delete transactions[transaction];
-        //     return;
-        // }
-        var what = json["textroom"];
-        if (what === "message") {
-            // Incoming message: public or private?
-            var msg = json["text"];
-            msg = msg.replace(new RegExp('<', 'g'), '&lt');
-            msg = msg.replace(new RegExp('>', 'g'), '&gt');
-            var from = json["from"];
-            var dateString = getDateString(json["date"]);
-            var whisper = json["whisper"];
-            if (whisper === true) {
-                // Private message
-                Janus.log("-:: It's private message: "+dateString+" : "+from+" : "+msg)
-                let {support_msgs} = this.state;
-                let message = JSON.parse(msg);
-                message.time = dateString;
-                support_msgs.push(message);
-                this.setState({support_msgs, from});
-                if(this.state.room_chat)
-                    this.setState({admin_count: this.state.admin_count + 1});
-                if(this.props.visible) {
-                    this.scrollToBottom();
-                } else {
-                    notifyMe("Shidur",message.text,true);
-                    this.setState({room_chat: false});
-                }
-            } else {
-                // Public message
-                let {messages} = this.state;
-                let message = JSON.parse(msg);
-                message.time = dateString;
-                Janus.log("-:: It's public message: ",message);
-                messages.push(message);
-                this.setState({messages});
-                if(!this.state.room_chat)
-                    this.setState({room_count: this.state.room_count + 1});
-                if(document.hidden)
-                    notifyMe(message.user.name, message.text,false);
+        if (message.whisper) {
+
+            let {support_msgs} = this.state;
+            message.time = dateString;
+            support_msgs.push(message);
+            this.setState({support_msgs, from: message.user.display});
+            if(this.state.room_chat)
+                this.setState({admin_count: this.state.admin_count + 1});
+            if(this.props.visible) {
                 this.scrollToBottom();
+            } else {
+                notifyMe("Shidur", message.text,true);
+                this.setState({room_chat: false});
             }
-        } else if (what === "join") {
-            // Somebody joined
-            let username = json["username"];
-            let display = json["display"];
-            Janus.log("-:: Somebody joined - username: "+username+" : display: "+display)
-        } else if (what === "leave") {
-            // Somebody left
-            let username = json["username"];
-            //var when = new Date();
-            Janus.log("-:: Somebody left - username: "+username+" : Time: "+getDateString())
-        } else if (what === "kicked") {
-            // Somebody was kicked
-            // var username = json["username"];
-        } else if (what === "destroyed") {
-            let room = json["room"];
-            Janus.log("The room: "+room+" has been destroyed")
+        } else {
+
+            // Public message
+            let {messages} = this.state;
+            message.time = dateString;
+            Janus.log("-:: It's public message: ",message);
+            messages.push(message);
+            this.setState({messages});
+            if(!this.state.room_chat)
+                this.setState({room_count: this.state.room_count + 1});
+            if(document.hidden)
+                notifyMe(message.user.name, message.text,false);
+            this.scrollToBottom();
         }
     };
 
@@ -176,45 +120,36 @@ class Chat extends Component {
 
     supportMessage = () => {
         //TODO: only when shidur user is online will be avelable send question event, so we need to add check
-        const { protocol, user, room, question} = this.props;
+        const {user, room, question} = this.props;
         let {support_msgs,input_value} = this.state;
         let text = input_value || " :: Support request :: ";
         let msg = { type: "question", status: !question, room, user, text, time: getDateString()};
-        sendProtocolMessage(protocol, user, msg );
+        mqtt.send(JSON.stringify(msg), false, "trl/users/support");
         support_msgs.push(msg);
-        this.setState({support_msgs,input_value: ""}, () => {
+        this.setState({support_msgs, input_value: ""}, () => {
             this.scrollToBottom();
         });
     };
 
-    sendChatMessage = () => {
-        let {input_value, user, from, room_chat, support_msgs} = this.state;
-        let msg = {user, text: input_value};
-        let pvt = room_chat ? "" : from ? {"to": from} : {"to": `${SHIDUR_ID}`};
-        let message = {
-            textroom: "message",
-            transaction: Janus.randomString(12),
-            room: this.state.room,
-            ...pvt,
-            text: JSON.stringify(msg),
-        };
-        // Note: messages are always acknowledged by default. This means that you'll
-        // always receive a confirmation back that the message has been received by the
-        // server and forwarded to the recipients. If you do not want this to happen,
-        // just add an ack:false property to the message above, and server won't send
-        // you a response (meaning you just have to hope it succeeded).
-        this.state.chatroom.data({
-            text: JSON.stringify(message),
-            error: (reason) => { alert(reason); },
-            success: () => {
-                Janus.log(":: Message sent ::");
-                this.setState({input_value: ""});
-                if(!room_chat) {
-                    support_msgs.push(msg);
-                    this.setState({support_msgs});
-                }
-            }
-        });
+    sendChatMessage = (user) => {
+        const {room_chat} = this.state;
+        let {id, role, name} = this.props.user;
+        let {input_value, support_msgs} = this.state;
+
+        if (!role.match(/^(user|guest)$/) || input_value === "") {
+            return;
+        }
+
+        const msg = {user: {id, role, name}, type: "client-chat", text: input_value};
+        const topic = user?.id ? `trl/users/${user.id}` : `trl/room/${this.props.room}/chat`;
+
+        mqtt.send(JSON.stringify(msg), false, topic);
+
+        this.setState({input_value: ""});
+        if (!room_chat) {
+            support_msgs.push(msg);
+            this.setState({support_msgs});
+        }
     };
 
     scrollToBottom = () => {

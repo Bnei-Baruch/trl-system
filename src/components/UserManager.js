@@ -54,7 +54,7 @@ export const getUser = (callback) => {
         .then(authenticated => {
         if(authenticated) {
             const {realm_access: {roles},sub,given_name,name,email} = kc.tokenParsed;
-            let user = {id: sub, title: given_name, username: given_name, name, email, roles};
+            let user = {id: sub, display: name, username: given_name, name, email, roles};
             mqtt.setToken(kc.token);
             updateSentryUser(user);
             callback(user)

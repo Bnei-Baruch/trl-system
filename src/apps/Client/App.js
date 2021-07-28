@@ -8,7 +8,6 @@ import {audios_options, lnglist, GEO_IP_INFO} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
 import Chat from "./Chat";
 import VolumeSlider from "../../components/VolumeSlider";
-import {initGxyProtocol} from "../../shared/protocol";
 import Stream from "../Stream/App";
 import LoginPage from "../../components/LoginPage";
 import HomerLimud from "../../components/HomerLimud";
@@ -66,18 +65,6 @@ class TrlClient extends Component {
     };
 
     initClient = (user,error) => {
-
-        // Protocol init
-        mqtt.init(user, (data) => {
-            console.log("[mqtt] init: ", data);
-            mqtt.join("trl/users/broadcast");
-            mqtt.join("trl/users/" + user.id);
-            this.chat.initChatEvents();
-            mqtt.watch((message) => {
-                this.handleCmdData(message);
-            });
-        });
-
         checkNotification();
         geoInfo(`${GEO_IP_INFO}`, data => {
             user.ip = data.ip;
@@ -85,7 +72,18 @@ class TrlClient extends Component {
                 user.session = janus.getSessionId();
                 user.system = navigator.userAgent;
                 this.setState({janus, user});
-                this.chat.initChat(janus);
+
+                // Protocol init
+                mqtt.init(user, (data) => {
+                    console.log("[mqtt] init: ", data, user);
+                    mqtt.join("trl/users/broadcast");
+                    mqtt.join("trl/users/" + user.id);
+                    this.chat.initChatEvents();
+                    mqtt.watch((message) => {
+                        this.handleCmdData(message);
+                    });
+                });
+
                 this.initVideoRoom(error);
             }, er => {
                 setTimeout(() => {
@@ -470,55 +468,22 @@ class TrlClient extends Component {
 
     joinRoom = (reconnect) => {
         this.setState({delay: true});
-        let {janus, audiobridge, selected_room, user, tested} = this.state;
+        let {audiobridge, selected_room, user, tested} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
-        initGxyProtocol(janus, user, protocol => {
-            this.setState({protocol});
-        }, ondata => {
-            Janus.log("-- :: It's protocol public message: ", ondata);
-            const {type,error_code,id,to} = ondata;
-            if(type === "error" && error_code === 420) {
-                alert(ondata.error);
-                this.state.protocol.hangup();
-            } else if(type === "joined") {
-                let register = { request: "join", prebuffer: 10, quality: 10, volume: 100, room: selected_room, muted : true, display: JSON.stringify(user) };
-                audiobridge.send({"message": register});
-                this.setState({user, room: selected_room});
-                this.chat.initChatRoom(user,selected_room);
-                this.stream.initJanus();
-            } else if(type === "chat-broadcast") {
-                this.chat.showSupportMessage(ondata);
-            } else if(type === "question" && user.id === to) {
-                this.chat.showSupportMessage(ondata);
-            } else if(type === "client-reconnect" && user.id === id) {
-                this.exitRoom(true);
-            } else if(type === "client-reload" && user.id === id) {
-                window.location.reload();
-            } else if (type === 'client-reload-all') {
-                window.location.reload();
-            } else if(type === "client-disconnect" && user.id === id) {
-                this.exitRoom();
-            } else if(type === "client-mute" && user.id === id) {
-                this.micMute();
-            } else if(type === "sound-test" && user.id === id) {
-                let {user} = this.state;
-                user.sound_test = true;
-                localStorage.setItem("sound_test", true);
-                this.setState({user});
-            }
-        });
+        let register = {request: "join", prebuffer: 10, quality: 10, volume: 100, room: selected_room, muted : true, display: JSON.stringify(user)};
+        audiobridge.send({"message": register});
+        this.setState({user, room: selected_room});
     };
 
     exitRoom = (reconnect) => {
-        let {audiobridge, protocol, room} = this.state;
-        let leave = {request : "leave"};
-        audiobridge.send({"message": leave});
-        this.chat.exitChatRoom(room);
+        let {audiobridge, room} = this.state;
+        audiobridge.send({"message": {request : "leave"}});
         this.stream.exitJanus();
         this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null});
         this.initVideoRoom(reconnect);
-        protocol.detach();
+        mqtt.exit("galaxy/room/" + room);
+        mqtt.exit("galaxy/room/" + room + "/chat");
     };
 
     selectRoom = (i) => {
@@ -732,7 +697,7 @@ class TrlClient extends Component {
                                     <Chat {...this.state}
                                           ref={chat => {this.chat = chat;}}
                                           visible={this.state.visible}
-                                          janus={this.state.janus}
+                                          onCmdMsg={this.handleCmdData}
                                           room={room}
                                           user={this.state.user} />
                                 </Table.Cell>
