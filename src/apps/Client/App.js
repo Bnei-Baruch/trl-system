@@ -471,7 +471,9 @@ class TrlClient extends Component {
         let {audiobridge, selected_room, user, tested} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
-        let register = {request: "join", prebuffer: 10, quality: 10, volume: 100, room: selected_room, muted : true, display: JSON.stringify(user)};
+        const param = new URL(window.location.href).searchParams.get("volume");
+        const volume = param ? parseInt(param, 10) : 100;
+        let register = {request: "join", prebuffer: 10, quality: 10, volume, room: selected_room, muted : true, display: JSON.stringify(user)};
         audiobridge.send({"message": register});
         this.setState({user, room: selected_room});
     };

@@ -3,66 +3,64 @@ import mqtt from "../shared/mqtt";
 import {updateSentryUser} from "../shared/sentry";
 
 const userManagerConfig = {
-    url: 'https://accounts.kab.info/auth',
-    realm: 'main',
-    clientId: 'trl',
-    scope: 'profile',
+    url: "https://accounts.kab.info/auth",
+    realm: "main",
+    clientId: "trl",
+};
+
+const initOptions = {
+    onLoad: "check-sso",
+    checkLoginIframe: false,
+    flow: "standard",
+    pkceMethod: "S256",
     enableLogging: true,
 };
 
 export const kc = new Keycloak(userManagerConfig);
 
 kc.onTokenExpired = () => {
-    console.debug(" -- Renew token -- ");
     renewToken(0);
 };
 
 kc.onAuthLogout = () => {
-    console.debug("-- Detect clearToken --");
+    mqtt.setToken(null);
     kc.logout();
-}
+};
 
 const renewToken = (retry) => {
-    kc.updateToken(70)
+    retry++;
+    kc.updateToken(5)
         .then(refreshed => {
-            if(refreshed) {
-                console.debug("-- Refreshed --");
+            if (refreshed) {
                 mqtt.setToken(kc.token);
-            } else {
-                console.warn('Token is still valid?..');
             }
         })
-        .catch(err => {
-            retry++;
-            if(retry > 5) {
-                console.error("Refresh retry: failed");
-                console.debug("-- Refresh Failed --");
+        .catch(() => {
+            if (retry > 10) {
                 kc.clearToken();
             } else {
                 setTimeout(() => {
-                    console.error("Refresh retry: " + retry);
                     renewToken(retry);
                 }, 10000);
             }
         });
-}
+};
 
-
+const setData = () => {
+    const {realm_access: {roles}, sub, given_name, name, email} = kc.tokenParsed;
+    let user = {id: sub, display: name, username: given_name, name, email, roles};
+    mqtt.setToken(kc.token);
+    updateSentryUser(user);
+    return user;
+};
 
 export const getUser = (callback) => {
-    kc.init({onLoad: 'check-sso', checkLoginIframe: false, flow: 'standard', pkceMethod: 'S256'})
+    kc.init(initOptions)
         .then(authenticated => {
-        if(authenticated) {
-            const {realm_access: {roles},sub,given_name,name,email} = kc.tokenParsed;
-            let user = {id: sub, display: name, username: given_name, name, email, roles};
-            mqtt.setToken(kc.token);
-            updateSentryUser(user);
-            callback(user)
-        } else {
-            updateSentryUser(null);
-            callback(null)
-        }
-    }).catch((err) => console.log(err));
+            const user = authenticated ? setData() : null;
+            callback(user);
+        })
+        .catch(err => console.error(err));
 };
 
 export default kc;
