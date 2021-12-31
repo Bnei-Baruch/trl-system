@@ -135,16 +135,16 @@ class TrlClient extends Component {
     };
 
     selfTest = () => {
-        this.setState({selftest: "Recording... 9"});
+        this.setState({selftest: "Recording... 4"});
         testMic(this.state.stream);
 
-        let rect = 9;
+        let rect = 4;
         let rec = setInterval(() => {
             rect--;
             this.setState({selftest: "Recording... " + rect});
             if(rect <= 0) {
                 clearInterval(rec);
-                let playt = 11;
+                let playt = 5;
                 let play = setInterval(() => {
                     playt--;
                     this.setState({selftest: "Playing... " + playt});

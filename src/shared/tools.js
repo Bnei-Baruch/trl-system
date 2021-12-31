@@ -223,8 +223,8 @@ export const sleep = time => new Promise(resolve => setTimeout(resolve, time));
 export const testMic = async (stream) => {
     const recorder = await recordAudio(stream);
     recorder.start();
-    await sleep(10000);
+    await sleep(5000);
     const audio = await recorder.stop();
     audio.play();
-    await sleep(10000);
+    await sleep(5000);
 };
