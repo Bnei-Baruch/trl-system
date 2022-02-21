@@ -3,16 +3,16 @@ import mqtt from "../../shared/mqtt";
 import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
 import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
-import './App.scss'
+import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
-import Chat from "./Chat";
+import ClientChat from "./ClientChat";
 import VolumeSlider from "../../components/VolumeSlider";
-import Stream from "../Stream/App";
+import Stream from "../Stream/HttpStream";
 import LoginPage from "../../components/LoginPage";
 import HomerLimud from "../../components/HomerLimud";
 
-class TrlClient extends Component {
+class HttpClient extends Component {
 
     state = {
         audioContext: null,
@@ -696,12 +696,12 @@ class TrlClient extends Component {
                             </Table.Row>
                             <Table.Row>
                                 <Table.Cell width={7}>
-                                    <Chat {...this.state}
-                                          ref={chat => {this.chat = chat;}}
-                                          visible={this.state.visible}
-                                          onCmdMsg={this.handleCmdData}
-                                          room={room}
-                                          user={this.state.user} />
+                                    <ClientChat {...this.state}
+                                                ref={chat => {this.chat = chat;}}
+                                                visible={this.state.visible}
+                                                onCmdMsg={this.handleCmdData}
+                                                room={room}
+                                                user={this.state.user} />
                                 </Table.Cell>
                             </Table.Row>
                         </Table.Row>
@@ -720,4 +720,4 @@ class TrlClient extends Component {
     }
 }
 
-export default TrlClient;
+export default HttpClient;

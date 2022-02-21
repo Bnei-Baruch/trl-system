@@ -6,7 +6,7 @@ import {getDateString, notifyMe} from "../../shared/tools";
 import mqtt from "../../shared/mqtt";
 
 
-class Chat extends Component {
+class ClientChat extends Component {
 
     state = {
         ...this.props,
@@ -234,4 +234,4 @@ class Chat extends Component {
     }
 }
 
-export default Chat;
+export default ClientChat;

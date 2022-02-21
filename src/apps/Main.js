@@ -3,7 +3,7 @@ import {Button} from "semantic-ui-react";
 import LoginPage from '../components/LoginPage';
 import {kc} from "../components/UserManager";
 
-class TrlApp extends Component {
+class Main extends Component {
 
     state = {
         pass: false,
@@ -41,4 +41,4 @@ class TrlApp extends Component {
     }
 }
 
-export default TrlApp;
+export default Main;

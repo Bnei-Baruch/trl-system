@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
 import {Segment, Button, Input, Table, Grid, Message} from "semantic-ui-react";
 import {initJanus, initChatRoom, getDateString, joinChatRoom, notifyMe} from "../../shared/tools";
-import './App.css';
+import './TrlChat.css';
 import {initGxyProtocol} from "../../shared/protocol";
 import {kc} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
@@ -80,7 +80,7 @@ class TrlChat extends Component {
             this.initVideoRoom();
 
             initChatRoom(janus, null, chatroom => {
-                Janus.log(":: Got Chat Handle: ",chatroom);
+                Janus.log(":: Got ClientChat Handle: ",chatroom);
                 this.setState({chatroom});
             }, data => {
                 this.onData(data);

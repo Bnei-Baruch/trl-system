@@ -3,14 +3,14 @@ import platform from "platform";
 import { Janus } from "../../lib/janus";
 import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label, Confirm, Header} from "semantic-ui-react";
 import {initJanus, getDateString, getPublisherInfo, notifyMe} from "../../shared/tools";
-import './App.css';
+import './Admin.css';
 import {SECRET} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
 import mqtt from "../../shared/mqtt";
 
-class TrlAdmin extends Component {
+class MqttAdmin extends Component {
 
     state = {
         bitrate: 150000,
@@ -1028,4 +1028,4 @@ class TrlAdmin extends Component {
   }
 }
 
-export default TrlAdmin;
+export default MqttAdmin;

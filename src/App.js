@@ -1,9 +1,8 @@
 import React, { Component, Fragment } from 'react';
 import 'semantic-ui-css/semantic.min.css';
-// import TrlApp from "./apps/App";
-// import TrlChat from "./apps/Chat/App";
-import TrlClient from "./apps/Client/App";
-// import TrlAdmin from "./apps/Admin/App";
+// import Main from "./apps/Main";
+import HttpClient from "./apps/Client/HttpClient";
+// import HttpAdmin from "./apps/Admin/HttpAdmin";
 
 class App extends Component {
 
@@ -13,10 +12,9 @@ class App extends Component {
 
         return (
             <Fragment>
-                {/*<TrlApp />*/}
-                {/*<TrlChat />*/}
-                <TrlClient/>
-                {/*<TrlAdmin />*/}
+                {/*<Main />*/}
+                <HttpClient/>
+                {/*<HttpAdmin />*/}
             </Fragment>
 
         );

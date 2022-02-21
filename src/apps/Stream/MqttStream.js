@@ -2,10 +2,10 @@ import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
 import { Segment } from 'semantic-ui-react';
 import {JANUS_SRV_STR, STUN_SRV_STR,} from "../../shared/consts";
-import './App.css'
+import './Stream.css'
 
 
-class Stream extends Component {
+class MqttStream extends Component {
 
     state = {
         janus: null,
@@ -324,4 +324,4 @@ class Stream extends Component {
     }
 }
 
-export default Stream;
+export default MqttStream;
