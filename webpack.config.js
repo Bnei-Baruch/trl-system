@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin')
+const WorkerPlugin = require('worker-plugin');
 const env = dotenv.config().parsed;
 
 const envKeys = Object.keys(env).reduce((prev, next) => {
@@ -80,6 +81,7 @@ module.exports = {
     ],
   },
   plugins: [
+    new WorkerPlugin(),
     new HtmlWebPackPlugin({
       inject: true,
       template: './public/index.html',

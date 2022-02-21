@@ -21,7 +21,8 @@
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^2.1.2",
     "url": "^0.11.0",
-    "webrtc-adapter": "^8.1.1"
+    "webrtc-adapter": "^8.1.1",
+    "worker-plugin": "^5.0.1"
   },
   "scripts": {
     "start": "webpack-dev-server --mode=development --no-open --hot",
