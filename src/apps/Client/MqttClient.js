@@ -1,8 +1,18 @@
 import React, { Component } from 'react';
 import mqtt from "../../shared/mqtt";
+import devices from "../../lib/devices";
 import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
-import {geoInfo, initJanus, getDevicesStream, micLevel, checkNotification, testDevices, testMic} from "../../shared/tools";
+import {
+    geoInfo,
+    initJanus,
+    getDevicesStream,
+    micLevel,
+    checkNotification,
+    testDevices,
+    testMic,
+    micVolume
+} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
@@ -11,15 +21,18 @@ import VolumeSlider from "../../components/VolumeSlider";
 import Stream from "../Stream/HttpStream";
 import LoginPage from "../../components/LoginPage";
 import HomerLimud from "../../components/HomerLimud";
+import MqttStream from "../Stream/MqttStream";
 
 class MqttClient extends Component {
 
     state = {
-        audioContext: null,
-        stream: null,
-        audio_devices: [],
-        audio_device: "",
-        audio: null,
+        audio: {
+            context: null,
+            device: null,
+            devices: [],
+            error: null,
+            stream: null,
+        },
         janus: null,
         videostream: null,
         audiostream: null,
@@ -64,74 +77,110 @@ class MqttClient extends Component {
         this.state.janus.destroy();
     };
 
-    initClient = (user,error) => {
+    initClient = (user) => {
         checkNotification();
         geoInfo(`${GEO_IP_INFO}`, data => {
             user.ip = data.ip;
-            initJanus(janus => {
-                user.session = janus.getSessionId();
-                user.system = navigator.userAgent;
-                this.setState({janus, user});
-
-                // Protocol init
-                mqtt.init(user, (data) => {
-                    console.log("[mqtt] init: ", data, user);
-                    mqtt.join("trl/users/broadcast");
-                    mqtt.join("trl/users/" + user.id);
-                    this.chat.initChatEvents();
-                    mqtt.watch((message) => {
-                        this.handleCmdData(message);
-                    });
-                });
-
-                this.initVideoRoom(error);
-            }, er => {
-                setTimeout(() => {
-                    this.initClient(user,er);
-                }, 5000);
-            }, true);
+            user.system = navigator.userAgent;
+            this.initMQTT(user)
         });
     };
 
-    initDevices = () => {
-        Janus.listDevices(devices => {
-            if (devices.length > 0) {
-                let audio_devices = devices.filter(device => device.kind === "audioinput");
-                // Be sure device still exist
-                let audio_device = localStorage.getItem("audio_device");
-                let achk = audio_devices.filter(a => a.deviceId === audio_device).length > 0;
-                let audio_id = audio_device !== "" && achk ? audio_device : audio_devices[0].deviceId;
-                Janus.log(" :: Got Audio devices: ", audio_devices);
-                this.setState({audio_devices});
-                this.setDevice(audio_id);
+    initMQTT = (user) => {
+        mqtt.init(user, (reconnected, error) => {
+            if (error) {
+                log.info("[client] MQTT disconnected");
+                this.setState({mqttOn: false});
+                window.location.reload()
+                alert("- Lost Connection to Arvut System -")
+            } else if (reconnected) {
+                this.setState({mqttOn: true});
+                log.info("[client] MQTT reconnected");
             } else {
-                //Try to get audio fail reson
-                testDevices(false, true, steam => {});
-                alert(" :: No input devices found ::");
-                this.setState({audio_device: null});
+                this.setState({mqttOn: true});
+                mqtt.join("trl/users/broadcast");
+                mqtt.join("trl/users/" + user.id);
+                this.chat.initChatEvents();
+                mqtt.watch((message) => {
+                    this.handleCmdData(message);
+                });
             }
-        }, { audio: true, video: false });
+        });
     };
 
-    setDevice = (audio_device) => {
-        if(audio_device !== this.state.audio_device) {
-            this.setState({audio_device});
-            if(this.state.audio_device !== "") {
-                localStorage.setItem("audio_device", audio_device);
-                Janus.log(" :: Going to check Devices: ");
-                getDevicesStream(audio_device,stream => {
-                    Janus.log(" :: Check Devices: ", stream);
-                    let myaudio = this.refs.localVideo;
-                    Janus.attachMediaStream(myaudio, stream);
-                    if(this.state.audioContext) {
-                        this.state.audioContext.close();
-                    }
-                    micLevel(stream ,this.refs.canvas1,audioContext => {
-                        this.setState({audioContext,stream});
-                    });
-                })
+    initJanus = (user, config, retry) => {
+        let janus = new JanusMqtt(user, config.name)
+        janus.onStatus = (srv, status) => {
+            if(status === "offline") {
+                alert("Janus Server - " + srv + " - Offline")
+                window.location.reload()
+            }
+
+            if(status === "error") {
+                log.error("[client] Janus error, reconnecting...")
+                this.exitRoom(/* reconnect= */ true, () => {
+                    this.reinitClient(retry);
+                });
             }
         }
+
+        let videoroom = new PublisherPlugin();
+        videoroom.subTo = this.makeSubscription;
+        videoroom.unsubFrom = this.unsubscribeFrom
+        videoroom.talkEvent = this.handleTalking
+
+        janus.init(config.token).then(data => {
+            log.info("[client] Janus init", data)
+
+            janus.attach(videoroom).then(data => {
+                this.setState({janus, videoroom, user});
+                log.info('[client] Publisher Handle: ', data)
+                this.joinRoom(false, videoroom, user)
+            })
+
+        }).catch(err => {
+            log.error("[client] Janus init", err);
+            this.exitRoom(/* reconnect= */ true, () => {
+            });
+        })
+
+    }
+
+    initDevices = () => {
+        devices.init(audio => {
+            setTimeout(() => {
+                if(audio.device) {
+                    this.setAudioDevice(audio.device)
+                } else {
+                    log.warn("[client] No left audio devices")
+                    //FIXME: remove it from pc?
+                }
+            }, 1000)
+        }).then(audio => {
+            log.info("[client] init devices: ", audio);
+            if (audio.error) {
+                alert("audio device not detected");
+            }
+            if (audio.stream) {
+                let myaudio = this.refs.localVideo;
+                if (myaudio) myaudio.srcObject = audio.stream;
+            }
+            this.setState({audio})
+        })
+    };
+
+    setAudioDevice = (device, cam_mute) => {
+        devices.setAudioDevice(device, cam_mute).then(audio => {
+            if(audio.device) {
+                this.setState({audio});
+                const {videoroom} = this.state;
+                micVolume(this.refs.canvas1)
+                if (videoroom) {
+                    audio.stream.getAudioTracks()[0].enabled = false;
+                    videoroom.audio(audio.stream)
+                }
+            }
+        })
     };
 
     selfTest = () => {
@@ -663,7 +712,7 @@ class MqttClient extends Component {
                             <Table.Cell width={8} rowSpan='2'>
                                 <Message color='grey' header='Online Translators:' list={list} />
                                 <Segment.Group>
-                                    <Stream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} />
+                                    <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} />
                                     <Segment.Group horizontal>
                                         <Segment className='stream_langs'>
                                             <Select compact

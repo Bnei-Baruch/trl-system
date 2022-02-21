@@ -1,5 +1,6 @@
 import {Janus} from "../lib/janus";
 import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV_TRL} from "./consts";
+import devices from "../lib/devices";
 
 export const randomString = (len) => {
     let charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -77,6 +78,21 @@ export const getDateString = (jsonDate) => {
         ("0" + when.getSeconds()).slice(-2);
     return dateString;
 };
+
+export const micVolume = (c) => {
+    let cc = c.getContext("2d");
+    let gradient = cc.createLinearGradient(0, 0, 0, 55);
+    gradient.addColorStop(1, "green");
+    gradient.addColorStop(0.35, "#80ff00");
+    gradient.addColorStop(0.10, "orange");
+    gradient.addColorStop(0, "red");
+    devices.micLevel = (volume) => {
+        //console.log("[client] volume: ", volume)
+        cc.clearRect(0, 0, c.width, c.height);
+        cc.fillStyle = gradient;
+        cc.fillRect(0, c.height - volume * 300, c.width, c.height);
+    }
+}
 
 export const micLevel = (stream, canvas, cb) => {
     window.AudioContext = window.AudioContext || window.webkitAudioContext;

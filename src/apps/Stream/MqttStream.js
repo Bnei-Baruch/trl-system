@@ -56,7 +56,6 @@ class MqttStream extends Component {
                         Janus.log(" :: Connected to JANUS");
                         this.setState({janus});
                         this.initVideoStream(janus);
-                        //this.initDataStream(janus);
                         this.initAudioStream(janus);
                         this.initTranslationStream(this.props.trl_stream);
                     },
@@ -143,39 +142,6 @@ class MqttStream extends Component {
                 let audio = this.refs.remoteAudio;
                 Janus.attachMediaStream(audio, stream);
                 //StreamVisualizer2(stream, this.refs.canvas1.current,50);
-            },
-            oncleanup: () => {
-                Janus.log("Got a cleanup notification");
-            }
-        });
-    };
-
-    initDataStream(janus) {
-        janus.attach({
-            plugin: "janus.plugin.streaming",
-            opaqueId: "datastream-"+Janus.randomString(12),
-            success: (datastream) => {
-                Janus.log(datastream);
-                this.setState({datastream});
-                let body = { request: "watch", id: 101 };
-                datastream.send({"message": body});
-            },
-            error: (error) => {
-                Janus.log("Error attaching plugin: " + error);
-            },
-            onmessage: (msg, jsep) => {
-                this.onStreamingMessage(this.state.datastream, msg, jsep, false);
-            },
-            ondataopen: () => {
-                Janus.log("The DataStreamChannel is available!");
-            },
-            ondata: (data) => {
-                let json = JSON.parse(data);
-                Janus.log("We got data from the DataStreamChannel! ", json);
-                this.checkData(json);
-            },
-            onremotestream: (stream) => {
-                Janus.log("Got a remote stream!", stream);
             },
             oncleanup: () => {
                 Janus.log("Got a cleanup notification");
