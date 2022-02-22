@@ -22,6 +22,8 @@ import Stream from "../Stream/HttpStream";
 import LoginPage from "../../components/LoginPage";
 import HomerLimud from "../../components/HomerLimud";
 import MqttStream from "../Stream/MqttStream";
+import {JanusMqtt} from "../../lib/janus-mqtt";
+import {PublisherPlugin} from "../../lib/audiobridge-plugin";
 
 class MqttClient extends Component {
 
@@ -83,6 +85,7 @@ class MqttClient extends Component {
             user.ip = data.ip;
             user.system = navigator.userAgent;
             this.initMQTT(user)
+            this.initDevices();
         });
     };
 
@@ -101,6 +104,7 @@ class MqttClient extends Component {
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/" + user.id);
                 this.chat.initChatEvents();
+                this.initJanus(user)
                 mqtt.watch((message) => {
                     this.handleCmdData(message);
                 });
@@ -108,8 +112,8 @@ class MqttClient extends Component {
         });
     };
 
-    initJanus = (user, config, retry) => {
-        let janus = new JanusMqtt(user, config.name)
+    initJanus = (user, retry) => {
+        let janus = new JanusMqtt(user, "trl1")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
                 alert("Janus Server - " + srv + " - Offline")
@@ -124,18 +128,17 @@ class MqttClient extends Component {
             }
         }
 
-        let videoroom = new PublisherPlugin();
-        videoroom.subTo = this.makeSubscription;
-        videoroom.unsubFrom = this.unsubscribeFrom
-        videoroom.talkEvent = this.handleTalking
+        let audiobridge = new PublisherPlugin();
+        audiobridge.onFeed = this.onFeed
+        audiobridge.talkEvent = this.talkEvent
+        audiobridge.onTrack = this.onTrack
 
-        janus.init(config.token).then(data => {
+        janus.init().then(data => {
             log.info("[client] Janus init", data)
 
-            janus.attach(videoroom).then(data => {
-                this.setState({janus, videoroom, user});
+            janus.attach(audiobridge).then(data => {
+                this.setState({janus, audiobridge, user, delay: false});
                 log.info('[client] Publisher Handle: ', data)
-                this.joinRoom(false, videoroom, user)
             })
 
         }).catch(err => {
@@ -173,15 +176,65 @@ class MqttClient extends Component {
         devices.setAudioDevice(device, cam_mute).then(audio => {
             if(audio.device) {
                 this.setState({audio});
-                const {videoroom} = this.state;
+                const {audiobridge} = this.state;
                 micVolume(this.refs.canvas1)
-                if (videoroom) {
+                if (audiobridge) {
                     audio.stream.getAudioTracks()[0].enabled = false;
-                    videoroom.audio(audio.stream)
+                    audiobridge.audio(audio.stream)
                 }
             }
         })
     };
+
+    handleTalking = (id, talking) => {
+        const feeds = Object.assign([], this.state.feeds);
+        for (let i = 0; i < feeds.length; i++) {
+            if (feeds[i] && feeds[i].id === id) {
+                feeds[i].talking = talking;
+            }
+        }
+        this.setState({feeds});
+    }
+
+    onJoin = (list) => {
+        const {feeds} = this.state;
+        Janus.log("Got a list of participants:");
+        Janus.log(list);
+        for(let f in list) {
+            let id = list[f]["id"];
+            let user = JSON.parse(list[f]["display"]);
+            if(user.role !== "user")
+                continue
+            list[f]["display"] = user;
+            feeds[id] = list[f];
+            feeds[id].talking = false;
+        }
+        this.setState({feeds});
+    }
+
+    onFeed = (list) => {
+        const {feeds} = this.state;
+        for(let f in list) {
+            let id = list[f]["id"];
+            //if(feeds[id]) return;
+            let user = JSON.parse(list[f]["display"]);
+            if(user.role !== "user")
+                continue
+            list[f]["display"] = user;
+            feeds[id] = list[f];
+            feeds[id].talking = false;
+        }
+        this.setState({feeds});
+    }
+
+    onTrack = (track, mid, on) => {
+        log.info("[client] >> This track is coming from feed :", mid, on);
+        let stream = new MediaStream();
+        stream.addTrack(track.clone());
+        Janus.log("Created remote audio stream:", stream);
+        let remoteaudio = this.refs.remoteAudio;
+        if(remoteaudio) remoteaudio.srcObject = stream;
+    }
 
     selfTest = () => {
         this.setState({selftest: "Recording... 4"});
@@ -517,13 +570,32 @@ class MqttClient extends Component {
 
     joinRoom = (reconnect) => {
         this.setState({delay: true});
-        let {audiobridge, selected_room, user, tested} = this.state;
+        let {audiobridge, selected_room, user, tested, audio: {stream}} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
-        const param = new URL(window.location.href).searchParams.get("volume");
-        const volume = param ? parseInt(param, 10) : 100;
-        let register = {request: "join", prebuffer: 10, quality: 10, volume, room: selected_room, muted : true, display: JSON.stringify(user)};
-        audiobridge.send({"message": register});
+
+
+        audiobridge.join(selected_room, user).then(data => {
+            log.info('[client] Joined respond :', data)
+            mqtt.join("trl/room/" + selected_room);
+            mqtt.join("trl/room/" + selected_room + "/chat", true);
+
+            this.stream.initJanus();
+
+            this.setState({muted: true});
+
+            audiobridge.publish(stream).then(data => {
+
+            }).catch(err => {
+                log.error('[client] Publish error :', err);
+                this.exitRoom(/* reconnect= */ false);
+            })
+        }).catch(err => {
+            log.error('[client] Join error :', err);
+            this.exitRoom(/* reconnect= */ false);
+        })
+
+
         this.setState({user, room: selected_room});
     };
 

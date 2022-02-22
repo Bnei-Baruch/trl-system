@@ -61,7 +61,7 @@ class LocalDevices {
   };
 
   getMediaStream = (audio, audioId) => {
-    audio = audioId ? {noiseSuppression: true, deviceId: {exact: audioId}} : audio;
+    audio = audioId ? {noiseSuppression: true, echoCancellation: false, highpassFilter: true, deviceId: {exact: audioId}} : audio;
     return navigator.mediaDevices
       .getUserMedia({audio, video: false})
       .then((data) => [data, null])
