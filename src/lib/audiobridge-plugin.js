@@ -126,30 +126,13 @@ export class AudiobridgePlugin extends EventEmitter {
     })
   }
 
-  mute(video, stream) {
-
-    let videoTransceiver = null;
-    let tr = this.pc.getTransceivers();
-    if(tr && tr.length > 0) {
-      for(let t of tr) {
-        if(t?.sender?.track?.kind === "video") {
-          videoTransceiver = t;
-          break;
-        }
-      }
-    }
-
-    let d = video ? "inactive" : "sendonly"
-
-    if (videoTransceiver?.setDirection) {
-      videoTransceiver.setDirection(d);
-    } else {
-      videoTransceiver.direction = d;
-    }
-
-    if(!video) videoTransceiver.sender.replaceTrack(stream.getVideoTracks()[0])
-    if(stream) this.configure()
-
+  mute(muted) {
+    const body = {request: 'configure', muted}
+    return this.transaction('message', {body}, 'event').then((param) => {
+      const {data, json} = param || {}
+      const jsep = json.jsep
+      log.info('[audiobridge] Mute respond: ', param)
+    })
   }
 
   audio(stream) {

@@ -350,8 +350,7 @@ class MqttClient extends Component {
 
     micMute = () => {
         let {audiobridge, muted} = this.state;
-        let req = {request : "configure", muted: !muted}
-        audiobridge.send({"message": req});
+        audiobridge.mute(muted);
         this.setState({muted: !muted});
     };
 

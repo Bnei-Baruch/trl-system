@@ -68,6 +68,7 @@ class MqttStream extends Component {
             audiostream.watch(audios).then(stream => {
                 let audio = this.refs.remoteAudio;
                 audio.srcObject = stream;
+                this.setState({audio_stream: stream});
             })
         })
     };
@@ -105,13 +106,13 @@ class MqttStream extends Component {
 
     audioMute = (trl) => {
         if(trl) {
-            const {trlstream,trl_muted} = this.state;
+            const {trlaudio_stream,trl_muted} = this.state;
             this.setState({trl_muted: !trl_muted});
-            trl_muted ? trlstream.muteAudio() : trlstream.unmuteAudio()
+            trlaudio_stream.getAudioTracks()[0].enabled = trl_muted;
         } else {
-            const {audiostream,str_muted} = this.state;
+            const {audio_stream,str_muted} = this.state;
             this.setState({str_muted: !str_muted});
-            str_muted ? audiostream.muteAudio() : audiostream.unmuteAudio()
+            audio_stream.getAudioTracks()[0].enabled = str_muted;
         }
     };
 
@@ -131,7 +132,7 @@ class MqttStream extends Component {
         if(video) {
             this.initVideoStream(janus);
         } else {
-            janus.detach(this.videostream)
+            janus.detach(this.state.videostream)
             this.setState({videostream: null, video_stream: null});
         }
     };
