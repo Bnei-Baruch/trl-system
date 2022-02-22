@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import 'semantic-ui-css/semantic.min.css';
 // import Main from "./apps/Main";
-import HttpClient from "./apps/Client/HttpClient";
+import MqttClient from "./apps/Client/MqttClient";
 // import HttpAdmin from "./apps/Admin/HttpAdmin";
 
 class App extends Component {
@@ -13,7 +13,7 @@ class App extends Component {
         return (
             <Fragment>
                 {/*<Main />*/}
-                <HttpClient/>
+                <MqttClient/>
                 {/*<HttpAdmin />*/}
             </Fragment>
 

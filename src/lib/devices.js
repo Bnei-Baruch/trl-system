@@ -23,13 +23,7 @@ class LocalDevices {
     // Check saved devices in local storage
     let storage_audio = localStorage.getItem("audio_device");
     this.audio.device = !!storage_audio ? storage_audio : null;
-    [this.audio.stream, this.audio.error] = await this.getMediaStream(
-        true,
-        false,
-        this.video.setting,
-        this.audio.device,
-        null
-    );
+    [this.audio.stream, this.audio.error] = await this.getMediaStream(true, this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
     this.audio.devices = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
 
@@ -82,7 +76,7 @@ class LocalDevices {
       let _rms = 0
       let _dB = 0
 
-      log.trace('[devices] mic level: ', event.data)
+      //log.debug('[devices] mic level: ', event.data)
 
       if (event.data.volume) {
         _volume = event.data.volume
@@ -118,7 +112,7 @@ class LocalDevices {
             }
           }
         }
-        return {video: this.video, audio: this.audio};
+        return this.audio;
       });
   };
 

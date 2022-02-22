@@ -2,10 +2,10 @@ import {randomString} from "../shared/tools";
 import {EventEmitter} from "events";
 import log from "loglevel";
 import mqtt from "../shared/mqtt";
-import {JANUS_SRV_TRL} from "../shared/consts";
+import {STUN_SRV_TRL} from "../shared/consts";
 
-export class PublisherPlugin extends EventEmitter {
-  constructor (list = [{urls: JANUS_SRV_TRL}]) {
+export class AudiobridgePlugin extends EventEmitter {
+  constructor (list = [{urls: STUN_SRV_TRL}]) {
     super()
     this.id = randomString(12)
     this.janus = undefined
@@ -54,7 +54,7 @@ export class PublisherPlugin extends EventEmitter {
     })
   }
 
-  leave () {
+  leave() {
     const body = {request: "leave", room: this.roomId};
     return new Promise((resolve, reject) => {
       this.transaction('message', { body }, 'event').then((param) => {
@@ -108,6 +108,23 @@ export class PublisherPlugin extends EventEmitter {
       })
     })
   };
+
+  list() {
+    const body = {request: "list"};
+    return new Promise((resolve, reject) => {
+      this.transaction('message', { body }, 'success').then((param) => {
+        log.info("[audiobridge] list: ", param)
+        const {data, json } = param
+
+        if(data)
+          resolve(data);
+
+      }).catch((err) => {
+        log.error('[audiobridge] error list', err)
+        reject(err)
+      })
+    })
+  }
 
   mute(video, stream) {
 

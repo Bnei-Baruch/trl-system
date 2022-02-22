@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import devices from "../../lib/devices";
 import { Janus } from "../../lib/janus";
@@ -23,7 +24,7 @@ import LoginPage from "../../components/LoginPage";
 import HomerLimud from "../../components/HomerLimud";
 import MqttStream from "../Stream/MqttStream";
 import {JanusMqtt} from "../../lib/janus-mqtt";
-import {PublisherPlugin} from "../../lib/audiobridge-plugin";
+import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
 
 class MqttClient extends Component {
 
@@ -85,7 +86,6 @@ class MqttClient extends Component {
             user.ip = data.ip;
             user.system = navigator.userAgent;
             this.initMQTT(user)
-            this.initDevices();
         });
     };
 
@@ -103,7 +103,6 @@ class MqttClient extends Component {
                 this.setState({mqttOn: true});
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/" + user.id);
-                this.chat.initChatEvents();
                 this.initJanus(user)
                 mqtt.watch((message) => {
                     this.handleCmdData(message);
@@ -128,19 +127,19 @@ class MqttClient extends Component {
             }
         }
 
-        let audiobridge = new PublisherPlugin();
+        let audiobridge = new AudiobridgePlugin();
         audiobridge.onFeed = this.onFeed
         audiobridge.talkEvent = this.talkEvent
         audiobridge.onTrack = this.onTrack
 
         janus.init().then(data => {
             log.info("[client] Janus init", data)
-
             janus.attach(audiobridge).then(data => {
                 this.setState({janus, audiobridge, user, delay: false});
-                log.info('[client] Publisher Handle: ', data)
+                log.info('[client] Publisher Handle: ', data);
+                this.getRoomList(audiobridge);
+                this.initDevices();
             })
-
         }).catch(err => {
             log.error("[client] Janus init", err);
             this.exitRoom(/* reconnect= */ true, () => {
@@ -153,7 +152,7 @@ class MqttClient extends Component {
         devices.init(audio => {
             setTimeout(() => {
                 if(audio.device) {
-                    this.setAudioDevice(audio.device)
+                    this.setDevice(audio.device)
                 } else {
                     log.warn("[client] No left audio devices")
                     //FIXME: remove it from pc?
@@ -167,18 +166,19 @@ class MqttClient extends Component {
             if (audio.stream) {
                 let myaudio = this.refs.localVideo;
                 if (myaudio) myaudio.srcObject = audio.stream;
+                micVolume(this.refs.canvas1)
             }
             this.setState({audio})
         })
     };
 
-    setAudioDevice = (device, cam_mute) => {
+    setDevice = (device, cam_mute) => {
         devices.setAudioDevice(device, cam_mute).then(audio => {
             if(audio.device) {
                 this.setState({audio});
-                const {audiobridge} = this.state;
+                const {audiobridge, selected_room} = this.state;
                 micVolume(this.refs.canvas1)
-                if (audiobridge) {
+                if (audiobridge && selected_room) {
                     audio.stream.getAudioTracks()[0].enabled = false;
                     audiobridge.audio(audio.stream)
                 }
@@ -198,8 +198,8 @@ class MqttClient extends Component {
 
     onJoin = (list) => {
         const {feeds} = this.state;
-        Janus.log("Got a list of participants:");
-        Janus.log(list);
+        log.info("Got a list of participants:");
+        log.info(list);
         for(let f in list) {
             let id = list[f]["id"];
             let user = JSON.parse(list[f]["display"]);
@@ -231,7 +231,7 @@ class MqttClient extends Component {
         log.info("[client] >> This track is coming from feed :", mid, on);
         let stream = new MediaStream();
         stream.addTrack(track.clone());
-        Janus.log("Created remote audio stream:", stream);
+        log.info("Created remote audio stream:", stream);
         let remoteaudio = this.refs.remoteAudio;
         if(remoteaudio) remoteaudio.srcObject = stream;
     }
@@ -259,23 +259,18 @@ class MqttClient extends Component {
         },1000);
     };
 
-    getRoomList = () => {
-        const {audiobridge} = this.state;
-        if (audiobridge) {
-            audiobridge.send({message: {request: "list"},
-                success: (data) => {
-                    Janus.debug(" :: Get Rooms List: ", data.list);
-                    data.list.sort((a, b) => {
-                        if (a.description > b.description) return 1;
-                        if (a.description < b.description) return -1;
-                        return 0;
-                    });
-                    this.setState({rooms: data.list});
-                    if(this.state.trl_room !== null)
-                        this.selectRoom(Number(this.state.trl_room));
-                }
+    getRoomList = (audiobridge) => {
+        audiobridge.list().then(data => {
+            log.debug("[client] Get Rooms List: ", data.list);
+            data.list.sort((a, b) => {
+                if (a.description > b.description) return 1;
+                if (a.description < b.description) return -1;
+                return 0;
             });
-        }
+            this.setState({rooms: data.list});
+            if(this.state.trl_room !== null)
+                this.selectRoom(Number(this.state.trl_room));
+        })
     };
 
     iceState = () => {
@@ -329,9 +324,9 @@ class MqttClient extends Component {
             plugin: "janus.plugin.audiobridge",
             opaqueId: "videoroom_user",
             success: (audiobridge) => {
-                Janus.log(" :: My handle: ", audiobridge);
-                Janus.log("Plugin attached! (" + audiobridge.getPlugin() + ", id=" + audiobridge.getId() + ")");
-                Janus.log("  -- This is a publisher/manager");
+                log.info(" :: My handle: ", audiobridge);
+                log.info("Plugin attached! (" + audiobridge.getPlugin() + ", id=" + audiobridge.getId() + ")");
+                log.info("  -- This is a publisher/manager");
                 let {user} = this.state;
                 user.handle = audiobridge.getId();
                 this.setState({audiobridge, user, delay: false});
@@ -344,13 +339,13 @@ class MqttClient extends Component {
                 }
             },
             error: (error) => {
-                Janus.log("Error attaching plugin: " + error);
+                log.info("Error attaching plugin: " + error);
             },
             consentDialog: (on) => {
                 Janus.debug("Consent dialog should be " + (on ? "on" : "off") + " now");
             },
             iceState: (state) => {
-                Janus.log("ICE state changed to " + state);
+                log.info("ICE state changed to " + state);
                 this.setState({ice: state});
                 if(state === "disconnected") {
                     // FIXME: ICE restart does not work properly, so we will do silent reconnect
@@ -358,46 +353,46 @@ class MqttClient extends Component {
                 }
             },
             mediaState: (media, on) => {
-                Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + media);
+                log.info("Janus " + (on ? "started" : "stopped") + " receiving our " + media);
                 this.setState({[media]: on});
                 if(!on) {
                     this.mediaState(media);
                 }
             },
             webrtcState: (on) => {
-                Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
+                log.info("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
             },
             slowLink: (uplink, nacks) => {
-                Janus.log("Janus reports problems " + (uplink ? "sending" : "receiving") +
+                log.info("Janus reports problems " + (uplink ? "sending" : "receiving") +
                     " packets on this PeerConnection (" + nacks + " NACKs/s " + (uplink ? "received" : "sent") + ")");
             },
             onmessage: (msg, jsep) => {
                 this.onBridgeMessage(this.state.audiobridge, msg, jsep);
             },
             onlocaltrack: (track, on) => {
-                Janus.log(" ::: Got a local track event :::");
-                Janus.log("Local track " + (on ? "added" : "removed") + ":", track);
+                log.info(" ::: Got a local track event :::");
+                log.info("Local track " + (on ? "added" : "removed") + ":", track);
                 this.setState({mystream: track});
             },
             onremotetrack: (track, mid, on) => {
-                Janus.log(" ::: Got a remote track event ::: (remote feed)");
-                Janus.log("Remote track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
+                log.info(" ::: Got a remote track event ::: (remote feed)");
+                log.info("Remote track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
                 // If we're here, a new track was added
                 if(track.kind === "audio" && on) {
                     // New audio track: create a stream out of it, and use a hidden <audio> element
                     let stream = new MediaStream();
                     stream.addTrack(track.clone());
-                    Janus.log("Created remote audio stream:", stream);
+                    log.info("Created remote audio stream:", stream);
                     let remoteaudio = this.refs.remoteAudio;
                     Janus.attachMediaStream(remoteaudio, stream);
                 } else if(track.kind === "data") {
-                    Janus.log("Created remote data channel");
+                    log.info("Created remote data channel");
                 } else {
-                    Janus.log("-- Already active stream --");
+                    log.info("-- Already active stream --");
                 }
             },
             oncleanup: () => {
-                Janus.log(" ::: Got a cleanup notification: we are unpublished now :::");
+                log.info(" ::: Got a cleanup notification: we are unpublished now :::");
             }
         });
     };
@@ -427,8 +422,8 @@ class MqttClient extends Component {
     };
 
     onBridgeMessage = (audiobridge, msg, jsep) => {
-        Janus.log(" ::: Got a message :::");
-        Janus.log(msg);
+        log.info(" ::: Got a message :::");
+        log.info(msg);
         let event = msg["audiobridge"];
         Janus.debug("Event: " + event);
         if(event) {
@@ -436,7 +431,7 @@ class MqttClient extends Component {
                 // Successfully joined, negotiate WebRTC now
                 if(msg["id"]) {
                     let myid = msg["id"];
-                    Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
+                    log.info("Successfully joined room " + msg["room"] + " with ID " + myid);
 
                     // Subscribe to mqtt topic
                     // FIXME: Make sure here the stream is initialized
@@ -453,8 +448,8 @@ class MqttClient extends Component {
                     if(msg["participants"]) {
                         const {feeds} = this.state;
                         let list = msg["participants"];
-                        Janus.log("Got a list of participants:");
-                        Janus.log(list);
+                        log.info("Got a list of participants:");
+                        log.info(list);
                         for(let f in list) {
                             let id = list[f]["id"];
                             let user = JSON.parse(list[f]["display"]);
@@ -470,13 +465,13 @@ class MqttClient extends Component {
             } else if(event === "roomchanged") {
                 // The user switched to a different room
                 let myid = msg["id"];
-                Janus.log("Moved to room " + msg["room"] + ", new ID: " + myid);
+                log.info("Moved to room " + msg["room"] + ", new ID: " + myid);
                 // Any room participant?
                 if(msg["participants"]) {
                     const {feeds} = this.state;
                     let list = msg["participants"];
-                    Janus.log("Got a list of participants:");
-                    Janus.log(list);
+                    log.info("Got a list of participants:");
+                    log.info(list);
                     for(let f in list) {
                         let id = list[f]["id"];
                         let user = JSON.parse(list[f]["display"]);
@@ -506,8 +501,8 @@ class MqttClient extends Component {
             } else if(event === "event") {
                 if(msg["participants"]) {
                     let list = msg["participants"];
-                    Janus.log("New feed joined:");
-                    Janus.log(list);
+                    log.info("New feed joined:");
+                    log.info(list);
                     const {feeds} = this.state;
                     for(let f in list) {
                         let id = list[f]["id"];
@@ -521,13 +516,13 @@ class MqttClient extends Component {
                     }
                     this.setState({feeds});
                 } else if(msg["error"]) {
-                    console.error(msg["error"]);
+                    log.error(msg["error"]);
                 }
                 // Any new feed to attach to?
                 if(msg["leaving"]) {
                     // One of the participants has gone away?
                     let leaving = msg["leaving"];
-                    Janus.log("Participant left: " + leaving + " elements with ID #rp" +leaving + ")");
+                    log.info("Participant left: " + leaving + " elements with ID #rp" +leaving + ")");
                     const {feeds} = this.state;
                     delete feeds[leaving];
                     this.setState({feeds});
@@ -542,7 +537,7 @@ class MqttClient extends Component {
     };
 
     handleCmdData = (ondata) => {
-        Janus.log("-- :: It's protocol public message: ", ondata);
+        log.info("-- :: It's protocol public message: ", ondata);
         const {user} = this.state;
         const {type, id, to} = ondata;
 
@@ -579,6 +574,8 @@ class MqttClient extends Component {
             log.info('[client] Joined respond :', data)
             mqtt.join("trl/room/" + selected_room);
             mqtt.join("trl/room/" + selected_room + "/chat", true);
+
+            this.chat.initChatEvents();
 
             this.stream.initJanus();
 
@@ -668,7 +665,7 @@ class MqttClient extends Component {
 
     render() {
 
-        const { feeds,rooms,room,audio_devices,audio_device,audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video} = this.state;
+        const { feeds,rooms,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -677,7 +674,7 @@ class MqttClient extends Component {
             return ({ key: room, text: description, value: i})
         });
 
-        let adevices_list = audio_devices.map((device,i) => {
+        let adevices_list = devices.map((device,i) => {
             const {label, deviceId} = device;
             return ({ key: i, text: label, value: deviceId})
         });
@@ -710,16 +707,16 @@ class MqttClient extends Component {
                             {!mystream ? "Disconnected" : "Connected"}
                         </Menu.Item>
                         <Popup
-                            trigger={<Menu.Item><Icon name="settings" color={!audio_device ? 'red' : ''} />Input Device</Menu.Item>}
+                            trigger={<Menu.Item><Icon name="settings" color={!device ? 'red' : ''} />Input Device</Menu.Item>}
                             on='click'
                             position='bottom left'
                         >
                             <Popup.Content>
                                 <Select fluid
                                         disabled={mystream}
-                                        error={!audio_device}
+                                        error={!device}
                                         placeholder="Select Device:"
-                                        value={audio_device}
+                                        value={device}
                                         options={adevices_list}
                                         onChange={(e, {value}) => this.setDevice(value)}/>
                             </Popup.Content>
@@ -744,7 +741,7 @@ class MqttClient extends Component {
                         {mystream ?
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
                         {!mystream ?
-                            <Button attached='right' size='huge' positive loading={delay} icon='sign-in' disabled={delay || !selected_room || !audio_device} onClick={this.joinRoom} />:""}
+                            <Button attached='right' size='huge' positive loading={delay} icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.joinRoom} />:""}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
                         {!mystream ?
