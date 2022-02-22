@@ -2,24 +2,13 @@ import React, { Component } from 'react';
 import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import devices from "../../lib/devices";
-import { Janus } from "../../lib/janus";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
-import {
-    geoInfo,
-    initJanus,
-    getDevicesStream,
-    micLevel,
-    checkNotification,
-    testDevices,
-    testMic,
-    micVolume
-} from "../../shared/tools";
+import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
 import ClientChat from "./ClientChat";
 import VolumeSlider from "../../components/VolumeSlider";
-import Stream from "../Stream/HttpStream";
 import LoginPage from "../../components/LoginPage";
 import HomerLimud from "../../components/HomerLimud";
 import MqttStream from "../Stream/MqttStream";
@@ -273,269 +262,6 @@ class MqttClient extends Component {
         })
     };
 
-    iceState = () => {
-        let count = 0;
-        let chk = setInterval(() => {
-            count++;
-            let {ice,user} = this.state;
-            if(count < 11 && ice === "connected") {
-                clearInterval(chk);
-            }
-            if(count >= 10) {
-                clearInterval(chk);
-                this.exitRoom(false);
-                alert("Network setting is changed!");
-                this.initClient(user,true);
-            }
-        },3000);
-    };
-
-    mediaState = (media) => {
-        if(media === "audio") {
-            let count = 0;
-            let chk = setInterval(() => {
-                count++;
-                let {audio,ice} = this.state;
-
-                // Audio is back stop counter
-                if(count < 11 && audio) {
-                    clearInterval(chk);
-                }
-
-                // Network problem handled in iceState
-                if(count < 11 && ice === "disconnected") {
-                    clearInterval(chk);
-                }
-
-                // Audio still not back
-                if(count >= 10 && !audio) {
-                    clearInterval(chk);
-                    this.exitRoom(false);
-                    alert("Server stopped receiving our Audio! Check your Mic");
-                }
-            },3000);
-        }
-    };
-
-    initVideoRoom = (reconnect) => {
-        if(this.state.audiobridge)
-            this.state.audiobridge.detach();
-        this.state.janus.attach({
-            plugin: "janus.plugin.audiobridge",
-            opaqueId: "videoroom_user",
-            success: (audiobridge) => {
-                log.info(" :: My handle: ", audiobridge);
-                log.info("Plugin attached! (" + audiobridge.getPlugin() + ", id=" + audiobridge.getId() + ")");
-                log.info("  -- This is a publisher/manager");
-                let {user} = this.state;
-                user.handle = audiobridge.getId();
-                this.setState({audiobridge, user, delay: false});
-                this.getRoomList();
-                this.initDevices(true);
-                if(reconnect) {
-                    setTimeout(() => {
-                        this.joinRoom(reconnect);
-                    }, 5000);
-                }
-            },
-            error: (error) => {
-                log.info("Error attaching plugin: " + error);
-            },
-            consentDialog: (on) => {
-                Janus.debug("Consent dialog should be " + (on ? "on" : "off") + " now");
-            },
-            iceState: (state) => {
-                log.info("ICE state changed to " + state);
-                this.setState({ice: state});
-                if(state === "disconnected") {
-                    // FIXME: ICE restart does not work properly, so we will do silent reconnect
-                    this.iceState();
-                }
-            },
-            mediaState: (media, on) => {
-                log.info("Janus " + (on ? "started" : "stopped") + " receiving our " + media);
-                this.setState({[media]: on});
-                if(!on) {
-                    this.mediaState(media);
-                }
-            },
-            webrtcState: (on) => {
-                log.info("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
-            },
-            slowLink: (uplink, nacks) => {
-                log.info("Janus reports problems " + (uplink ? "sending" : "receiving") +
-                    " packets on this PeerConnection (" + nacks + " NACKs/s " + (uplink ? "received" : "sent") + ")");
-            },
-            onmessage: (msg, jsep) => {
-                this.onBridgeMessage(this.state.audiobridge, msg, jsep);
-            },
-            onlocaltrack: (track, on) => {
-                log.info(" ::: Got a local track event :::");
-                log.info("Local track " + (on ? "added" : "removed") + ":", track);
-                this.setState({mystream: track});
-            },
-            onremotetrack: (track, mid, on) => {
-                log.info(" ::: Got a remote track event ::: (remote feed)");
-                log.info("Remote track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
-                // If we're here, a new track was added
-                if(track.kind === "audio" && on) {
-                    // New audio track: create a stream out of it, and use a hidden <audio> element
-                    let stream = new MediaStream();
-                    stream.addTrack(track.clone());
-                    log.info("Created remote audio stream:", stream);
-                    let remoteaudio = this.refs.remoteAudio;
-                    Janus.attachMediaStream(remoteaudio, stream);
-                } else if(track.kind === "data") {
-                    log.info("Created remote data channel");
-                } else {
-                    log.info("-- Already active stream --");
-                }
-            },
-            oncleanup: () => {
-                log.info(" ::: Got a cleanup notification: we are unpublished now :::");
-            }
-        });
-    };
-
-    publishOwnFeed = () => {
-        let {audiobridge,audio_device} = this.state;
-        audiobridge.createOffer(
-            {
-                media: {video: false, audio: {
-                        // autoGainControl: false,
-                        echoCancellation: false,
-                        highpassFilter: true,
-                        noiseSuppression: true,
-                        deviceId: {exact: audio_device}
-                        }
-                    },	// This is an audio only room
-                success: (jsep) => {
-                    Janus.debug("Got SDP!");
-                    Janus.debug(jsep);
-                    let publish = { "request": "configure", "muted": true };
-                    audiobridge.send({"message": publish, "jsep": jsep});
-                },
-                error: (error) => {
-                    Janus.error("WebRTC error:", error);
-                }
-            });
-    };
-
-    onBridgeMessage = (audiobridge, msg, jsep) => {
-        log.info(" ::: Got a message :::");
-        log.info(msg);
-        let event = msg["audiobridge"];
-        Janus.debug("Event: " + event);
-        if(event) {
-            if(event === "joined") {
-                // Successfully joined, negotiate WebRTC now
-                if(msg["id"]) {
-                    let myid = msg["id"];
-                    log.info("Successfully joined room " + msg["room"] + " with ID " + myid);
-
-                    // Subscribe to mqtt topic
-                    // FIXME: Make sure here the stream is initialized
-                    setTimeout(() => {
-                        mqtt.join("trl/room/" + msg["room"]);
-                        mqtt.join("trl/room/" + msg["room"] + "/chat", true);
-                    }, 3000);
-
-                    this.stream.initJanus();
-
-                    this.publishOwnFeed();
-                    this.setState({muted: true});
-                    // Any room participant?
-                    if(msg["participants"]) {
-                        const {feeds} = this.state;
-                        let list = msg["participants"];
-                        log.info("Got a list of participants:");
-                        log.info(list);
-                        for(let f in list) {
-                            let id = list[f]["id"];
-                            let user = JSON.parse(list[f]["display"]);
-                            if(user.role !== "user")
-                                continue
-                            list[f]["display"] = user;
-                            feeds[id] = list[f];
-                            feeds[id].talking = false;
-                        }
-                        this.setState({feeds});
-                    }
-                }
-            } else if(event === "roomchanged") {
-                // The user switched to a different room
-                let myid = msg["id"];
-                log.info("Moved to room " + msg["room"] + ", new ID: " + myid);
-                // Any room participant?
-                if(msg["participants"]) {
-                    const {feeds} = this.state;
-                    let list = msg["participants"];
-                    log.info("Got a list of participants:");
-                    log.info(list);
-                    for(let f in list) {
-                        let id = list[f]["id"];
-                        let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
-                            continue
-                        list[f]["display"] = user;
-                        feeds[id] = list[f];
-                        feeds[id].talking = false;
-                    }
-                    this.setState({feeds});
-                }
-            } else if(event === "talking") {
-                const {feeds} = this.state;
-                const id = msg["id"];
-                if(!feeds[id]) return;
-                feeds[id].talking = true;
-                this.setState({feeds});
-            } else if(event === "stopped-talking") {
-                const {feeds} = this.state;
-                const id = msg["id"];
-                if(!feeds[id]) return;
-                feeds[id].talking = false;
-                this.setState({feeds});
-            } else if(event === "destroyed") {
-                // The room has been destroyed
-                Janus.warn("The room has been destroyed!");
-            } else if(event === "event") {
-                if(msg["participants"]) {
-                    let list = msg["participants"];
-                    log.info("New feed joined:");
-                    log.info(list);
-                    const {feeds} = this.state;
-                    for(let f in list) {
-                        let id = list[f]["id"];
-                        //if(feeds[id]) return;
-                        let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
-                            continue
-                        list[f]["display"] = user;
-                        feeds[id] = list[f];
-                        feeds[id].talking = false;
-                    }
-                    this.setState({feeds});
-                } else if(msg["error"]) {
-                    log.error(msg["error"]);
-                }
-                // Any new feed to attach to?
-                if(msg["leaving"]) {
-                    // One of the participants has gone away?
-                    let leaving = msg["leaving"];
-                    log.info("Participant left: " + leaving + " elements with ID #rp" +leaving + ")");
-                    const {feeds} = this.state;
-                    delete feeds[leaving];
-                    this.setState({feeds});
-                }
-            }
-        }
-        if(jsep) {
-            Janus.debug("Handling SDP as well...");
-            Janus.debug(jsep);
-            audiobridge.handleRemoteJsep({jsep: jsep});
-        }
-    };
-
     handleCmdData = (ondata) => {
         log.info("-- :: It's protocol public message: ", ondata);
         const {user} = this.state;
@@ -565,13 +291,15 @@ class MqttClient extends Component {
 
     joinRoom = (reconnect) => {
         this.setState({delay: true});
-        let {audiobridge, selected_room, user, tested, audio: {stream}} = this.state;
+        let {janus, audiobridge, selected_room, user, tested, audio: {stream}} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
 
 
         audiobridge.join(selected_room, user).then(data => {
             log.info('[client] Joined respond :', data)
+            this.onJoin(data.participants)
+
             mqtt.join("trl/room/" + selected_room);
             mqtt.join("trl/room/" + selected_room + "/chat", true);
 
@@ -582,7 +310,8 @@ class MqttClient extends Component {
             this.setState({muted: true});
 
             audiobridge.publish(stream).then(data => {
-
+                log.info('[client] publish respond :', data)
+                this.setState({mystream: stream})
             }).catch(err => {
                 log.error('[client] Publish error :', err);
                 this.exitRoom(/* reconnect= */ false);
@@ -598,12 +327,13 @@ class MqttClient extends Component {
 
     exitRoom = (reconnect) => {
         let {audiobridge, room} = this.state;
-        audiobridge.send({"message": {request : "leave"}});
-        this.stream.exitJanus();
-        this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null});
-        this.initVideoRoom(reconnect);
-        mqtt.exit("galaxy/room/" + room);
-        mqtt.exit("galaxy/room/" + room + "/chat");
+        audiobridge.leave().then(() => {
+            this.stream.exitJanus();
+            this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
+            //this.initVideoRoom(reconnect);
+            mqtt.exit("galaxy/room/" + room);
+            mqtt.exit("galaxy/room/" + room + "/chat");
+        });
     };
 
     selectRoom = (i) => {
@@ -665,7 +395,7 @@ class MqttClient extends Component {
 
     render() {
 
-        const { feeds,rooms,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video} = this.state;
+        const { feeds,rooms,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -781,7 +511,7 @@ class MqttClient extends Component {
                             <Table.Cell width={8} rowSpan='2'>
                                 <Message color='grey' header='Online Translators:' list={list} />
                                 <Segment.Group>
-                                    <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} />
+                                    <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
                                     <Segment.Group horizontal>
                                         <Segment className='stream_langs'>
                                             <Select compact

@@ -73,14 +73,14 @@ export class AudiobridgePlugin extends EventEmitter {
 
   publish(stream) {
     return new Promise((resolve, reject) => {
-      this.pc.addTrack(audio.getAudioTracks()[0], stream);
+      this.pc.addTrack(stream.getAudioTracks()[0], stream);
 
       let audioTransceiver = null;
 
       let tr = this.pc.getTransceivers();
       if (tr && tr.length > 0) {
         for (let t of tr) {
-          if (t.sender && t.sender.track && t.sender.track.kind === "audio") {
+          if(t?.sender?.track?.kind === "audio") {
             audioTransceiver = t;
             if (audioTransceiver.setDirection) {
               audioTransceiver.setDirection("sendonly");

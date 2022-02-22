@@ -2,10 +2,10 @@ import {randomString} from "../shared/tools";
 import {EventEmitter} from "events";
 import log from "loglevel";
 import mqtt from "../shared/mqtt";
-import {JANUS_SRV_STR} from "../shared/consts";
+import {STUN_SRV_STR} from "../shared/consts";
 
 export class StreamingPlugin extends EventEmitter {
-  constructor (list = [{urls: JANUS_SRV_STR}]) {
+  constructor (list = [{urls: STUN_SRV_STR}]) {
     super()
     this.id = randomString(12)
     this.janus = undefined
