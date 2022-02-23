@@ -176,12 +176,9 @@ class MqttClient extends Component {
     };
 
     handleTalking = (id, talking) => {
-        const feeds = Object.assign([], this.state.feeds);
-        for (let i = 0; i < feeds.length; i++) {
-            if (feeds[i] && feeds[i].id === id) {
-                feeds[i].talking = talking;
-            }
-        }
+        const {feeds} = this.state;
+        if(!feeds[id]) return;
+        feeds[id].talking = talking;
         this.setState({feeds});
     }
 
@@ -220,7 +217,7 @@ class MqttClient extends Component {
         log.info("[client] >> This track is coming from feed :", mid, on);
         let stream = new MediaStream();
         stream.addTrack(track.clone());
-        log.info("Created remote audio stream:", stream);
+        log.info("[client] Created remote audio stream: ", stream);
         let remoteaudio = this.refs.remoteAudio;
         if(remoteaudio) remoteaudio.srcObject = stream;
     }
@@ -298,17 +295,6 @@ class MqttClient extends Component {
 
         audiobridge.join(selected_room, user).then(data => {
             log.info('[client] Joined respond :', data)
-            this.onJoin(data.participants)
-
-            mqtt.join("trl/room/" + selected_room);
-            mqtt.join("trl/room/" + selected_room + "/chat", true);
-
-            this.chat.initChatEvents();
-
-            this.stream.initJanus();
-
-            this.setState({muted: true});
-
             audiobridge.publish(stream).then(data => {
                 log.info('[client] publish respond :', data)
                 this.setState({mystream: stream})
@@ -316,6 +302,17 @@ class MqttClient extends Component {
                 log.error('[client] Publish error :', err);
                 this.exitRoom(/* reconnect= */ false);
             })
+
+            this.onJoin(data.participants)
+
+            mqtt.join("trl/room/" + selected_room);
+            mqtt.join("trl/room/" + selected_room + "/chat", true);
+
+            this.chat.initChatEvents();
+
+            //this.stream.initJanus();
+
+            this.setState({muted: true});
         }).catch(err => {
             log.error('[client] Join error :', err);
             this.exitRoom(/* reconnect= */ false);
@@ -350,7 +347,7 @@ class MqttClient extends Component {
 
     micMute = () => {
         let {audiobridge, muted} = this.state;
-        audiobridge.mute(muted);
+        audiobridge.mute(!muted);
         this.setState({muted: !muted});
     };
 
@@ -420,7 +417,7 @@ class MqttClient extends Component {
                 let name = feed.display.name;
                 return (<Message key={id} className='trl_name'
                                  attached={i === feeds.length-1 ? 'bottom' : true} warning
-                                 color={!muted || talking ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
+                                 color={!muted ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
             }
             return true;
         });

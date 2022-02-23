@@ -343,7 +343,7 @@ class HttpClient extends Component {
                         mqtt.join("trl/room/" + msg["room"] + "/chat", true);
                     }, 3000);
 
-                    this.stream.initJanus();
+                    //this.stream.initJanus();
 
                     this.publishOwnFeed();
                     this.setState({muted: true});

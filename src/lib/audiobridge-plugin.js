@@ -44,6 +44,8 @@ export class AudiobridgePlugin extends EventEmitter {
         log.info("[audiobridge] join: ", param)
         const {data, json } = param
 
+        this.initPcEvents()
+
         if(data)
           resolve(data);
 
@@ -83,16 +85,14 @@ export class AudiobridgePlugin extends EventEmitter {
           if(t?.sender?.track?.kind === "audio") {
             audioTransceiver = t;
             if (audioTransceiver.setDirection) {
-              audioTransceiver.setDirection("sendonly");
+              audioTransceiver.setDirection("sendrecv");
             } else {
-              audioTransceiver.direction = "sendonly";
+              audioTransceiver.direction = "sendrecv";
             }
             break;
           }
         }
       }
-
-      this.initPcEvents()
 
       this.pc.createOffer().then((offer) => {
         this.pc.setLocalDescription(offer)
@@ -103,7 +103,9 @@ export class AudiobridgePlugin extends EventEmitter {
           const jsep = json.jsep
           log.info('[audiobridge] Configure respond: ', param)
           resolve(data)
-          this.pc.setRemoteDescription(jsep)
+
+          this.pc.setRemoteDescription(json.jsep)
+
         }).catch(error => reject(error))
       })
     })
@@ -133,28 +135,6 @@ export class AudiobridgePlugin extends EventEmitter {
       const jsep = json.jsep
       log.info('[audiobridge] Mute respond: ', param)
     })
-  }
-
-  audio(stream) {
-    let audioTransceiver = null;
-    let tr = this.pc.getTransceivers();
-    if(tr && tr.length > 0) {
-      for(let t of tr) {
-        if(t?.sender?.track?.kind === "audio") {
-          audioTransceiver = t;
-          break;
-        }
-      }
-    }
-
-    if (audioTransceiver?.setDirection) {
-      audioTransceiver.setDirection("sendonly");
-    } else {
-      audioTransceiver.direction = "sendonly";
-    }
-
-    audioTransceiver.sender.replaceTrack(stream.getAudioTracks()[0])
-    this.configure()
   }
 
   configure(restart) {
@@ -188,10 +168,6 @@ export class AudiobridgePlugin extends EventEmitter {
       return this.transaction('trickle', { candidate })
     };
 
-    this.pc.ontrack = (e) => {
-      log.info("[audiobridge] Got track: ", e)
-    };
-
     this.pc.onconnectionstatechange = (e) => {
       log.info("[audiobridge] ICE State: ", e.target.connectionState)
       this.iceState = e.target.connectionState
@@ -206,6 +182,25 @@ export class AudiobridgePlugin extends EventEmitter {
       }
 
     };
+
+    this.pc.ontrack = (e) => {
+      log.info("[audiobridge] Got track: ", e)
+      this.onTrack(e.track, e.transceiver.mid, true)
+
+      e.track.onmute = (ev) => {
+        log.debug("[audiobridge] onmute event: ", ev)
+      }
+
+      e.track.onunmute = (ev) => {
+        log.debug("[audiobridge] onunmute event: ", ev)
+      }
+
+      e.track.onended = (ev) => {
+        log.debug("[audiobridge] onended event: ", ev)
+      }
+
+    };
+
   }
 
   iceRestart() {
@@ -243,24 +238,24 @@ export class AudiobridgePlugin extends EventEmitter {
 
   onmessage (data) {
     log.debug('[audiobridge] onmessage: ', data)
-    if(data?.publishers) {
-      log.info('[audiobridge] New feed enter: ', data.publishers[0])
-      this.onFeed(data.publishers)
+    if(data?.participants) {
+      log.info('[audiobridge] Feed event: ', data.participants[0])
+      this.onFeed(data.participants)
     }
 
     if(data?.unpublished) {
-      log.info('[audiobridge] Feed leave: ', data.unpublished)
+      log.info('[audiobridge] Feed leave: ', data)
       if (data?.unpublished === "ok") {
         // That's us
         this.janus.detach(this)
         return;
       }
-      this.unsubFrom([data.unpublished], false)
+      //this.unsubFrom([data.unpublished], false)
     }
 
     if(data?.leaving) {
       log.info('[audiobridge] Feed leave: ', data.leaving)
-      this.unsubFrom([data.leaving], false)
+      //this.unsubFrom([data.leaving], false)
     }
 
     if(data?.videoroom === "talking") {

@@ -14,7 +14,7 @@ export const randomString = (len) => {
 
 export const initJanus = (cb) => {
     Janus.init({
-        debug: process.env.NODE_ENV !== 'production' ? ["log", "error"] : ["error"],
+        debug: process.env.NODE_ENV !== 'production' ? ["debug", "log", "error"] : ["debug", "log", "error"],
         callback: () => {
             let janus = new Janus({
                 server: JANUS_SRV_TRL,
