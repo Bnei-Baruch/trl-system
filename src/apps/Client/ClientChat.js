@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Janus } from "../../lib/janus";
+import log from "loglevel";
 import {Message, Button, Input, Tab, Label, Menu} from "semantic-ui-react";
 import {getDateString, notifyMe} from "../../shared/tools";
 //import {SHIDUR_ID} from "../../shared/consts";
@@ -91,7 +91,7 @@ class ClientChat extends Component {
             // Public message
             let {messages} = this.state;
             message.time = dateString;
-            Janus.log("-:: It's public message: ",message);
+            log.info("[chat] It's public message: ",message);
             messages.push(message);
             this.setState({messages});
             if(!this.state.room_chat)

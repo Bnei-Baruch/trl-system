@@ -175,7 +175,7 @@ export class AudiobridgePlugin extends EventEmitter {
     const body = {request: "list"};
     return new Promise((resolve, reject) => {
       this.transaction('message', { body }, 'success').then((param) => {
-        log.info("[audiobridge] list: ", param)
+        log.debug("[audiobridge] list: ", param)
         const {data, json } = param
 
         if(data)
