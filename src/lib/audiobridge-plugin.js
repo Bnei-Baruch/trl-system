@@ -38,7 +38,7 @@ export class AudiobridgePlugin extends EventEmitter {
     this.roomId = roomId
     const param = new URL(window.location.href).searchParams.get("volume");
     const volume = param ? parseInt(param, 10) : 100;
-    const body = {request: "join", prebuffer: 10, quality: 10, volume, room: roomId, muted : true, display: JSON.stringify(user)};
+    const body = {request: "join", prebuffer: 10, quality: 10, volume, room: roomId, muted: true, display: JSON.stringify(user)};
     return new Promise((resolve, reject) => {
       this.transaction('message', { body }, 'event').then((param) => {
         log.info("[audiobridge] join: ", param)
@@ -76,7 +76,7 @@ export class AudiobridgePlugin extends EventEmitter {
 
   publish(stream) {
     return new Promise((resolve, reject) => {
-      if(stream) this.pc.addTrack(stream.getAudioTracks()[0], stream);
+      this.pc.addTrack(stream.getAudioTracks()[0], stream);
 
       let audioTransceiver = null;
 
@@ -97,10 +97,9 @@ export class AudiobridgePlugin extends EventEmitter {
 
       this.pc.createOffer().then((offer) => {
         this.pc.setLocalDescription(offer)
-        const jsep = stream ? {type: offer.type, sdp: offer.sdp} : ''
-        const option = stream ? {muted: true} : {generate_offer: true}
-        const body = {request: 'configure', ...option}
-        return this.transaction('message', {body, ...jsep}, 'event').then((param) => {
+        const jsep = {type: offer.type, sdp: offer.sdp}
+        const body = {request: 'configure', muted: true}
+        return this.transaction('message', {body, jsep}, 'event').then((param) => {
           const {data, json} = param || {}
           const jsep = json.jsep
           log.info('[audiobridge] Configure respond: ', param)
@@ -110,6 +109,45 @@ export class AudiobridgePlugin extends EventEmitter {
 
         }).catch(error => reject(error))
       })
+    })
+  };
+
+  listen() {
+    return new Promise((resolve, reject) => {
+
+      let audioTransceiver = null;
+      let tr = this.pc.getTransceivers();
+      if (tr && tr.length > 0) {
+        for (let t of tr) {
+          if(t?.sender?.track?.kind === "audio") {
+            audioTransceiver = t;
+            if (audioTransceiver.setDirection) {
+              audioTransceiver.setDirection("recvonly");
+            } else {
+              audioTransceiver.direction = "recvonly";
+            }
+            break;
+          }
+        }
+      }
+
+      const body = {request: 'configure', generate_offer: true}
+      this.transaction('message', {body}, 'event').then((param) => {
+        const {data, json} = param || {}
+        log.info('[audiobridge] Configure offer: ', param)
+        log.debug('[audiobridge] Handle jsep: ', json.jsep)
+        this.pc.setRemoteDescription(new RTCSessionDescription(json.jsep)).then(() => {
+          return this.pc.createAnswer()
+        }).then(answer => {
+          log.info('[audiobridge] answerCreated: ', answer)
+          this.pc.setLocalDescription(answer)
+          const body = {request: 'configure'}
+          this.transaction('message', {body, jsep: answer}, 'event').then((param) => {
+            log.info('[audiobridge] Configure answerCreated: ', answer)
+          })
+        })
+      }).catch(error => reject(error))
+
     })
   };
 

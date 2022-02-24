@@ -235,7 +235,7 @@ class MqttAdmin extends Component {
             audiobridge.join(room, user).then(data => {
                 log.info('[client] Joined respond :', data)
                 this.setState({current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
-                audiobridge.publish()
+                audiobridge.listen()
 
                 this.onFeedEvent(data.participants)
 
