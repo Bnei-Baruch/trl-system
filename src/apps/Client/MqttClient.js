@@ -92,7 +92,7 @@ class MqttClient extends Component {
                 this.setState({mqttOn: true});
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/" + user.id);
-                this.initJanus(user)
+                this.initJanus(user, false)
                 mqtt.watch((message) => {
                     this.handleCmdData(message);
                 });
@@ -100,7 +100,7 @@ class MqttClient extends Component {
         });
     };
 
-    initJanus = (user, retry) => {
+    initJanus = (user, reconnect) => {
         let janus = new JanusMqtt(user, "trl1")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
@@ -110,9 +110,7 @@ class MqttClient extends Component {
 
             if(status === "error") {
                 log.error("[client] Janus error, reconnecting...")
-                this.exitRoom(/* reconnect= */ true, () => {
-                    this.reinitClient(retry);
-                });
+                this.exitRoom(true);
             }
         }
 
@@ -120,6 +118,7 @@ class MqttClient extends Component {
         audiobridge.onFeed = this.onFeed
         audiobridge.talkEvent = this.talkEvent
         audiobridge.onTrack = this.onTrack
+        audiobridge.onLeave = this.onLeave
 
         janus.init().then(data => {
             log.info("[client] Janus init", data)
@@ -128,11 +127,15 @@ class MqttClient extends Component {
                 log.info('[client] Publisher Handle: ', data);
                 this.getRoomList(audiobridge);
                 this.initDevices();
+                if(reconnect) {
+                    setTimeout(() => {
+                        this.joinRoom(reconnect);
+                    }, 1000);
+                }
             })
         }).catch(err => {
             log.error("[client] Janus init", err);
-            this.exitRoom(/* reconnect= */ true, () => {
-            });
+            this.exitRoom(true);
         })
 
     }
@@ -165,9 +168,9 @@ class MqttClient extends Component {
         devices.setAudioDevice(device, cam_mute).then(audio => {
             if(audio.device) {
                 this.setState({audio});
-                const {audiobridge, selected_room} = this.state;
+                const {audiobridge, mystream} = this.state;
                 micVolume(this.refs.canvas1)
-                if (audiobridge && selected_room) {
+                if (audiobridge && mystream) {
                     audio.stream.getAudioTracks()[0].enabled = false;
                     audiobridge.audio(audio.stream)
                 }
@@ -184,8 +187,7 @@ class MqttClient extends Component {
 
     onJoin = (list) => {
         const {feeds} = this.state;
-        log.info("Got a list of participants:");
-        log.info(list);
+        log.info("Got a list of participants: ", list);
         for(let f in list) {
             let id = list[f]["id"];
             let user = JSON.parse(list[f]["display"]);
@@ -210,6 +212,12 @@ class MqttClient extends Component {
             feeds[id] = list[f];
             feeds[id].talking = false;
         }
+        this.setState({feeds});
+    }
+
+    onLeave = (id) => {
+        const {feeds} = this.state;
+        delete feeds[id];
         this.setState({feeds});
     }
 
@@ -310,7 +318,7 @@ class MqttClient extends Component {
 
             this.chat.initChatEvents();
 
-            //this.stream.initJanus();
+            this.stream.initJanus();
 
             this.setState({muted: true});
         }).catch(err => {
@@ -323,13 +331,14 @@ class MqttClient extends Component {
     };
 
     exitRoom = (reconnect) => {
-        let {audiobridge, room} = this.state;
+        let {audiobridge, room, janus, user} = this.state;
         audiobridge.leave().then(() => {
-            this.stream.exitJanus();
-            this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
-            //this.initVideoRoom(reconnect);
-            mqtt.exit("galaxy/room/" + room);
-            mqtt.exit("galaxy/room/" + room + "/chat");
+            janus.detach(audiobridge).then(() => {
+                mqtt.exit("galaxy/room/" + room);
+                mqtt.exit("galaxy/room/" + room + "/chat");
+                this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
+                this.initJanus(user, reconnect)
+            })
         });
     };
 
@@ -439,7 +448,6 @@ class MqttClient extends Component {
                         >
                             <Popup.Content>
                                 <Select fluid
-                                        disabled={mystream}
                                         error={!device}
                                         placeholder="Select Device:"
                                         value={device}

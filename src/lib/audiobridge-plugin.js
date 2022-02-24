@@ -14,6 +14,7 @@ export class AudiobridgePlugin extends EventEmitter {
     this.roomId = null
     this.onFeed = null
     this.onTrack = null
+    this.onLeave = null
     this.talkEvent = null
     this.iceState = null
     this.pc = new RTCPeerConnection({
@@ -110,6 +111,26 @@ export class AudiobridgePlugin extends EventEmitter {
       })
     })
   };
+
+  audio(stream) {
+    let audioTransceiver = null;
+    let tr = this.pc.getTransceivers();
+    if(tr && tr.length > 0) {
+      for(let t of tr) {
+        if(t?.sender?.track?.kind === "audio") {
+          audioTransceiver = t;
+          break;
+        }
+      }
+    }
+
+    if (audioTransceiver?.setDirection) {
+      audioTransceiver.setDirection("sendrecv");
+    }
+
+    audioTransceiver.sender.replaceTrack(stream.getAudioTracks()[0])
+    this.configure()
+  }
 
   list() {
     const body = {request: "list"};
@@ -255,18 +276,18 @@ export class AudiobridgePlugin extends EventEmitter {
 
     if(data?.leaving) {
       log.info('[audiobridge] Feed leave: ', data.leaving)
-      //this.unsubFrom([data.leaving], false)
+      this.onLeave(data.leaving)
     }
 
-    if(data?.videoroom === "talking") {
-      log.debug('[audiobridge] talking: ', data.id)
-      this.talkEvent(data.id, true)
-    }
-
-    if(data?.videoroom === "stopped-talking") {
-      log.debug('[audiobridge] stopped talking: ', data.id)
-      this.talkEvent(data.id, false)
-    }
+    // if(data?.videoroom === "talking") {
+    //   log.debug('[audiobridge] talking: ', data.id)
+    //   this.talkEvent(data.id, true)
+    // }
+    //
+    // if(data?.videoroom === "stopped-talking") {
+    //   log.debug('[audiobridge] stopped talking: ', data.id)
+    //   this.talkEvent(data.id, false)
+    // }
   }
 
   oncleanup () {
