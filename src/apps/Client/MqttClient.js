@@ -140,16 +140,7 @@ class MqttClient extends Component {
     }
 
     initDevices = () => {
-        devices.init(audio => {
-            setTimeout(() => {
-                if(audio.device) {
-                    this.setDevice(audio.device)
-                } else {
-                    log.warn("[client] No left audio devices")
-                    //FIXME: remove it from pc?
-                }
-            }, 1000)
-        }).then(audio => {
+        devices.init().then(audio => {
             log.info("[client] init devices: ", audio);
             if (audio.error) {
                 alert("audio device not detected");
@@ -161,6 +152,16 @@ class MqttClient extends Component {
             }
             this.setState({audio})
         })
+        devices.onChange = (audio) => {
+            setTimeout(() => {
+                if(audio.device) {
+                    this.setDevice(audio.device)
+                } else {
+                    log.warn("[client] No left audio devices")
+                    //FIXME: remove it from pc?
+                }
+            }, 1000)
+        }
     };
 
     setDevice = (device, cam_mute) => {

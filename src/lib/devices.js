@@ -10,12 +10,12 @@ class LocalDevices {
         error: null,
         stream: null,
     }
-
+    this.onChange = null
     this.audio_stream = null
     this.micLevel = null
   }
 
-  init = async (onChange) => {
+  init = async () => {
     let devices = [], ts = 0;
 
     //TODO: Translate exceptions - https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions
@@ -47,7 +47,7 @@ class LocalDevices {
       let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
       this.audio.device = isSavedAudio ? storage_audio : default_audio;
 
-      if(typeof onChange === "function") onChange(this.audio)
+      if(typeof this.onChange === "function") this.onChange(this.audio)
     }
 
     log.debug("[devices] init: ", this)
