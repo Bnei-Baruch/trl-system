@@ -56,8 +56,9 @@ export class AudiobridgePlugin extends EventEmitter {
     })
   }
 
-  leave() {
-    const body = {request: "leave", room: this.roomId};
+  leave(roomId) {
+    const room = roomId || this.roomId
+    const body = {request: "leave", room};
     return new Promise((resolve, reject) => {
       this.transaction('message', { body }, 'event').then((param) => {
         log.info("[audiobridge] leave: ", param)
@@ -75,7 +76,7 @@ export class AudiobridgePlugin extends EventEmitter {
 
   publish(stream) {
     return new Promise((resolve, reject) => {
-      this.pc.addTrack(stream.getAudioTracks()[0], stream);
+      if(stream) this.pc.addTrack(stream.getAudioTracks()[0], stream);
 
       let audioTransceiver = null;
 
@@ -96,9 +97,10 @@ export class AudiobridgePlugin extends EventEmitter {
 
       this.pc.createOffer().then((offer) => {
         this.pc.setLocalDescription(offer)
-        const jsep = {type: offer.type, sdp: offer.sdp}
-        const body = {request: 'configure', muted: true}
-        return this.transaction('message', {body, jsep}, 'event').then((param) => {
+        const jsep = stream ? {type: offer.type, sdp: offer.sdp} : ''
+        const option = stream ? {muted: true} : {generate_offer: true}
+        const body = {request: 'configure', ...option}
+        return this.transaction('message', {body, ...jsep}, 'event').then((param) => {
           const {data, json} = param || {}
           const jsep = json.jsep
           log.info('[audiobridge] Configure respond: ', param)
@@ -143,6 +145,24 @@ export class AudiobridgePlugin extends EventEmitter {
 
       }).catch((err) => {
         log.error('[audiobridge] error list', err)
+        reject(err)
+      })
+    })
+  }
+
+  switch(room, user) {
+    this.roomId = room
+    const body = {request: "changeroom", room, muted: true, display: JSON.stringify(user)};
+    return new Promise((resolve, reject) => {
+      this.transaction('message', { body }, 'event').then((param) => {
+        log.info("[audiobridge] changeroom: ", param)
+        const {data, json } = param
+
+        if(data)
+          resolve(data);
+
+      }).catch((err) => {
+        log.error('[audiobridge] error changeroom room', err)
         reject(err)
       })
     })

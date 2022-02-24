@@ -312,8 +312,8 @@ class MqttClient extends Component {
         audiobridge.leave().then(() => {
             this.stream.exitJanus()
             janus.detach(audiobridge).then(() => {
-                mqtt.exit("galaxy/room/" + room);
-                mqtt.exit("galaxy/room/" + room + "/chat");
+                mqtt.exit("trl/room/" + room);
+                mqtt.exit("trl/room/" + room + "/chat");
                 this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
                 this.initJanus(user, reconnect)
             })

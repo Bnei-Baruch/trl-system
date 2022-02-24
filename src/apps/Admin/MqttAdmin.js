@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import platform from "platform";
-import { Janus } from "../../lib/janus";
 import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label, Confirm, Header} from "semantic-ui-react";
 import {initJanus, getDateString, getPublisherInfo, notifyMe} from "../../shared/tools";
 import './Admin.css';
@@ -9,6 +8,9 @@ import {kc} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
 import mqtt from "../../shared/mqtt";
+import log from "loglevel";
+import {JanusMqtt} from "../../lib/janus-mqtt";
+import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
 
 class MqttAdmin extends Component {
 
@@ -63,7 +65,7 @@ class MqttAdmin extends Component {
             this.setState({root: gxy_root});
             delete user.roles;
             user.role = "admin";
-            this.initShidurAdmin(user);
+            this.initMQTT(user);
         } else {
             alert("Access denied!");
             kc.logout();
@@ -75,32 +77,99 @@ class MqttAdmin extends Component {
             this.sendMessage();
     };
 
-    initShidurAdmin = (user) => {
-        initJanus(janus => {
-            this.setState({janus,user});
-            this.initVideoRoom();
-
-            // Protocol init
-            mqtt.init(user, (data) => {
-                console.log("[mqtt] init: ", data, user);
+    initMQTT = (user) => {
+        mqtt.init(user, (reconnected, error) => {
+            if (error) {
+                log.info("[client] MQTT disconnected");
+                this.setState({mqttOn: false});
+                window.location.reload()
+                alert("- Lost Connection to TRL System -")
+            } else if (reconnected) {
+                this.setState({mqttOn: true});
+                log.info("[client] MQTT reconnected");
+            } else {
+                this.setState({mqttOn: true});
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/support");
                 mqtt.join("trl/users/" + user.id);
                 this.initChatEvents();
+                this.initJanus(user, false)
                 mqtt.watch((message) => {
                     this.onProtocolData(message);
                 });
-            });
-
-        }, er => {
-            kc.logout();
-        }, true);
+            }
+        });
         setInterval(() => {
             this.getRoomList();
             if(this.state.feed_user)
                 this.getFeedInfo()
         }, 5000 );
     };
+
+    initJanus = (user, reconnect) => {
+        let janus = new JanusMqtt(user, "trl1")
+        janus.onStatus = (srv, status) => {
+            if(status === "offline") {
+                alert("Janus Server - " + srv + " - Offline")
+                window.location.reload()
+            }
+
+            if(status === "error") {
+                log.error("[client] Janus error, reconnecting...")
+                this.exitRoom(true);
+            }
+        }
+
+        let audiobridge = new AudiobridgePlugin();
+        audiobridge.onFeedEvent = this.onFeedEvent
+        audiobridge.onTrack = this.onTrack
+        audiobridge.onLeave = this.onLeave
+
+        janus.init().then(data => {
+            log.info("[client] Janus init", data)
+            janus.attach(audiobridge).then(data => {
+                this.setState({janus, audiobridge, user, delay: false});
+                log.info('[client] Publisher Handle: ', data);
+                this.getRoomList(audiobridge);
+            })
+        }).catch(err => {
+            log.error("[client] Janus init", err);
+            this.exitRoom(true);
+        })
+
+    }
+
+    onFeedEvent = (list) => {
+        log.info("[client] Got feed event: ", list);
+        let {feeds, users} = this.state;
+        for(let f in list) {
+            let id = list[f]["id"];
+            let user = JSON.parse(list[f]["display"]);
+            if(user.role !== "user")
+                continue
+            list[f]["display"] = user;
+            feeds[id] = list[f];
+            feeds[id].talking = false;
+            users[user.id] = user;
+            users[user.id].rfid = id;
+        }
+        this.setState({feeds, users});
+    }
+
+    onLeave = (id) => {
+        const {feeds} = this.state;
+        delete feeds[id];
+        this.setState({feeds});
+    }
+
+    onTrack = (track, mid, on) => {
+        log.info("[client] >> This track is coming from feed :", mid, on);
+        let stream = new MediaStream();
+        stream.addTrack(track.clone());
+        log.info("[client] Created remote audio stream: ", stream);
+        let remoteaudio = this.refs.remoteAudio;
+        if(remoteaudio) remoteaudio.srcObject = stream;
+    }
 
     initChatEvents = () => {
         // Public chat
@@ -140,118 +209,53 @@ class MqttAdmin extends Component {
     getRoomList = () => {
         const {audiobridge} = this.state;
         if (audiobridge) {
-            audiobridge.send({message: {request: "list"},
-                success: (data) => {
-                    data.list.sort((a, b) => {
-                        // if (a.num_participants > b.num_participants) return -1;
-                        // if (a.num_participants < b.num_participants) return 1;
-                        if (a.description > b.description) return 1;
-                        if (a.description < b.description) return -1;
-                        return 0;
-                    });
-                    this.setState({rooms: data.list});
-                }
-            });
+            audiobridge.list().then(data => {
+                log.debug("[client] Get Rooms List: ", data.list);
+                data.list.sort((a, b) => {
+                    if (a.description > b.description) return 1;
+                    if (a.description < b.description) return -1;
+                    return 0;
+                });
+                this.setState({rooms: data.list});
+            })
         }
-    };
-
-    getFeedsList = (room_id) => {
-        const {audiobridge} = this.state;
-        if (audiobridge) {
-            audiobridge.send({message: {request: "listparticipants", "room": room_id},
-                success: (data) => {
-                    Janus.log(" :: Got Feeds List (room :"+room_id+"): ", data);
-                    let feeds = data.participants;
-                    Janus.log(feeds)
-                }
-            });
-        }
-    };
-
-    initVideoRoom = (room_id) => {
-        if(this.state.audiobridge)
-            this.state.audiobridge.detach();
-        this.state.janus.attach({
-            plugin: "janus.plugin.audiobridge",
-            opaqueId: "videoroom_user",
-            success: (audiobridge) => {
-                Janus.log(" :: My handle: ", audiobridge);
-                Janus.log("Plugin attached! (" + audiobridge.getPlugin() + ", id=" + audiobridge.getId() + ")");
-                Janus.log("  -- This is a publisher/manager");
-                this.setState({audiobridge, groups: []});
-                this.getRoomList();
-            },
-            error: (error) => {
-                Janus.log("Error attaching plugin: " + error);
-            },
-            consentDialog: (on) => {
-                Janus.debug("Consent dialog should be " + (on ? "on" : "off") + " now");
-            },
-            mediaState: (medium, on) => {
-                Janus.log("Janus " + (on ? "started" : "stopped") + " receiving our " + medium);
-            },
-            webrtcState: (on) => {
-                Janus.log("Janus says our WebRTC PeerConnection is " + (on ? "up" : "down") + " now");
-            },
-            onmessage: (msg, jsep) => {
-                this.onBridgeMessage(this.state.audiobridge, msg, jsep);
-            },
-            onlocalstream: (mystream) => {
-                Janus.debug(" ::: Got a local stream :::");
-            },
-            onremotetrack: (track, mid, on) => {
-                Janus.log(" ::: Got a remote track event ::: (remote feed)");
-                Janus.log("Remote track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
-                // If we're here, a new track was added
-                if(track.kind === "audio" && on) {
-                    // New audio track: create a stream out of it, and use a hidden <audio> element
-                    let stream = new MediaStream();
-                    stream.addTrack(track.clone());
-                    Janus.log("Created remote audio stream:", stream);
-                    let remoteaudio = this.refs.remoteAudio;
-                    Janus.attachMediaStream(remoteaudio, stream);
-                } else if(track.kind === "data") {
-                    Janus.log("Created remote data channel");
-                } else {
-                    Janus.log("-- Already active stream --");
-                }
-            },
-            ondataopen: (data) => {
-                Janus.log("The DataChannel is available!(publisher)");
-            },
-            ondata: (data) => {
-                Janus.debug("We got data from the DataChannel! (publisher) " + data);
-            },
-            oncleanup: () => {
-                Janus.log(" ::: Got a cleanup notification: we are unpublished now :::");
-            }
-        });
     };
 
     joinRoom = (data, i) => {
-        Janus.log(" -- joinRoom: ", data, i);
+        log.info(" -- joinRoom: ", data, i);
         const {rooms, user, audiobridge, current_room} = this.state;
         let room = rooms[i].room;
         let room_name = rooms[i].description;
         if (current_room === room)
             return;
 
-        Janus.log(" :: Enter to room: ", room);
+        log.info(" :: Enter to room: ", room);
 
         if(!current_room) {
-            let register = { "request": "join", "room": room, muted : true, "display": JSON.stringify(user) };
-            audiobridge.send({"message": register});
-            this.setState({current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
+            audiobridge.join(room, user).then(data => {
+                log.info('[client] Joined respond :', data)
+                this.setState({current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
+                audiobridge.publish()
 
-            // Subscribe to mqtt topic
-            mqtt.join("trl/room/" + room);
-            mqtt.join("trl/room/" + room + "/chat", true);
+                this.onFeedEvent(data.participants)
+
+                mqtt.join("trl/room/" + room);
+                mqtt.join("trl/room/" + room + "/chat", true);
+
+            }).catch(err => {
+                log.error('[client] Join error :', err);
+                this.exitRoom(false);
+            })
+
             return;
         }
 
-        this.switchRoom(room);
-
         this.setState({current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
+
+        audiobridge.switch(room, user).then(data => {
+            log.info("[admin] swtch respond: ", data)
+            this.onFeedEvent(data.participants)
+        })
 
         mqtt.exit("trl/room/" + current_room);
         mqtt.exit("trl/room/" + current_room + "/chat");
@@ -260,170 +264,23 @@ class MqttAdmin extends Component {
 
     exitRoom = (room) => {
         let {audiobridge} = this.state;
-        let videoreq = {request : "leave", "room": room};
-        Janus.log(room);
-        audiobridge.send({"message": videoreq,
-            success: () => {
-                Janus.log(":: Video room leave callback: ");
-                //this.getRoomList();
-            }
+        audiobridge.leave(room).then(() => {
+            mqtt.exit("trl/room/" + room);
+            mqtt.exit("trl/room/" + room + "/chat");
         });
-        mqtt.exit("trl/room/" + room);
-        mqtt.exit("trl/room/" + room + "/chat");
-    };
-
-    switchRoom = (room_id) => {
-        let {audiobridge, user} = this.state;
-        let switchroom = {request: "changeroom", room: room_id, muted: true, display: JSON.stringify(user)};
-            audiobridge.send ({"message": switchroom,
-            success: (cb) => {
-                Janus.log(" :: Switch Room: ", room_id, cb);
-            }
-        })
-    };
-
-    publishOwnFeed = () => {
-        let {audiobridge} = this.state;
-        audiobridge.createOffer(
-            {
-                media: {video: false},
-                success: (jsep) => {
-                    Janus.debug("Got SDP!");
-                    Janus.debug(jsep);
-                    let publish = {request: "configure", muted: true};
-                    audiobridge.send({"message": publish, "jsep": jsep});
-                },
-                error: (error) => {
-                    Janus.error("WebRTC error:", error);
-                }
-            });
-    };
-
-    onBridgeMessage = (audiobridge, msg, jsep) => {
-        Janus.log(" ::: Got a message :::");
-        Janus.log(msg);
-        let event = msg["audiobridge"];
-        Janus.debug("Event: " + event);
-        if(event) {
-            if(event === "joined") {
-                // Successfully joined, negotiate WebRTC now
-                if(msg["id"]) {
-                    let myid = msg["id"];
-                    Janus.log("Successfully joined room " + msg["room"] + " with ID " + myid);
-                    this.publishOwnFeed();
-                    // Any room participant?
-                    if(msg["participants"]) {
-                        const {feeds, users} = this.state;
-                        let list = msg["participants"];
-                        Janus.log("Got a list of participants:");
-                        Janus.log(list);
-                        for(let f in list) {
-                            let id = list[f]["id"];
-                            let user = JSON.parse(list[f]["display"]);
-                            if(user.role !== "user")
-                                continue
-                            list[f]["display"] = user;
-                            feeds[id] = list[f];
-                            feeds[id].talking = false;
-                            users[user.id] = user;
-                            users[user.id].rfid = id;
-                        }
-                        this.setState({feeds, users});
-                    }
-                }
-            } else if(event === "roomchanged") {
-                // The user switched to a different room
-                let myid = msg["id"];
-                Janus.log("Moved to room " + msg["room"] + ", new ID: " + myid);
-
-                // Subscribe to mqtt topic
-                mqtt.join("trl/room/" + msg["room"]);
-                mqtt.join("trl/room/" + msg["room"] + "/chat", true);
-
-                // Any room participant?
-                if(msg["participants"]) {
-                    const {feeds, users} = this.state;
-                    let list = msg["participants"];
-                    Janus.log("Got a list of participants:");
-                    Janus.log(list);
-                    for(let f in list) {
-                        let id = list[f]["id"];
-                        let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
-                            continue
-                        list[f]["display"] = user;
-                        feeds[id] = list[f];
-                        feeds[id].talking = false;
-                        users[user.id] = user;
-                        users[user.id].rfid = id;
-                    }
-                    this.setState({feeds, users});
-                }
-            } else if(event === "talking") {
-                const {feeds} = this.state;
-                const id = msg["id"];
-                if(!feeds[id]) return;
-                feeds[id].talking = true;
-                this.setState({feeds});
-            } else if(event === "stopped-talking") {
-                const {feeds} = this.state;
-                const id = msg["id"];
-                if(!feeds[id]) return;
-                feeds[id].talking = false;
-                this.setState({feeds});
-            } else if(event === "destroyed") {
-                // The room has been destroyed
-                Janus.warn("The room has been destroyed!");
-            } else if(event === "event") {
-                if(msg["participants"]) {
-                    let list = msg["participants"];
-                    Janus.log("New feed joined:");
-                    Janus.log(list);
-                    const {feeds, users} = this.state;
-                    for(let f in list) {
-                        let id = list[f]["id"];
-                        let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
-                            continue
-                        list[f]["display"] = user;
-                        feeds[id] = list[f];
-                        feeds[id].talking = false;
-                        users[user.id] = user;
-                        users[user.id].rfid = id;
-                    }
-                    this.setState({feeds, users});
-                } else if(msg["error"]) {
-                    console.error(msg["error"]);
-                }
-                // Any new feed to attach to?
-                if(msg["leaving"]) {
-                    // One of the participants has gone away?
-                    let leaving = msg["leaving"];
-                    Janus.log("Participant left: " + leaving + " elements with ID #rp" +leaving + ")");
-                    const {feeds} = this.state;
-                    delete feeds[leaving];
-                    this.setState({feeds});
-                }
-            }
-        }
-        if(jsep) {
-            Janus.debug("Handling SDP as well...");
-            Janus.debug(jsep);
-            audiobridge.handleRemoteJsep({jsep: jsep});
-        }
     };
 
     onChatMessage = (message) => {
         message.time = getDateString();
         if (message.whisper) {
             let {messages} = this.state;
-            Janus.log("-:: It's private message: ", message);
+            log.info("-:: It's private message: ", message);
             messages.push(message);
             this.setState({messages});
             this.scrollToBottom();
         } else {
             let {messages} = this.state;
-            Janus.log("-:: It's public message: ", message);
+            log.info("-:: It's public message: ", message);
             messages.push(message);
             this.setState({messages}, () => {
                 this.scrollToBottom();
@@ -505,7 +362,7 @@ class MqttAdmin extends Component {
         const topic = `trl/users/${active_tab.id}`
         mqtt.send(JSON.stringify(msg), false, topic);
 
-        Janus.log("-:: It's support message: "+msg);
+        log.info("-:: It's support message: "+msg);
         this.setState({support_chat, input_value: "", msg_type: "support"}, () => {
             this.scrollToBottom();
         });
@@ -553,121 +410,14 @@ class MqttAdmin extends Component {
             this.supt.scrollIntoView({ behavior: 'smooth' })
     };
 
-    selectRoom = (i) => {
-        const {rooms} = this.state;
-        let room_id = rooms[i].room;
-        this.setState({room_id});
-    };
-
-    getRoomID = () => {
-        const {rooms} = this.state;
-        let id = 1028;
-        for(let i=id; i<9999; i++) {
-            let room_id = rooms.filter(room => room.room === i);
-            if (room_id.length === 0) {
-                return i;
-            }
-        }
-    };
-
-    createChatRoom = (id,description) => {
-        const {chatroom} = this.state;
-        let req = {
-            textroom : "create",
-            room : id,
-            transaction: Janus.randomString(12),
-            secret: `${SECRET}`,
-            description : description,
-            is_private : false,
-            permanent : true
-        };
-        chatroom.data({text: JSON.stringify(req),
-            success: () => {
-                Janus.log(":: Successfuly created room: ",id);
-            },
-            error: (reason) => {
-                Janus.log(reason);
-            }
-        });
-    };
-
-    removeChatRoom = (id) => {
-        const {chatroom} = this.state;
-        let req = {
-            textroom: "destroy",
-            room: id,
-            transaction: Janus.randomString(12),
-            secret: `${SECRET}`,
-            permanent: true,
-        };
-        chatroom.data({text: JSON.stringify(req),
-            success: () => {
-                Janus.log(":: Successfuly removed room: ", id);
-            },
-            error: (reason) => {
-                Janus.log(reason);
-            }
-        });
-    };
-
     setBitrate = (bitrate) => {
         this.setState({bitrate});
-    };
-
-    createRoom = () => {
-        let {bitrate,description,audiobridge} = this.state;
-        let room_id = this.getRoomID();
-        let janus_room = {
-            request : "create",
-            room: room_id,
-            description: description,
-            secret: `${SECRET}`,
-            publishers: 20,
-            bitrate: bitrate,
-            fir_freq: 10,
-            audiocodec: "opus",
-            videocodec: "h264",
-            audiolevel_event: true,
-            audio_level_average: 100,
-            audio_active_packets: 25,
-            record: false,
-            is_private: false,
-            permanent: true,
-        };
-        Janus.log(description);
-        audiobridge.send({"message": janus_room,
-            success: (data) => {
-                Janus.log(":: Create callback: ", data);
-                this.getRoomList();
-                alert("Room: "+description+" created!")
-                this.createChatRoom(room_id,description);
-            },
-        });
-        this.setState({description: ""});
-    };
-
-    removeRoom = () => {
-        const {room_id,audiobridge} = this.state;
-        let janus_room = {
-            request: "destroy",
-            room: room_id,
-            secret: `${SECRET}`,
-            permanent: true,
-        };
-        audiobridge.send({"message": janus_room,
-            success: (data) => {
-                Janus.log(":: Remove callback: ", data);
-                this.getRoomList();
-                alert("Room ID: "+room_id+" removed!");
-                this.removeChatRoom(room_id);
-            },
-        });
     };
 
     disableRoom = (e, data, i) => {
         e.preventDefault();
         if (e.type === 'contextmenu') {
-            Janus.log(data)
+            log.info(data)
             // let {disabled_rooms} = this.state;
             // disabled_rooms.push(data);
             // this.setState({disabled_rooms});
@@ -675,27 +425,12 @@ class MqttAdmin extends Component {
         }
     };
 
-    kickUser = (id) => {
-        const {current_room,audiobridge,feed_id} = this.state;
-        let request = {
-            request: "kick",
-            room: current_room,
-            secret: `${SECRET}`,
-            id: feed_id,
-        };
-        audiobridge.send({"message": request,
-            success: (data) => {
-                Janus.log(":: Kick callback: ", data);
-            },
-        });
-    };
-
     getUserInfo = (feed) => {
-        Janus.log(" :: Selected feed: ",feed);
+        log.info(" :: Selected feed: ",feed);
         let {display,id,talking} = feed;
         let feed_info = display.system ? platform.parse(display.system) : null;
         this.setState({feed_id: id, feed_user: display, feed_talk: talking, feed_info});
-        Janus.log(display,id,talking);
+        log.info(display,id,talking);
     };
 
     getFeedInfo = () => {
@@ -703,7 +438,7 @@ class MqttAdmin extends Component {
             let {session,handle} = this.state.feed_user;
             if(session && handle) {
                 getPublisherInfo(session, handle, json => {
-                        //Janus.log(":: Publisher info", json);
+                        //log.info(":: Publisher info", json);
                         let audio = json.info.webrtc.media[0].rtcp.main;
                         this.setState({feed_rtcp: {audio}});
                     }, true
@@ -791,11 +526,6 @@ class MqttAdmin extends Component {
           { key: 'support', text: 'Support', value: 'support', disabled: Object.keys(support_chat).length === 0 },
       ];
 
-      let rooms_list = rooms.map((data,i) => {
-          const {room, num_participants, description} = data;
-          return ({ key: room, text: description, value: i, description: num_participants.toString()})
-      });
-
       let rooms_grid = rooms.map((data,i) => {
           const {room, num_participants, description} = data;
           return (
@@ -810,14 +540,13 @@ class MqttAdmin extends Component {
 
       let users_grid = Object.values(feeds).map((feed,i) => {
           if(feed) {
-              let talking = feed.talking;
               let muted = feed.muted;
               return (
-                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={!muted || talking}
+                  <Table.Row active={feed.id === this.state.feed_id} key={i} positive={!muted}
                              onClick={() => this.getUserInfo(feed)}
                              onContextMenu={(e) => this.addToSupport(e,feed.display.id)} >
                       <Table.Cell width={10}>{feed.display.name}</Table.Cell>
-                      <Table.Cell width={1}>{!muted || talking ? f : ""}</Table.Cell>
+                      <Table.Cell width={1}>{!muted ? f : ""}</Table.Cell>
                   </Table.Row>
               )
           }
@@ -858,42 +587,6 @@ class MqttAdmin extends Component {
       });
 
       let login = (<LoginPage user={user} checkPermission={this.checkPermission} />);
-
-      let root_content = (
-          <Menu secondary >
-              <Menu.Item>
-                  <Button color='orange' icon='bell slash' labelPosition='right'
-                          content={room_name} onClick={this.stopForward} />
-              </Menu.Item>
-              <Menu.Item>
-              </Menu.Item>
-              <Menu.Item>
-                  <Button negative onClick={this.removeRoom}>Remove</Button>
-                  :::
-                  <Select
-                      error={room_id}
-                      scrolling
-                      placeholder="Select Room:"
-                      value={i}
-                      options={rooms_list}
-                      onChange={(e, {value}) => this.selectRoom(value)} />
-              </Menu.Item>
-              <Menu.Item>
-                  <Input type='text' placeholder='Room description...' action value={description}
-                         onChange={(v,{value}) => this.setState({description: value})}>
-                      <input />
-                      <Select
-                          compact={true}
-                          scrolling={false}
-                          placeholder="Room Bitrate:"
-                          value={bitrate}
-                          options={bitrate_options}
-                          onChange={(e, {value}) => this.setBitrate(value)}/>
-                      <Button positive onClick={this.createRoom}>Create</Button>
-                  </Input>
-              </Menu.Item>
-          </Menu>
-      );
 
       let content = (
           <Segment className="virtual_segment" color='blue' raised>
