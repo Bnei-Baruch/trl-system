@@ -208,7 +208,7 @@ class MqttClient extends Component {
 
     selfTest = () => {
         this.setState({selftest: "Recording... 4"});
-        testMic(this.state.stream);
+        testMic(this.state.audio.stream);
 
         let rect = 4;
         let rec = setInterval(() => {
