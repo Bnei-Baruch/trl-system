@@ -310,6 +310,7 @@ class MqttClient extends Component {
     exitRoom = (reconnect) => {
         let {audiobridge, room, janus, user} = this.state;
         audiobridge.leave().then(() => {
+            this.stream.exitJanus()
             janus.detach(audiobridge).then(() => {
                 mqtt.exit("galaxy/room/" + room);
                 mqtt.exit("galaxy/room/" + room + "/chat");

@@ -26,9 +26,9 @@ class Main extends Component {
         const {user, roles} = this.state;
 
         let opt = roles.map((role,i) => {
-            if(role === "bb_user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://trl.kli.one/chat","_self")} >Chat</Button>);
-            if(role === "trl_user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://trl.kli.one/client","_self")} >Translate</Button>);
-            if(role === "trl_admin") return (<Button key={i} size='massive' color='green' onClick={() => window.open("https://trl.kli.one/admin","_self")} >Admin</Button>);
+            if(role === "bb_user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("/chat","_self")} >Chat</Button>);
+            if(role === "trl_user") return (<Button key={i} size='massive' color='green' onClick={() => window.open("/client","_self")} >Translate</Button>);
+            if(role === "trl_admin") return (<Button key={i} size='massive' color='green' onClick={() => window.open("/admin","_self")} >Admin</Button>);
             return false
         });
 
