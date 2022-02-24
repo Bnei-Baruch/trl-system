@@ -12,10 +12,9 @@ export class AudiobridgePlugin extends EventEmitter {
     this.janusHandleId = undefined
     this.pluginName = 'janus.plugin.audiobridge'
     this.roomId = null
-    this.onFeed = null
     this.onTrack = null
     this.onLeave = null
-    this.talkEvent = null
+    this.onFeedEvent = null
     this.iceState = null
     this.pc = new RTCPeerConnection({
       iceServers: list
@@ -261,17 +260,7 @@ export class AudiobridgePlugin extends EventEmitter {
     log.debug('[audiobridge] onmessage: ', data)
     if(data?.participants) {
       log.info('[audiobridge] Feed event: ', data.participants[0])
-      this.onFeed(data.participants)
-    }
-
-    if(data?.unpublished) {
-      log.info('[audiobridge] Feed leave: ', data)
-      if (data?.unpublished === "ok") {
-        // That's us
-        this.janus.detach(this)
-        return;
-      }
-      //this.unsubFrom([data.unpublished], false)
+      this.onFeedEvent(data.participants)
     }
 
     if(data?.leaving) {

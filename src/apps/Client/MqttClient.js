@@ -84,7 +84,7 @@ class MqttClient extends Component {
                 log.info("[client] MQTT disconnected");
                 this.setState({mqttOn: false});
                 window.location.reload()
-                alert("- Lost Connection to Arvut System -")
+                alert("- Lost Connection to TRL System -")
             } else if (reconnected) {
                 this.setState({mqttOn: true});
                 log.info("[client] MQTT reconnected");
@@ -115,8 +115,7 @@ class MqttClient extends Component {
         }
 
         let audiobridge = new AudiobridgePlugin();
-        audiobridge.onFeed = this.onFeed
-        audiobridge.talkEvent = this.talkEvent
+        audiobridge.onFeedEvent = this.onFeedEvent
         audiobridge.onTrack = this.onTrack
         audiobridge.onLeave = this.onLeave
 
@@ -178,16 +177,9 @@ class MqttClient extends Component {
         })
     };
 
-    handleTalking = (id, talking) => {
+    onFeedEvent = (list) => {
+        log.info("[client] Got feed event: ", list);
         const {feeds} = this.state;
-        if(!feeds[id]) return;
-        feeds[id].talking = talking;
-        this.setState({feeds});
-    }
-
-    onJoin = (list) => {
-        const {feeds} = this.state;
-        log.info("Got a list of participants: ", list);
         for(let f in list) {
             let id = list[f]["id"];
             let user = JSON.parse(list[f]["display"]);
@@ -195,22 +187,6 @@ class MqttClient extends Component {
                 continue
             list[f]["display"] = user;
             feeds[id] = list[f];
-            feeds[id].talking = false;
-        }
-        this.setState({feeds});
-    }
-
-    onFeed = (list) => {
-        const {feeds} = this.state;
-        for(let f in list) {
-            let id = list[f]["id"];
-            //if(feeds[id]) return;
-            let user = JSON.parse(list[f]["display"]);
-            if(user.role !== "user")
-                continue
-            list[f]["display"] = user;
-            feeds[id] = list[f];
-            feeds[id].talking = false;
         }
         this.setState({feeds});
     }
@@ -296,7 +272,7 @@ class MqttClient extends Component {
 
     joinRoom = (reconnect) => {
         this.setState({delay: true});
-        let {janus, audiobridge, selected_room, user, tested, audio: {stream}} = this.state;
+        let {audiobridge, selected_room, user, tested, audio: {stream}} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
 
@@ -308,10 +284,10 @@ class MqttClient extends Component {
                 this.setState({mystream: stream})
             }).catch(err => {
                 log.error('[client] Publish error :', err);
-                this.exitRoom(/* reconnect= */ false);
+                this.exitRoom(false);
             })
 
-            this.onJoin(data.participants)
+            this.onFeedEvent(data.participants)
 
             mqtt.join("trl/room/" + selected_room);
             mqtt.join("trl/room/" + selected_room + "/chat", true);
@@ -323,7 +299,7 @@ class MqttClient extends Component {
             this.setState({muted: true});
         }).catch(err => {
             log.error('[client] Join error :', err);
-            this.exitRoom(/* reconnect= */ false);
+            this.exitRoom(false);
         })
 
 
@@ -392,12 +368,6 @@ class MqttClient extends Component {
         this.refs.remoteAudio.volume = value;
     };
 
-    initConnection = () => {
-        const {mystream} = this.state;
-        mystream ? this.exitRoom() : this.joinRoom();
-    };
-
-
     render() {
 
         const { feeds,rooms,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
@@ -414,17 +384,10 @@ class MqttClient extends Component {
             return ({ key: i, text: label, value: deviceId})
         });
 
-        //let l = (<Label key='Carbon' floating size='mini' color='red'>{count}</Label>);
-
         const list = Object.values(feeds).map((feed,i) => {
             if(feed) {
-                let id = feed.display.rfid;
-                let role = feed.display.role;
-                let talking = feed.talking;
-                let muted = feed.muted;
-                //let question = feed.question;
-                let name = feed.display.name;
-                return (<Message key={id} className='trl_name'
+                const {muted, display: {rfid, role, name}} = feed
+                return (<Message key={rfid} className='trl_name'
                                  attached={i === feeds.length-1 ? 'bottom' : true} warning
                                  color={!muted ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
             }

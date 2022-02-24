@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import log from "loglevel";
 import { Segment } from 'semantic-ui-react';
 import './Stream.css'
 import {StreamingPlugin} from "../../lib/streaming-plugin";
@@ -49,9 +48,8 @@ class MqttStream extends Component {
 
     initVideoStream = (janus) => {
         let videostream = new StreamingPlugin();
-        janus.attach(videostream).then(data => {
+        janus.attach(videostream).then(() => {
             this.setState({videostream});
-            log.info(data)
             videostream.watch(11).then(stream => {
                 let video = this.refs.remoteVideo;
                 video.srcObject = stream;
@@ -62,9 +60,8 @@ class MqttStream extends Component {
     initAudioStream = (janus) => {
         let audiostream = new StreamingPlugin();
         let {audios} = this.state;
-        janus.attach(audiostream).then(data => {
+        janus.attach(audiostream).then(() => {
             this.setState({audiostream});
-            log.info(data)
             audiostream.watch(audios).then(stream => {
                 let audio = this.refs.remoteAudio;
                 audio.srcObject = stream;
@@ -75,9 +72,8 @@ class MqttStream extends Component {
 
     initTranslationStream = (janus, streamId) => {
         let trlstream = new StreamingPlugin();
-        janus.attach(trlstream).then(data => {
+        janus.attach(trlstream).then(() => {
             this.setState({trlstream});
-            log.info(data)
             trlstream.watch(streamId).then(stream => {
                 let audio = this.refs.trlAudio;
                 audio.srcObject = stream;
