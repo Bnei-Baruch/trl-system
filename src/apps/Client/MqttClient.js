@@ -51,6 +51,7 @@ class MqttClient extends Component {
         selftest: "Mic Test",
         tested: false,
         video: true,
+        init_devices: false
     };
 
     checkPermission = (user) => {
@@ -140,6 +141,7 @@ class MqttClient extends Component {
     }
 
     initDevices = () => {
+        if(this.state.init_devices) return
         devices.init().then(audio => {
             log.info("[client] init devices: ", audio);
             if (audio.error) {
@@ -150,7 +152,7 @@ class MqttClient extends Component {
                 if (myaudio) myaudio.srcObject = audio.stream;
                 micVolume(this.refs.canvas1)
             }
-            this.setState({audio})
+            this.setState({audio, init_devices: true})
         })
         devices.onChange = (audio) => {
             setTimeout(() => {
@@ -282,6 +284,7 @@ class MqttClient extends Component {
             log.info('[client] Joined respond :', data)
             audiobridge.publish(stream).then(data => {
                 log.info('[client] publish respond :', data)
+                devices.audio.context.suspend()
                 this.setState({mystream: stream})
             }).catch(err => {
                 log.error('[client] Publish error :', err);
@@ -316,6 +319,7 @@ class MqttClient extends Component {
                 mqtt.exit("trl/room/" + room + "/chat");
                 this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
                 this.initJanus(user, reconnect)
+                if(!reconnect) devices.audio.context.resume()
             })
         });
     };
@@ -335,6 +339,7 @@ class MqttClient extends Component {
     micMute = () => {
         let {audiobridge, muted} = this.state;
         audiobridge.mute(!muted);
+        muted ? devices.audio.context.resume() : devices.audio.context.suspend()
         this.setState({muted: !muted});
     };
 
