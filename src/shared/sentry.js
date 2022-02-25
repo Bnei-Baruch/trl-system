@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/react';
-import {Integrations} from '@sentry/tracing';
+import * as Sentry from '@sentry/browser';
 import {SENTRY_DSN} from './consts';
+import version from "../version";
 
 export const updateSentryUser = (user) => {
     Sentry.setUser(user);
@@ -9,12 +9,7 @@ export const updateSentryUser = (user) => {
 export const initSentry = () => {
     Sentry.init({
         dsn: `${SENTRY_DSN}`,
-        integrations: [
-            new Integrations.BrowserTracing(),
-        ],
-
-        // We recommend adjusting this value in production, or using tracesSampler
-        // for finer control
+        release: version,
         tracesSampleRate: 1.0,
         ignoreErrors: ['ResizeObserver loop limit exceeded'],
     });
