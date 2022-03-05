@@ -5,7 +5,7 @@ import mqtt from "../shared/mqtt";
 import {STUN_SRV1, STUN_SRV2} from "../shared/consts";
 
 export class AudiobridgePlugin extends EventEmitter {
-  constructor (list = [{urls: STUN_SRV1, STUN_SRV2}]) {
+  constructor (list = [{urls: [STUN_SRV1, STUN_SRV2]}]) {
     super()
     this.id = randomString(12)
     this.janus = undefined
