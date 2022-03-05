@@ -2,10 +2,10 @@ import {randomString} from "../shared/tools";
 import {EventEmitter} from "events";
 import log from "loglevel";
 import mqtt from "../shared/mqtt";
-import {STUN_SRV_TRL} from "../shared/consts";
+import {STUN_SRV1, STUN_SRV2} from "../shared/consts";
 
 export class AudiobridgePlugin extends EventEmitter {
-  constructor (list = [{urls: STUN_SRV_TRL}]) {
+  constructor (list = [{urls: STUN_SRV1, STUN_SRV2}]) {
     super()
     this.id = randomString(12)
     this.janus = undefined
@@ -317,12 +317,12 @@ export class AudiobridgePlugin extends EventEmitter {
   onmessage (data) {
     log.debug('[audiobridge] onmessage: ', data)
     if(data?.participants) {
-      log.info('[audiobridge] Feed event: ', data.participants[0])
+      log.debug('[audiobridge] Feed event: ', data.participants[0])
       this.onFeedEvent(data.participants)
     }
 
     if(data?.leaving) {
-      log.info('[audiobridge] Feed leave: ', data.leaving)
+      log.debug('[audiobridge] Feed leave: ', data.leaving)
       this.onLeave(data.leaving)
     }
 

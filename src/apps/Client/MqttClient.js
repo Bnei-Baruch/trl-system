@@ -181,7 +181,7 @@ class MqttClient extends Component {
     };
 
     onFeedEvent = (list) => {
-        log.info("[client] Got feed event: ", list);
+        log.debug("[client] Got feed event: ", list);
         const {feeds} = this.state;
         for(let f in list) {
             let id = list[f]["id"];
@@ -201,10 +201,10 @@ class MqttClient extends Component {
     }
 
     onTrack = (track, mid, on) => {
-        log.info("[client] >> This track is coming from feed :", mid, on);
+        log.debug("[client] >> This track is coming from feed :", mid, on);
         let stream = new MediaStream();
         stream.addTrack(track.clone());
-        log.info("[client] Created remote audio stream: ", stream);
+        log.debug("[client] Created remote audio stream: ", stream);
         let remoteaudio = this.refs.remoteAudio;
         if(remoteaudio) remoteaudio.srcObject = stream;
     }
@@ -247,7 +247,7 @@ class MqttClient extends Component {
     };
 
     handleCmdData = (ondata) => {
-        log.info("-- :: It's protocol public message: ", ondata);
+        log.debug("-- :: It's protocol public message: ", ondata);
         const {user} = this.state;
         const {type, id, to} = ondata;
 
@@ -281,9 +281,9 @@ class MqttClient extends Component {
 
 
         audiobridge.join(selected_room, user).then(data => {
-            log.info('[client] Joined respond :', data)
+            log.debug('[client] Joined respond :', data)
             audiobridge.publish(stream).then(data => {
-                log.info('[client] publish respond :', data)
+                log.debug('[client] publish respond :', data)
                 devices.audio.context.suspend()
                 this.setState({mystream: stream})
             }).catch(err => {

@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import platform from "platform";
 import {Segment, Menu, Button, Input, Table, Grid, Message, Select, Icon, Popup, List, Tab, Label, Confirm, Header} from "semantic-ui-react";
-import {initJanus, getDateString, getPublisherInfo, notifyMe} from "../../shared/tools";
+import {getDateString, getPublisherInfo, notifyMe} from "../../shared/tools";
 import './Admin.css';
-import {SECRET} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
 import LoginPage from "../../components/LoginPage";
 import VolumeSlider from "../../components/VolumeSlider";
@@ -140,7 +139,7 @@ class MqttAdmin extends Component {
     }
 
     onFeedEvent = (list) => {
-        log.info("[client] Got feed event: ", list);
+        log.debug("[client] Got feed event: ", list);
         let {feeds, users} = this.state;
         for(let f in list) {
             let id = list[f]["id"];
