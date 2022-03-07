@@ -249,16 +249,17 @@ class MqttAdmin extends Component {
             return;
         }
 
+        mqtt.exit("trl/room/" + current_room);
+        mqtt.exit("trl/room/" + current_room + "/chat");
+
         this.setState({current_room: room, room_name, feeds: {}, feed_user: null, feed_id: null});
 
         audiobridge.switch(room, user).then(data => {
             log.info("[admin] swtch respond: ", data)
+            mqtt.join("trl/room/" + room);
+            mqtt.join("trl/room/" + room + "/chat", true);
             this.onFeedEvent(data.participants)
         })
-
-        mqtt.exit("trl/room/" + current_room);
-        mqtt.exit("trl/room/" + current_room + "/chat");
-
     };
 
     exitRoom = (room) => {
