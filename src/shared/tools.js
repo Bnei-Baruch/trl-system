@@ -1,5 +1,5 @@
 import {Janus} from "../lib/janus";
-import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV_TRL} from "./consts";
+import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV1, STUN_SRV2} from "./consts";
 import devices from "../lib/devices";
 
 export const randomString = (len) => {
@@ -18,7 +18,7 @@ export const initJanus = (cb) => {
         callback: () => {
             let janus = new Janus({
                 server: JANUS_SRV_TRL,
-                iceServers: [{urls: STUN_SRV_TRL}],
+                iceServers: [{urls: [STUN_SRV1, STUN_SRV2]}],
                 success: () => {
                     Janus.log(" :: Connected to JANUS");
                     cb(janus);
