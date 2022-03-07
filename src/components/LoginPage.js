@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import {client,getUser} from './UserManager';
+import {kc,getUser} from './UserManager';
 import { Container,Message,Button,Dropdown } from 'semantic-ui-react';
 
 class LoginPage extends Component {
@@ -10,33 +10,23 @@ class LoginPage extends Component {
     };
 
     componentDidMount() {
-        setTimeout(() => this.setState({disabled: false, loading: false}), 1000);
         this.appLogin();
     };
 
     appLogin = () => {
-        getUser(user => {
+        getUser((user) => {
             if(user) {
+                this.setState({loading: false});
                 this.props.checkPermission(user);
             } else {
-                client.signinRedirectCallback().then((user) => {
-                    if(user.state) window.location = user.state;
-                }).catch(() => {
-                    client.signinSilent().then(user => {
-                        if(user) this.appLogin();
-                    }).catch((error) => {
-                        console.log("SigninSilent error: ",error);
-                    });
-                });
+                this.setState({disabled: false, loading: false});
             }
         });
     };
 
     userLogin = () => {
         this.setState({disabled: true, loading: true});
-        getUser(cb => {
-            if(!cb) client.signinRedirect({state: window.location.href});
-        });
+        kc.login({redirectUri: window.location.href});
     };
 
     render() {
@@ -49,8 +39,8 @@ class LoginPage extends Component {
             <Dropdown inline text=''>
                 <Dropdown.Menu>
                     <Dropdown.Item content='Profile:' disabled />
-                    {/*<Dropdown.Item text='My Account' onClick={() => window.open("https://accounts.kbb1.com/auth/realms/main/account", "_blank")} />*/}
-                    <Dropdown.Item text='Sign Out' onClick={() => client.signoutRedirect()} />
+                    {/*<Dropdown.Item text='My Account' onClick={() => window.open("https://accounts.kab.info/auth/realms/main/account", "_blank")} />*/}
+                    <Dropdown.Item text='Sign Out' onClick={() => kc.logout()} />
                 </Dropdown.Menu>
             </Dropdown>);
 
@@ -64,6 +54,7 @@ class LoginPage extends Component {
                     </Message.Header>
                     <p>WebRTC Translation System</p>
                     {this.props.user === null ? login : this.props.enter}
+                    <p><Button color='orange' onClick={() => window.open("tt.mp4", "_blank")} >How to use?</Button></p>
                 </Message>
             </Container>
         );

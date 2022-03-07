@@ -1,56 +1,66 @@
-import { Log as oidclog, UserManager } from 'oidc-client';
-import {KJUR} from 'jsrsasign';
-
-const AUTH_URL = 'https://accounts.kbb1.com/auth/realms/main';
-export const BASE_URL = process.env.NODE_ENV === 'production' ? process.env.REACT_APP_TRL_URL : 'http://localhost:3000/';
-
-oidclog.logger = console;
-oidclog.level  = 0;
+import Keycloak from 'keycloak-js';
+import mqtt from "../shared/mqtt";
+import {updateSentryUser} from "../shared/sentry";
 
 const userManagerConfig = {
-    authority: AUTH_URL,
-    client_id: 'trl',
-    redirect_uri: `${BASE_URL}`,
-    response_type: 'token id_token',
-    scope: 'openid profile',
-    post_logout_redirect_uri: `${BASE_URL}`,
-    automaticSilentRenew: true,
-    silent_redirect_uri: `${BASE_URL}/silent_renew.html`,
-    filterProtocolClaims: true,
-    loadUserInfo: true,
+    url: "https://accounts.kab.info/auth",
+    realm: "main",
+    clientId: "trl",
 };
 
-export const client = new UserManager(userManagerConfig);
+const initOptions = {
+    onLoad: "check-sso",
+    checkLoginIframe: false,
+    flow: "standard",
+    pkceMethod: "S256",
+    enableLogging: true,
+};
 
-client.events.addAccessTokenExpiring(() => {
-    console.log("...RENEW TOKEN...");
-});
+export const kc = new Keycloak(userManagerConfig);
 
-client.events.addAccessTokenExpired(() => {
-    console.log("...!TOKEN EXPIRED!...");
-    client.signoutRedirect();
-});
+kc.onTokenExpired = () => {
+    renewToken(0);
+};
 
-export const getUser = (cb) =>
-    client.getUser().then((user) => {
-        if(user){
-            let at = KJUR.jws.JWS.parse(user.access_token);
-            let roles = at.payloadObj.realm_access.roles;
-            //user = {...user.profile, roles}
-            const {sub,given_name,name,email} = user.profile;
-            user = {
-                id: sub,
-                title: given_name,
-                username: given_name,
-                name,
-                email,
-                roles
+kc.onAuthLogout = () => {
+    mqtt.setToken(null);
+    kc.logout();
+};
+
+const renewToken = (retry) => {
+    retry++;
+    kc.updateToken(5)
+        .then(refreshed => {
+            if (refreshed) {
+                mqtt.setToken(kc.token);
             }
-        }
-        cb(user)
-    })
-        .catch((error) => {
-            console.log("Error: ",error);
+        })
+        .catch(() => {
+            if (retry > 10) {
+                kc.clearToken();
+            } else {
+                setTimeout(() => {
+                    renewToken(retry);
+                }, 10000);
+            }
         });
+};
 
-export default client;
+const setData = () => {
+    const {realm_access: {roles}, sub, given_name, name, email} = kc.tokenParsed;
+    let user = {id: sub, display: name, username: given_name, name, email, roles};
+    mqtt.setToken(kc.token);
+    updateSentryUser(user);
+    return user;
+};
+
+export const getUser = (callback) => {
+    kc.init(initOptions)
+        .then(authenticated => {
+            const user = authenticated ? setData() : null;
+            callback(user);
+        })
+        .catch(err => console.error(err));
+};
+
+export default kc;
