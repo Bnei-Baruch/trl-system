@@ -296,6 +296,8 @@ export class AudiobridgePlugin extends EventEmitter {
         } else if (count >= 10) {
           clearInterval(chk);
           log.error("[audiobridge] - ICE Restart failed - ");
+          window.location.reload()
+          alert("- Lost Peer Connection to TRL System -")
         } else {
           log.debug("[audiobridge] ICE Restart try: " + count)
         }
