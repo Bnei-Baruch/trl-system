@@ -18,6 +18,7 @@ import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
 class MqttClient extends Component {
 
     state = {
+        delay: true,
         audio: {
             context: null,
             device: null,
@@ -123,7 +124,7 @@ class MqttClient extends Component {
         janus.init().then(data => {
             log.info("[client] Janus init", data)
             janus.attach(audiobridge).then(data => {
-                this.setState({janus, audiobridge, user, delay: false});
+                this.setState({janus, audiobridge, user});
                 log.info('[client] Publisher Handle: ', data);
                 this.getRoomList(audiobridge);
                 this.initDevices();
@@ -151,8 +152,8 @@ class MqttClient extends Component {
                 let myaudio = this.refs.localVideo;
                 if (myaudio) myaudio.srcObject = audio.stream;
                 micVolume(this.refs.canvas1)
+                this.setState({audio, init_devices: true, delay: false})
             }
-            this.setState({audio, init_devices: true})
         })
         devices.onChange = (audio) => {
             setTimeout(() => {
@@ -445,7 +446,7 @@ class MqttClient extends Component {
                         {mystream ?
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
                         {!mystream ?
-                            <Button attached='right' size='huge' positive loading={delay} icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.joinRoom} />:""}
+                            <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.joinRoom} />:""}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
                         {!mystream ?
