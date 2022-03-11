@@ -34,7 +34,7 @@ export class AudiobridgePlugin extends EventEmitter {
     return this.janus.transaction(message, payload, replyType)
   }
 
-  join (roomId, user) {
+  join(roomId, user) {
     this.roomId = roomId
     const param = new URL(window.location.href).searchParams.get("volume");
     const volume = param ? parseInt(param, 10) : 100;
