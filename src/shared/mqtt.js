@@ -42,7 +42,8 @@ class MqttMsg {
             },
         };
 
-        this.mq = mqtt.connect(`wss://${MQTT_URL}`, options);
+        //this.mq = mqtt.connect(`wss://${MQTT_URL}`, options);
+        this.mq = mqtt.connect(`wss://mqtt.kab.sh`, options);
         this.mq.setMaxListeners(50)
 
         this.mq.on("connect", (data) => {

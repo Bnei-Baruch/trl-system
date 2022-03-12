@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import {Button, Container, Message} from "semantic-ui-react";
 
-class WeApp extends Component {
+class WeMain extends Component {
 
     state = {};
 
@@ -14,12 +14,12 @@ class WeApp extends Component {
                         WebRTC Translation System
                     </Message.Header>
                     <p>:::</p>
-                    <Button size='massive' color='green' onClick={() => window.open("https://we.kli.one/user","_self")} >Listen</Button>
-                    <Button size='massive' color='green' onClick={() => window.open("https://we.kli.one/client","_self")} >Translate</Button>
+                    <Button size='massive' color='green' onClick={() => window.open("user","_self")} >Listen</Button>
+                    <Button size='massive' color='green' onClick={() => window.open("client","_self")} >Translate</Button>
                 </Message>
             </Container>
         );
     }
 }
 
-export default WeApp;
+export default WeMain;

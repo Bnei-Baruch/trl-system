@@ -5,9 +5,9 @@ import 'semantic-ui-css/semantic.min.css';
 // import MqttAdmin from "./apps/Admin/MqttAdmin";
 // import HttpClient from "./apps/Client/HttpClient";
 // import HttpAdmin from "./apps/Admin/HttpAdmin";
-// import WeApp from "./apps/WeApp";
-import WeClient from "./apps/Client/WeClient";
-// import WeLive from "./apps/Client/App";
+// import WeMain from "./apps/WeMain";
+// import WeClient from "./apps/Client/WeClient";
+import WeStream from "./apps/Stream/WeStream";
 
 class App extends Component {
 
@@ -22,9 +22,9 @@ class App extends Component {
                 {/*<MqttAdmin />*/}
                 {/*<HttpClient />*/}
                 {/*<HttpAdmin />*/}
-                {/*<WeApp />*/}
-                <WeClient />
-                {/*<WeLive />*/}
+                {/*<WeMain />*/}
+                {/*<WeClient />*/}
+                <WeStream />
             </Fragment>
 
         );
