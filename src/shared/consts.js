@@ -74,3 +74,33 @@ export const lnglist = {
     Hindi : {port: 5670, streamid: 59},
     Persian : {port: 5680, streamid: 60},
 };
+
+export const langs_list = [
+    {"key":1580,"text":"Amharic","value":0},
+    {"key":1430,"text":"Bulgarian","value":1},
+    {"key":1570,"text":"China","value":2},
+    {"key":1490,"text":"Croatian","value":3},
+    {"key":1240,"text":"English","value":4},
+    {"key":1250,"text":"French","value":5},
+    {"key":1440,"text":"Georgian","value":6},
+    {"key":1270,"text":"German","value":7},
+    {"key":1150,"text":"Hebrew","value":8},
+    {"key":1590,"text":"Hindi","value":9},
+    {"key":1460,"text":"Hungarian","value":10},
+    {"key":1280,"text":"Italian","value":11},
+    {"key":1500,"text":"Japanese","value":12},
+    {"key":1540,"text":"Latvian","value":13},
+    {"key":1480,"text":"Lithuanian","value":14},
+    {"key":1560,"text":"Niderland","value":15},
+    {"key":1530,"text":"Norvegian","value":16},
+    {"key":1600,"text":"Persian","value":17},
+    {"key":1520,"text":"Polish","value":18},
+    {"key":1410,"text":"Portuguese","value":19},
+    {"key":1450,"text":"Romanian","value":20},
+    {"key":1230,"text":"Russian","value":21},
+    {"key":1510,"text":"Slovenian","value":22},
+    {"key":1260,"text":"Spanish","value":23},
+    {"key":1470,"text":"Swedish","value":24},
+    {"key":1420,"text":"Turkish","value":25},
+    {"key":1550,"text":"Ukrainian","value":26}
+]

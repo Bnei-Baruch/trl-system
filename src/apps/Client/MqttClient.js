@@ -5,7 +5,7 @@ import devices from "../../lib/devices";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
 import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
 import './Client.scss'
-import {audios_options, lnglist, GEO_IP_INFO} from "../../shared/consts";
+import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
 import ClientChat from "./ClientChat";
 import VolumeSlider from "../../components/VolumeSlider";
@@ -31,7 +31,6 @@ class MqttClient extends Component {
         audiostream: null,
         feeds: {},
         trl_room: localStorage.getItem("trl_room"),
-        rooms: [],
         room: "",
         selected_room: "",
         audiobridge: null,
@@ -39,7 +38,6 @@ class MqttClient extends Component {
         myid: null,
         mypvtid: null,
         mystream: null,
-        forward_id: null,
         muted: false,
         trl_muted: true,
         cammuted: false,
@@ -72,10 +70,13 @@ class MqttClient extends Component {
     };
 
     initClient = (user) => {
+        if(this.state.trl_room !== null)
+            this.selectRoom(Number(this.state.trl_room));
         checkNotification();
         geoInfo(`${GEO_IP_INFO}`, data => {
             user.ip = data.ip;
             user.system = navigator.userAgent;
+            this.setState({user})
             this.initMQTT(user)
         });
     };
@@ -94,7 +95,7 @@ class MqttClient extends Component {
                 this.setState({mqttOn: true});
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/" + user.id);
-                this.initJanus(user, false)
+                this.initDevices();
                 mqtt.watch((message) => {
                     this.handleCmdData(message);
                 });
@@ -102,7 +103,9 @@ class MqttClient extends Component {
         });
     };
 
-    initJanus = (user, reconnect) => {
+    initJanus = (reconnect = false) => {
+        this.setState({delay: true});
+        const {user} = this.state;
         let janus = new JanusMqtt(user, "trl1")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
@@ -112,7 +115,7 @@ class MqttClient extends Component {
 
             if(status === "error") {
                 log.error("[client] Janus error, reconnecting...")
-                this.exitRoom(true);
+                this.exitRoom(false);
             }
         }
 
@@ -124,19 +127,13 @@ class MqttClient extends Component {
         janus.init().then(data => {
             log.info("[client] Janus init", data)
             janus.attach(audiobridge).then(data => {
-                this.setState({janus, audiobridge, user});
                 log.info('[client] Publisher Handle: ', data);
-                this.getRoomList(audiobridge);
-                this.initDevices();
-                if(reconnect) {
-                    setTimeout(() => {
-                        this.joinRoom(reconnect);
-                    }, 1000);
-                }
+                this.setState({janus, audiobridge});
+                this.joinRoom(data, reconnect);
             })
         }).catch(err => {
             log.error("[client] Janus init", err);
-            this.exitRoom(true);
+            this.exitRoom(false);
         })
 
     }
@@ -151,7 +148,7 @@ class MqttClient extends Component {
             if (audio.stream) {
                 let myaudio = this.refs.localVideo;
                 if (myaudio) myaudio.srcObject = audio.stream;
-                micVolume(this.refs.canvas1)
+                if(this.refs?.canvas1) micVolume(this.refs.canvas1)
                 this.setState({audio, init_devices: true, delay: false})
             }
         })
@@ -233,20 +230,6 @@ class MqttClient extends Component {
         },1000);
     };
 
-    getRoomList = (audiobridge) => {
-        audiobridge.list().then(data => {
-            log.debug("[client] Get Rooms List: ", data.list);
-            data.list.sort((a, b) => {
-                if (a.description > b.description) return 1;
-                if (a.description < b.description) return -1;
-                return 0;
-            });
-            this.setState({rooms: data.list});
-            if(this.state.trl_room !== null)
-                this.selectRoom(Number(this.state.trl_room));
-        })
-    };
-
     handleCmdData = (ondata) => {
         log.debug("-- :: It's protocol public message: ", ondata);
         const {user} = this.state;
@@ -263,7 +246,7 @@ class MqttClient extends Component {
         } else if (type === 'client-reload-all') {
             window.location.reload();
         } else if(type === "client-disconnect" && user.id === id) {
-            this.exitRoom();
+            this.exitRoom(false);
         } else if(type === "client-mute" && user.id === id) {
             this.micMute();
         } else if(type === "sound-test" && user.id === id) {
@@ -274,9 +257,8 @@ class MqttClient extends Component {
         }
     };
 
-    joinRoom = (reconnect) => {
-        this.setState({delay: true});
-        let {audiobridge, selected_room, user, tested, audio: {stream}} = this.state;
+    joinRoom = (audiobridge, reconnect = false) => {
+        let {selected_room, user, tested, audio: {stream}} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
 
@@ -311,15 +293,15 @@ class MqttClient extends Component {
         this.setState({user, room: selected_room});
     };
 
-    exitRoom = (reconnect) => {
-        let {audiobridge, room, janus, user} = this.state;
+    exitRoom = (reconnect = false) => {
+        let {audiobridge, room, janus} = this.state;
         audiobridge.leave().then(() => {
             this.stream.exitJanus()
-            janus.detach(audiobridge).then(() => {
+            janus.destroy().then(() => {
                 mqtt.exit("trl/room/" + room);
                 mqtt.exit("trl/room/" + room + "/chat");
                 this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
-                this.initJanus(user, reconnect)
+                if(reconnect) this.initJanus(reconnect)
                 if(!reconnect) devices.audio.context.resume()
             })
         });
@@ -327,14 +309,12 @@ class MqttClient extends Component {
 
     selectRoom = (i) => {
         localStorage.setItem("trl_room", i);
-        const {rooms} = this.state;
-        let selected_room = rooms[i].room;
-        let name = rooms[i].description;
+        let selected_room = langs_list[i].key;
+        let name = langs_list[i].text;
         if (this.state.room === selected_room)
             return;
-        let fw_port = lnglist[name].port;
         let trl_stream = lnglist[name].streamid;
-        this.setState({selected_room,name,i,fw_port,trl_stream});
+        this.setState({selected_room,name,i,trl_stream});
     };
 
     micMute = () => {
@@ -378,14 +358,9 @@ class MqttClient extends Component {
 
     render() {
 
-        const { feeds,rooms,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
+        const {feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
         const autoPlay = true;
         const controls = false;
-
-        let rooms_list = rooms.map((data,i) => {
-            const {room, description} = data;
-            return ({ key: room, text: description, value: i})
-        });
 
         let adevices_list = devices.map((device,i) => {
             const {label, deviceId} = device;
@@ -441,12 +416,12 @@ class MqttClient extends Component {
                                 error={!selected_room}
                                 placeholder="Translate to:"
                                 value={i}
-                                options={rooms_list}
+                                options={langs_list}
                                 onChange={(e, {value}) => this.selectRoom(value)} />
                         {mystream ?
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
                         {!mystream ?
-                            <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.joinRoom} />:""}
+                            <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.initJanus} />:""}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
                         {!mystream ?
