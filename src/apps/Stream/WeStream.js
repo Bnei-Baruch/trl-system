@@ -17,7 +17,7 @@ class WeStream extends Component {
         janus: null,
         audiostream: null,
         audio_stream: null,
-        audios: Number(localStorage.getItem("lang")) || 15,
+        streamId: Number(localStorage.getItem("streamId")) || 15,
         str_muted: true,
         trl_muted: true,
         mixvolume: null,
@@ -72,7 +72,7 @@ class WeStream extends Component {
 
     initJanus = () => {
         this.setState({delay: true});
-        const {user, audios} = this.state;
+        const {user, streamId} = this.state;
         let janus = new JanusMqtt(user, "we")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
@@ -92,7 +92,7 @@ class WeStream extends Component {
             log.info("[client] Janus init", data)
             janus.attach(audiostream).then(() => {
                 this.setState({audiostream});
-                audiostream.watch(audios).then(stream => {
+                audiostream.watch(streamId).then(stream => {
                     let audio = this.refs.remoteAudio;
                     audio.srcObject = stream;
                     this.setState({janus, audio_stream: stream});
@@ -110,8 +110,8 @@ class WeStream extends Component {
         let name = langs_list[i].text;
         if (this.state.room === selected_room)
             return;
-        let trl_stream = lnglist[name].streamid;
-        this.setState({selected_room,name,i,trl_stream});
+        let streamId = lnglist[name].streamid;
+        this.setState({selected_room,name,i,streamId});
     };
 
     exitRoom = () => {
