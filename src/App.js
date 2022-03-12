@@ -6,8 +6,8 @@ import 'semantic-ui-css/semantic.min.css';
 // import HttpClient from "./apps/Client/HttpClient";
 // import HttpAdmin from "./apps/Admin/HttpAdmin";
 // import WeMain from "./apps/WeMain";
-// import WeClient from "./apps/Client/WeClient";
-import WeStream from "./apps/Stream/WeStream";
+import WeClient from "./apps/Client/WeClient";
+// import WeStream from "./apps/Stream/WeStream";
 
 class App extends Component {
 
@@ -23,8 +23,8 @@ class App extends Component {
                 {/*<HttpClient />*/}
                 {/*<HttpAdmin />*/}
                 {/*<WeMain />*/}
-                {/*<WeClient />*/}
-                <WeStream />
+                <WeClient />
+                {/*<WeStream />*/}
             </Fragment>
 
         );

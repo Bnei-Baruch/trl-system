@@ -91,8 +91,8 @@ class WeClient extends Component {
                 log.info("[client] MQTT reconnected");
             } else {
                 this.setState({mqttOn: true});
-                mqtt.join("trl/users/broadcast");
-                mqtt.join("trl/users/" + user.id);
+                mqtt.join("we/users/broadcast");
+                mqtt.join("we/users/" + user.id);
                 this.initDevices();
                 mqtt.watch((message) => {
                     this.handleCmdData(message);
@@ -104,7 +104,7 @@ class WeClient extends Component {
     initJanus = (reconnect = false) => {
         this.setState({delay: true});
         const {user} = this.state;
-        let janus = new JanusMqtt(user, "trl1")
+        let janus = new JanusMqtt(user, "we")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
                 alert("Janus Server - " + srv + " - Offline")
