@@ -23,7 +23,7 @@ class LocalDevices {
     // Check saved devices in local storage
     let storage_audio = localStorage.getItem("audio_device");
     this.audio.device = !!storage_audio ? storage_audio : null;
-    [this.audio.stream, this.audio.error] = await this.getMediaStream(true, this.audio.device);
+    [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
     this.audio.devices = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
 
@@ -54,8 +54,9 @@ class LocalDevices {
     return this.audio;
   };
 
-  getMediaStream = (audio, audioId) => {
-    audio = audioId ? {noiseSuppression: true, echoCancellation: false, highpassFilter: true, deviceId: {exact: audioId}} : audio;
+  getMediaStream = (deviceId) => {
+    let audio = {noiseSuppression: true, echoCancellation: false, highpassFilter: true}
+    if(deviceId) audio.deviceId = {exact: deviceId};
     return navigator.mediaDevices
       .getUserMedia({audio, video: false})
       .then((data) => [data, null])
@@ -92,7 +93,7 @@ class LocalDevices {
   };
 
   setAudioDevice = (device, cam_mute) => {
-    return this.getMediaStream(true, device)
+    return this.getMediaStream(device)
       .then((data) => {
         log.debug("[devices] setAudioDevice: ", data);
         const [stream, error] = data;

@@ -52,8 +52,8 @@ class WeClient extends Component {
     };
 
     checkPermission = (user) => {
-        const gxy_group = kc.hasRealmRole("trl_user");
-        if (gxy_group) {
+        //const gxy_group = kc.hasRealmRole("trl_user");
+        if (user) {
             delete user.roles;
             user.role = "user";
             this.initClient(user);
