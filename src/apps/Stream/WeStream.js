@@ -50,7 +50,7 @@ class WeStream extends Component {
     };
 
     initMQTT = (user) => {
-        mqtt.init(user, (reconnected, error) => {
+        mqtt.init("we", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
                 this.setState({mqttOn: false});

@@ -1,8 +1,8 @@
 export const PROTOCOL_ROOM = 1000;
-export const MQTT_URL = process.env.REACT_APP_MQTT_URL;
+export const TRL_MQTT_URL = process.env.REACT_APP_TRL_MQTT_URL;
+export const WE_MQTT_URL = process.env.REACT_APP_WE_MQTT_URL;
 export const SHIDUR_ID = "ce332655-d702-40d0-83eb-a6b950976984";
 export const GEO_IP_INFO = process.env.REACT_APP_GEO_IP_INFO;
-export const DANTE_IN_IP = process.env.REACT_APP_DANTE_IN_IP;
 export const JANUS_SRV_TRL = process.env.REACT_APP_JANUS_SRV_TRL;
 export const JANUS_SRV_STR = process.env.REACT_APP_JANUS_SRV_STR;
 export const STUN_SRV1 = process.env.REACT_APP_STUN_SRV1;

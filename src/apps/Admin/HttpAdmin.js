@@ -81,7 +81,7 @@ class HttpAdmin extends Component {
             this.initVideoRoom();
 
             // Protocol init
-            mqtt.init(user, (data) => {
+            mqtt.init("trl", user, (data) => {
                 console.log("[mqtt] init: ", data, user);
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/support");

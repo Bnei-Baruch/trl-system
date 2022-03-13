@@ -74,7 +74,7 @@ class HttpClient extends Component {
                 this.setState({janus, user});
 
                 // Protocol init
-                mqtt.init(user, (data) => {
+                mqtt.init("trl", user, (data) => {
                     console.log("[mqtt] init: ", data, user);
                     mqtt.join("trl/users/broadcast");
                     mqtt.join("trl/users/" + user.id);

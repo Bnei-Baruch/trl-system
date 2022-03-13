@@ -1,5 +1,5 @@
 import mqtt from "mqtt";
-import {MQTT_URL} from "./consts";
+import {TRL_MQTT_URL, WE_MQTT_URL} from "./consts";
 import {randomString} from "./tools";
 import log from "loglevel";
 
@@ -16,7 +16,7 @@ class MqttMsg {
         this.reconnect_count = 0;
     }
 
-    init = (user, callback) => {
+    init = (app, user, callback) => {
         this.user = user;
         const RC = mqttTimeout;
 
@@ -42,8 +42,8 @@ class MqttMsg {
             },
         };
 
-        //this.mq = mqtt.connect(`wss://${MQTT_URL}`, options);
-        this.mq = mqtt.connect(`wss://mqtt.kab.sh`, options);
+        let url = app === "trl" ? TRL_MQTT_URL : WE_MQTT_URL;
+        this.mq = mqtt.connect(`wss://${url}`, options);
         this.mq.setMaxListeners(50)
 
         this.mq.on("connect", (data) => {
