@@ -165,9 +165,10 @@ class HttpClient extends Component {
                         if (a.description < b.description) return -1;
                         return 0;
                     });
-                    this.setState({rooms: data.list});
-                    if(this.state.trl_room !== null)
-                        this.selectRoom(Number(this.state.trl_room));
+                    this.setState({rooms: data.list}, () => {
+                        if(this.state.trl_room !== null)
+                            this.selectRoom(Number(this.state.trl_room));
+                    });
                 }
             });
         }
