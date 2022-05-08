@@ -116,21 +116,19 @@ class HttpClient extends Component {
     setDevice = (audio_device) => {
         if(audio_device !== this.state.audio_device) {
             this.setState({audio_device});
-            if(this.state.audio_device !== "") {
-                localStorage.setItem("audio_device", audio_device);
-                Janus.log(" :: Going to check Devices: ");
-                getDevicesStream(audio_device,stream => {
-                    Janus.log(" :: Check Devices: ", stream);
-                    let myaudio = this.refs.localVideo;
-                    Janus.attachMediaStream(myaudio, stream);
-                    if(this.state.audioContext) {
-                        this.state.audioContext.close();
-                    }
-                    micLevel(stream ,this.refs.canvas1,audioContext => {
-                        this.setState({audioContext,stream});
-                    });
-                })
-            }
+            localStorage.setItem("audio_device", audio_device);
+            Janus.log(" :: Going to check Devices: ");
+            getDevicesStream(audio_device,stream => {
+                Janus.log(" :: Check Devices: ", stream);
+                let myaudio = this.refs.localVideo;
+                Janus.attachMediaStream(myaudio, stream);
+                if(this.state.audioContext) {
+                    this.state.audioContext.close();
+                }
+                micLevel(stream ,this.refs.canvas1,audioContext => {
+                    this.setState({audioContext,stream});
+                });
+            })
         }
     };
 
@@ -232,8 +230,8 @@ class HttpClient extends Component {
                 let {user} = this.state;
                 user.handle = audiobridge.getId();
                 this.setState({audiobridge, user, delay: false});
-                this.getRoomList(audiobridge);
                 this.initDevices(true);
+                this.getRoomList(audiobridge);
                 if(reconnect) {
                     setTimeout(() => {
                         this.joinRoom(reconnect);
