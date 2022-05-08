@@ -78,7 +78,7 @@ class HttpAdmin extends Component {
     initShidurAdmin = (user) => {
         initJanus(janus => {
             this.setState({janus,user});
-            this.initVideoRoom();
+            this.initVideoRoom(janus);
 
             // Protocol init
             mqtt.init("trl", user, (data) => {
@@ -137,8 +137,7 @@ class HttpAdmin extends Component {
         });
     };
 
-    getRoomList = () => {
-        const {audiobridge} = this.state;
+    getRoomList = (audiobridge) => {
         if (audiobridge) {
             audiobridge.send({message: {request: "list"},
                 success: (data) => {
@@ -168,10 +167,10 @@ class HttpAdmin extends Component {
         }
     };
 
-    initVideoRoom = (room_id) => {
+    initVideoRoom = (janus) => {
         if(this.state.audiobridge)
             this.state.audiobridge.detach();
-        this.state.janus.attach({
+        janus.attach({
             plugin: "janus.plugin.audiobridge",
             opaqueId: "videoroom_user",
             success: (audiobridge) => {
@@ -179,7 +178,7 @@ class HttpAdmin extends Component {
                 Janus.log("Plugin attached! (" + audiobridge.getPlugin() + ", id=" + audiobridge.getId() + ")");
                 Janus.log("  -- This is a publisher/manager");
                 this.setState({audiobridge, groups: []});
-                this.getRoomList();
+                this.getRoomList(audiobridge);
             },
             error: (error) => {
                 Janus.log("Error attaching plugin: " + error);

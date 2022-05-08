@@ -84,7 +84,7 @@ class HttpClient extends Component {
                     });
                 });
 
-                this.initVideoRoom(error);
+                this.initVideoRoom(janus, error);
             }, er => {
                 setTimeout(() => {
                     this.initClient(user,er);
@@ -157,8 +157,7 @@ class HttpClient extends Component {
         },1000);
     };
 
-    getRoomList = () => {
-        const {audiobridge} = this.state;
+    getRoomList = (audiobridge) => {
         if (audiobridge) {
             audiobridge.send({message: {request: "list"},
                 success: (data) => {
@@ -220,10 +219,10 @@ class HttpClient extends Component {
         }
     };
 
-    initVideoRoom = (reconnect) => {
+    initVideoRoom = (janus, reconnect) => {
         if(this.state.audiobridge)
             this.state.audiobridge.detach();
-        this.state.janus.attach({
+        janus.attach({
             plugin: "janus.plugin.audiobridge",
             opaqueId: "videoroom_user",
             success: (audiobridge) => {
@@ -233,7 +232,7 @@ class HttpClient extends Component {
                 let {user} = this.state;
                 user.handle = audiobridge.getId();
                 this.setState({audiobridge, user, delay: false});
-                this.getRoomList();
+                this.getRoomList(audiobridge);
                 this.initDevices(true);
                 if(reconnect) {
                     setTimeout(() => {
@@ -476,14 +475,15 @@ class HttpClient extends Component {
         let register = {request: "join", prebuffer: 10, quality: 10, volume, room: selected_room, muted : true, display: JSON.stringify(user)};
         audiobridge.send({"message": register});
         this.setState({user, room: selected_room});
+        this.stream.initJanus();
     };
 
     exitRoom = (reconnect) => {
-        let {audiobridge, room} = this.state;
+        let {audiobridge, room, janus} = this.state;
         audiobridge.send({"message": {request : "leave"}});
         this.stream.exitJanus();
         this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null});
-        this.initVideoRoom(reconnect);
+        this.initVideoRoom(janus, reconnect);
         mqtt.exit("galaxy/room/" + room);
         mqtt.exit("galaxy/room/" + room + "/chat");
     };

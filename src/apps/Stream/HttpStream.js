@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { Janus } from "../../lib/janus";
 import { Segment } from 'semantic-ui-react';
-import {JANUS_SRV_STR, STUN_SRV_STR,} from "../../shared/consts";
+import {JANUS_SRV_STR, STUN_SRV1, STUN_SRV2} from "../../shared/consts";
 import './Stream.css'
 
 
@@ -51,14 +51,14 @@ class HttpStream extends Component {
             callback: () => {
                 let janus = new Janus({
                     server: JANUS_SRV_STR,
-                    iceServers: [{urls: STUN_SRV_STR}],
+                    iceServers: [{urls: [STUN_SRV1, STUN_SRV2]}],
                     success: () => {
                         Janus.log(" :: Connected to JANUS");
                         this.setState({janus});
                         this.initVideoStream(janus);
                         //this.initDataStream(janus);
                         this.initAudioStream(janus);
-                        this.initTranslationStream(this.props.trl_stream);
+                        this.initTranslationStream(janus, this.props.trl_stream);
                     },
                     error: (error) => {
                         Janus.log(error);
@@ -183,8 +183,7 @@ class HttpStream extends Component {
         });
     };
 
-    initTranslationStream = (streamId) => {
-        let {janus} = this.state;
+    initTranslationStream = (janus, streamId) => {
         janus.attach({
             plugin: "janus.plugin.streaming",
             opaqueId: "trlstream-"+Janus.randomString(12),
