@@ -43,8 +43,8 @@ export const audios_options = [
     { key: 'et', value: 58, text: 'Amharic' },
     { key: 'in', value: 59, text: 'Hindi' },
     { key: 'ir', value: 60, text: 'Persian' },
-    { key: 'ar', value: 61, text: 'Arabic' },
-    { key: 'id', value: 62, text: 'Indonesian' },
+    { key: 'ar', value: 62, text: 'Arabic' },
+    { key: 'id', value: 63, text: 'Indonesian' },
 ];
 
 export const lnglist = {
@@ -75,8 +75,8 @@ export const lnglist = {
     Amharic : {port: 5660, streamid: 58},
     Hindi : {port: 5670, streamid: 59},
     Persian : {port: 5680, streamid: 60},
-    Arabic : {port: 5690, streamid: 61},
-    Indonesian : {port: 5700, streamid: 62},
+    Arabic : {port: 5690, streamid: 62},
+    Indonesian : {port: 5700, streamid: 63},
 };
 
 export const langs_list = [
