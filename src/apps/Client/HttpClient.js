@@ -495,7 +495,7 @@ class HttpClient extends Component {
         if (this.state.room === selected_room)
             return;
         let fw_port = lnglist[name].port;
-        let trl_stream = lnglist[name].streamid;
+        let trl_stream = lnglist[name].trlid || lnglist[name].streamid;
         this.setState({selected_room,name,i,fw_port,trl_stream});
     };
 

@@ -313,7 +313,7 @@ class MqttClient extends Component {
         let name = langs_list[i].text;
         if (this.state.room === selected_room)
             return;
-        let trl_stream = lnglist[name].streamid;
+        let trl_stream = lnglist[name].trlid || lnglist[name].streamid;
         this.setState({selected_room,name,i,trl_stream});
     };
 

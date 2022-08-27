@@ -319,7 +319,7 @@ class HttpAdmin extends Component {
                         for(let f in list) {
                             let id = list[f]["id"];
                             let user = JSON.parse(list[f]["display"]);
-                            if(user.role !== "user")
+                            if(user.role === "admin")
                                 continue
                             list[f]["display"] = user;
                             feeds[id] = list[f];
@@ -348,7 +348,7 @@ class HttpAdmin extends Component {
                     for(let f in list) {
                         let id = list[f]["id"];
                         let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
+                        if(user.role === "admin")
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];
@@ -382,7 +382,7 @@ class HttpAdmin extends Component {
                     for(let f in list) {
                         let id = list[f]["id"];
                         let user = JSON.parse(list[f]["display"]);
-                        if(user.role !== "user")
+                        if(user.role === "admin")
                             continue
                         list[f]["display"] = user;
                         feeds[id] = list[f];

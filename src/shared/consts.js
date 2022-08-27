@@ -48,13 +48,13 @@ export const audios_options = [
 ];
 
 export const lnglist = {
-    Hebrew : {port: 5150, streamid: 15, trlid: 301},
-    Russian : {port: 5230, streamid: 23, trlid: 302},
-    English : {port: 5240, streamid: 24, trlid: 303},
-    French : {port: 5250, streamid: 25, trlid: 305},
-    Spanish : {port: 5260, streamid: 26, trlid: 304},
-    German : {port: 5270, streamid: 27, trlid: 307},
-    Italian : {port: 5280, streamid: 28, trlid: 306},
+    Hebrew : {port: 5150, streamid: 15, trlid: 401},
+    Russian : {port: 5230, streamid: 23, trlid: 402},
+    English : {port: 5240, streamid: 24, trlid: 403},
+    French : {port: 5250, streamid: 25, trlid: 405},
+    Spanish : {port: 5260, streamid: 26, trlid: 404},
+    German : {port: 5270, streamid: 27, trlid: 407},
+    Italian : {port: 5280, streamid: 28, trlid: 406},
     Turkish : {port: 5300, streamid: 42},
     Portuguese : {port: 5320, streamid: 41},
     Bulgarian : {port: 5340, streamid: 43},
