@@ -5,7 +5,8 @@ import 'semantic-ui-css/semantic.min.css';
 // import HttpClient from "./apps/Client/HttpClient";
 // import MqttAdmin from "./apps/Admin/MqttAdmin";
 // import HttpAdmin from "./apps/Admin/HttpAdmin";
-import TrlChat from "./apps/Chat/TrlChat";
+// import TrlChat from "./apps/Chat/TrlChat";
+import MqttMerkaz from "./apps/Merkaz/MqttMerkaz";
 // import WeMain from "./apps/WeMain";
 // import WeClient from "./apps/Client/WeClient";
 // import WeStream from "./apps/Stream/WeStream";
@@ -19,11 +20,12 @@ class App extends Component {
         return (
             <Fragment>
                 {/*<Main />*/}
+                <MqttMerkaz />
                 {/*<MqttClient />*/}
                 {/*<HttpClient />*/}
                 {/*<MqttAdmin />*/}
                 {/*<HttpAdmin />*/}
-                <TrlChat />
+                {/*<TrlChat />*/}
                 {/*<WeMain />*/}
                 {/*<WeClient />*/}
                 {/*<WeStream />*/}
