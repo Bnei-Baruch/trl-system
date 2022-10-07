@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import devices from "../../lib/devices";
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
+import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal, Grid} from "semantic-ui-react";
 import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
@@ -381,130 +381,170 @@ class MqttMerkaz extends Component {
 
         let content = (
             <div className="vclient" >
-                <div className="vclient__toolbar">
-                    <Menu icon='labeled' size="mini">
-                        <Menu.Item disabled >
-                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
-                            {!mystream ? "Disconnected" : "Connected"}
-                        </Menu.Item>
-                        <Popup
-                            trigger={<Menu.Item><Icon name="settings" color={!device ? 'red' : ''} />Input Device</Menu.Item>}
-                            on='click'
-                            position='bottom left'
-                        >
-                            <Popup.Content>
-                                <Select fluid
-                                        error={!device}
-                                        placeholder="Select Device:"
-                                        value={device}
-                                        options={adevices_list}
-                                        onChange={(e, {value}) => this.setDevice(value)}/>
-                            </Popup.Content>
-                        </Popup>
-                        <Modal
-                            trigger={<Menu.Item icon='book' name='Study Material'/>}
-                            on='click'
-                            closeIcon>
-                            <HomerLimud />
-                        </Modal>
-                    </Menu>
-                    <Menu icon='labeled' secondary size="mini">
-                        <Select className='trl_select'
-                                attached='left'
-                                compact
-                                disabled={mystream}
-                                error={!selected_room}
-                                placeholder="Translate to:"
-                                value={i}
-                                options={langs_list}
-                                onChange={(e, {value}) => this.selectRoom(value)} />
-                        {mystream ?
-                            <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
-                        {!mystream ?
-                            <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.initJanus} />:""}
-                    </Menu>
-                    <Menu icon='labeled' secondary size="mini" floated='right'>
-                        {!mystream ?
-                            <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>
-                                <Icon color={tested ? 'green' : 'red'} name="sound" />
-                                {selftest}
-                            </Menu.Item> : ""}
-                        <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
-                            <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
-                            <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
-                            {!muted ? "ON" : "OFF"}
-                        </Menu.Item>
-                    </Menu>
-                </div>
+                <Grid celled='internally'>
 
-                <audio
-                    ref="localVideo"
-                    id="localVideo"
-                    autoPlay={autoPlay}
-                    controls={controls}
-                    muted={true}
-                    playsInline={true}/>
+                    <Grid.Row stretched>
+                        <Grid.Column width={1}>
+                            <Segment>
+                                <Menu icon='labeled' secondary size="mini" floated='right'>
+                                    <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
+                                        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                        <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
+                                        {!muted ? "ON" : "OFF"}
+                                    </Menu.Item>
+                                </Menu>
+                            </Segment>
+                        </Grid.Column>
+                        <Grid.Column width={10}>
+                            <div className="vclient__toolbar">
+                                <Menu icon='labeled' size="mini">
+                                    <Menu.Item disabled >
+                                        <Icon color={mystream ? 'green' : 'red'} name='power off'/>
+                                        {!mystream ? "Disconnected" : "Connected"}
+                                    </Menu.Item>
+                                    <Popup
+                                        trigger={<Menu.Item><Icon name="settings" color={!device ? 'red' : ''} />Input Device</Menu.Item>}
+                                        on='click'
+                                        position='bottom left'
+                                    >
+                                        <Popup.Content>
+                                            <Select fluid
+                                                    error={!device}
+                                                    placeholder="Select Device:"
+                                                    value={device}
+                                                    options={adevices_list}
+                                                    onChange={(e, {value}) => this.setDevice(value)}/>
+                                        </Popup.Content>
+                                    </Popup>
+                                    <Modal
+                                        trigger={<Menu.Item icon='book' name='Study Material'/>}
+                                        on='click'
+                                        closeIcon>
+                                        <HomerLimud />
+                                    </Modal>
+                                </Menu>
+                                <Menu icon='labeled' secondary size="mini">
+                                    <Select className='trl_select'
+                                            attached='left'
+                                            compact
+                                            disabled={mystream}
+                                            error={!selected_room}
+                                            placeholder="Translate to:"
+                                            value={i}
+                                            options={langs_list}
+                                            onChange={(e, {value}) => this.selectRoom(value)} />
+                                    {mystream ?
+                                        <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
+                                    {!mystream ?
+                                        <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.initJanus} />:""}
+                                </Menu>
+                                <Menu icon='labeled' secondary size="mini" floated='right'>
+                                    {!mystream ?
+                                        <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>
+                                            <Icon color={tested ? 'green' : 'red'} name="sound" />
+                                            {selftest}
+                                        </Menu.Item> : ""}
+                                    <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
+                                        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                        <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
+                                        {!muted ? "ON" : "OFF"}
+                                    </Menu.Item>
+                                </Menu>
+                            </div>
+                        </Grid.Column>
+                        <Grid.Column width={1}>
+                            <Segment>
+                                <Menu icon='labeled' secondary size="mini" floated='right'>
+                                    <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
+                                        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                        <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
+                                        {!muted ? "ON" : "OFF"}
+                                    </Menu.Item>
+                                </Menu>
+                            </Segment>
+                        </Grid.Column>
+                    </Grid.Row>
 
-                <audio
-                    ref={"remoteAudio"}
-                    id={"remoteAudio"}
-                    autoPlay={autoPlay}
-                    controls={controls}
-                    muted={trl_muted}
-                    playsInline={true} />
+                    <Grid.Row stretched>
+                        <Grid.Column width={1}>
+                            <Segment>
+                                <VolumeSlider orientation='vertical' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />
+                            </Segment>
+                        </Grid.Column>
+                        <Grid.Column width={10}>
+                            <Segment padded color='green'>
+                                {/*<VolumeSlider orientation='horizontal' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />*/}
+                                <VolumeSlider orientation='horizontal' icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />
+                                <VolumeSlider orientation='horizontal' icon='bullhorn' label='Broadcast' volume={this.setStrVolume} mute={() => this.muteStream(false)}/>
+                            </Segment>
 
-                {mystream ? '' : <Divider fitted />}
-
-                <Segment basic color='blue' className={mystream ? '' : 'hidden'}>
-                    <Table basic='very' fixed>
-                        <Table.Row>
-                            <Table.Cell width={8} rowSpan='2'>
-                                <Message color='grey' header='Online Translators:' list={list} />
-                                <Segment.Group>
-                                    <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
-                                    <Segment.Group horizontal>
-                                        <Segment className='stream_langs'>
-                                            <Select compact
-                                                    upward
-                                                    error={!audios}
-                                                    placeholder="Audio:"
-                                                    value={audios}
-                                                    options={audios_options}
-                                                    onChange={(e, {value, options}) => this.setAudio(value, options)}/>
-                                        </Segment>
-                                        <Segment className='no-border' textAlign='right'>
-                                            <Button color='blue'
-                                                    icon='expand arrows alternate'
-                                                    onClick={this.toggleFullScreen}/>
-                                            <Button positive={video} negative={!video}
-                                                    icon={video ? "eye" : "eye slash"}
-                                                    onClick={this.videoMute} />
-                                        </Segment>
-                                    </Segment.Group>
-                                </Segment.Group>
-                            </Table.Cell>
-                            <Table.Row>
-                                <Table.Cell width={7}>
-                                    <Segment padded color='green'>
-                                        <VolumeSlider icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />
-                                        <VolumeSlider icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />
-                                        <VolumeSlider icon='bullhorn' label='Broadcast' volume={this.setStrVolume} mute={() => this.muteStream(false)}/>
+                            <Segment.Group>
+                                <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
+                                <Segment.Group horizontal>
+                                    <Segment className='stream_langs'>
+                                        <Select compact
+                                                upward
+                                                error={!audios}
+                                                placeholder="Audio:"
+                                                value={audios}
+                                                options={audios_options}
+                                                onChange={(e, {value, options}) => this.setAudio(value, options)}/>
                                     </Segment>
-                                </Table.Cell>
-                            </Table.Row>
-                            <Table.Row>
-                                <Table.Cell width={7}>
-                                    <MarkazChat {...this.state}
-                                                ref={chat => {this.chat = chat;}}
-                                                visible={this.state.visible}
-                                                onCmdMsg={this.handleCmdData}
-                                                room={room}
-                                                user={this.state.user} />
-                                </Table.Cell>
-                            </Table.Row>
-                        </Table.Row>
-                    </Table>
-                </Segment>
+                                    <Segment className='no-border' textAlign='right'>
+                                        <Button color='blue'
+                                                icon='expand arrows alternate'
+                                                onClick={this.toggleFullScreen}/>
+                                        <Button positive={video} negative={!video}
+                                                icon={video ? "eye" : "eye slash"}
+                                                onClick={this.videoMute} />
+                                    </Segment>
+                                </Segment.Group>
+                            </Segment.Group>
+
+                            <audio
+                                ref="localVideo"
+                                id="localVideo"
+                                autoPlay={autoPlay}
+                                controls={controls}
+                                muted={true}
+                                playsInline={true}/>
+
+                            <audio
+                                ref={"remoteAudio"}
+                                id={"remoteAudio"}
+                                autoPlay={autoPlay}
+                                controls={controls}
+                                muted={trl_muted}
+                                playsInline={true} />
+
+                            {mystream ? '' : <Divider fitted />}
+                        </Grid.Column>
+                        <Grid.Column width={1}>
+                            <Segment>
+                                <VolumeSlider orientation='vertical' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />
+                            </Segment>
+                        </Grid.Column>
+                    </Grid.Row>
+
+                    <Grid.Row stretched>
+                        <Grid.Column width={1}>
+                            <Segment>3</Segment>
+                        </Grid.Column>
+                        <Grid.Column width={10}>
+                            <Message color='grey' header='Online Translators:' list={list} />
+                            <MarkazChat {...this.state}
+                                        ref={chat => {this.chat = chat;}}
+                                        visible={this.state.visible}
+                                        onCmdMsg={this.handleCmdData}
+                                        room={room}
+                                        user={this.state.user} />
+                        </Grid.Column>
+                        <Grid.Column width={1}>
+                            <Segment>3</Segment>
+                        </Grid.Column>
+                    </Grid.Row>
+                </Grid>
+
             </div>
         );
 

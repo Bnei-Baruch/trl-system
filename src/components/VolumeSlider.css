@@ -212,3 +212,7 @@
   top: 10px;
   transform: translate3d(-50%, 0, 0);
 }
+
+.rangeslider-vertical {
+  height: 400px;
+}
