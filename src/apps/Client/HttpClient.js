@@ -469,9 +469,11 @@ class HttpClient extends Component {
         let {audiobridge, selected_room, user, tested} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
-        const param = new URL(window.location.href).searchParams.get("volume");
-        const volume = param ? parseInt(param, 10) : 100;
-        let register = {request: "join", prebuffer: 10, quality: 10, volume, room: selected_room, muted : true, display: JSON.stringify(user)};
+        const volume_param = new URL(window.location.href).searchParams.get("volume");
+        const bitrate_param = new URL(window.location.href).searchParams.get("bitrate");
+        const volume = volume_param ? parseInt(volume_param, 10) : 100;
+        const bitrate = bitrate_param ? parseInt(bitrate_param, 10) : 64000;
+        let register = {request: "join", prebuffer: 10, quality: 10, bitrate, volume, room: selected_room, muted : true, display: JSON.stringify(user)};
         audiobridge.send({"message": register});
         this.setState({user, room: selected_room});
         this.stream.initJanus();

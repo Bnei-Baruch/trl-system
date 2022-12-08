@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import devices from "../../lib/devices";
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal, Grid} from "semantic-ui-react";
+import {Menu, Select, Button, Icon, Popup, Segment, Message, Label, Divider, Modal, Grid} from "semantic-ui-react";
 import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
@@ -381,11 +381,11 @@ class MqttMerkaz extends Component {
 
         let content = (
             <div className="vclient" >
-                <Grid celled='internally'>
+                <Grid >
 
-                    <Grid.Row stretched>
-                        <Grid.Column width={1}>
-                            <Segment>
+                    <Grid.Row>
+                        <Grid.Column width={2}>
+                            <div className="vclient__toolbar">
                                 <Menu icon='labeled' secondary size="mini" floated='right'>
                                     <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
                                         <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
@@ -393,7 +393,21 @@ class MqttMerkaz extends Component {
                                         {!muted ? "ON" : "OFF"}
                                     </Menu.Item>
                                 </Menu>
-                            </Segment>
+                                <Popup
+                                    trigger={<Label as='a' basic><Icon name="plug" color={!device ? 'red' : ''} /> Input</Label>}
+                                    on='click'
+                                    position='bottom left'
+                                >
+                                    <Popup.Content>
+                                        <Select fluid
+                                                error={!device}
+                                                placeholder="Select Device:"
+                                                value={device}
+                                                options={adevices_list}
+                                                onChange={(e, {value}) => this.setDevice(value)}/>
+                                    </Popup.Content>
+                                </Popup>
+                            </div>
                         </Grid.Column>
                         <Grid.Column width={10}>
                             <div className="vclient__toolbar">
@@ -402,28 +416,12 @@ class MqttMerkaz extends Component {
                                         <Icon color={mystream ? 'green' : 'red'} name='power off'/>
                                         {!mystream ? "Disconnected" : "Connected"}
                                     </Menu.Item>
-                                    <Popup
-                                        trigger={<Menu.Item><Icon name="settings" color={!device ? 'red' : ''} />Input Device</Menu.Item>}
-                                        on='click'
-                                        position='bottom left'
-                                    >
-                                        <Popup.Content>
-                                            <Select fluid
-                                                    error={!device}
-                                                    placeholder="Select Device:"
-                                                    value={device}
-                                                    options={adevices_list}
-                                                    onChange={(e, {value}) => this.setDevice(value)}/>
-                                        </Popup.Content>
-                                    </Popup>
                                     <Modal
                                         trigger={<Menu.Item icon='book' name='Study Material'/>}
                                         on='click'
                                         closeIcon>
                                         <HomerLimud />
                                     </Modal>
-                                </Menu>
-                                <Menu icon='labeled' secondary size="mini">
                                     <Select className='trl_select'
                                             attached='left'
                                             compact
@@ -438,37 +436,53 @@ class MqttMerkaz extends Component {
                                     {!mystream ?
                                         <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.initJanus} />:""}
                                 </Menu>
-                                <Menu icon='labeled' secondary size="mini" floated='right'>
-                                    {!mystream ?
-                                        <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>
-                                            <Icon color={tested ? 'green' : 'red'} name="sound" />
-                                            {selftest}
-                                        </Menu.Item> : ""}
-                                    <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
-                                        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
-                                        <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
-                                        {!muted ? "ON" : "OFF"}
-                                    </Menu.Item>
-                                </Menu>
+                                {/*<Menu icon='labeled' secondary size="mini" floated='right'>*/}
+                                {/*    {!mystream ?*/}
+                                {/*        <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>*/}
+                                {/*            <Icon color={tested ? 'green' : 'red'} name="sound" />*/}
+                                {/*            {selftest}*/}
+                                {/*        </Menu.Item> : ""}*/}
+                                {/*    <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">*/}
+                                {/*        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />*/}
+                                {/*        <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />*/}
+                                {/*        {!muted ? "ON" : "OFF"}*/}
+                                {/*    </Menu.Item>*/}
+                                {/*</Menu>*/}
                             </div>
                         </Grid.Column>
-                        <Grid.Column width={1}>
-                            <Segment>
+                        <Grid.Column width={2}>
+                            <div className="vclient__toolbar">
                                 <Menu icon='labeled' secondary size="mini" floated='right'>
                                     <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
-                                        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas2" id="canvas2" width="15" height="35" />
                                         <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
                                         {!muted ? "ON" : "OFF"}
                                     </Menu.Item>
                                 </Menu>
-                            </Segment>
+                                <Popup
+                                    trigger={<Label as='a' basic><Icon name="plug" color={!device ? 'red' : ''} /> Input</Label>}
+                                    on='click'
+                                    position='bottom left'
+                                >
+                                    <Popup.Content>
+                                        <Select fluid
+                                                error={!device}
+                                                placeholder="Select Device:"
+                                                value={device}
+                                                options={adevices_list}
+                                                onChange={(e, {value}) => this.setDevice(value)}/>
+                                    </Popup.Content>
+                                </Popup>
+                            </div>
                         </Grid.Column>
                     </Grid.Row>
 
                     <Grid.Row stretched>
-                        <Grid.Column width={1}>
+                        <Grid.Column width={2}>
                             <Segment>
-                                <VolumeSlider orientation='vertical' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />
+                                <VolumeSlider orientation='vertical' icon='blogger b' label='PetahTikva'
+                                              volume={(value) => this.setStrVolume(value,true)}
+                                              mute={() => this.muteStream(true)} />
                             </Segment>
                         </Grid.Column>
                         <Grid.Column width={10}>
@@ -480,25 +494,25 @@ class MqttMerkaz extends Component {
 
                             <Segment.Group>
                                 <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
-                                <Segment.Group horizontal>
-                                    <Segment className='stream_langs'>
-                                        <Select compact
-                                                upward
-                                                error={!audios}
-                                                placeholder="Audio:"
-                                                value={audios}
-                                                options={audios_options}
-                                                onChange={(e, {value, options}) => this.setAudio(value, options)}/>
-                                    </Segment>
-                                    <Segment className='no-border' textAlign='right'>
-                                        <Button color='blue'
-                                                icon='expand arrows alternate'
-                                                onClick={this.toggleFullScreen}/>
-                                        <Button positive={video} negative={!video}
-                                                icon={video ? "eye" : "eye slash"}
-                                                onClick={this.videoMute} />
-                                    </Segment>
-                                </Segment.Group>
+                                {/*<Segment.Group horizontal>*/}
+                                {/*    <Segment className='stream_langs'>*/}
+                                {/*        <Select compact*/}
+                                {/*                upward*/}
+                                {/*                error={!audios}*/}
+                                {/*                placeholder="Audio:"*/}
+                                {/*                value={audios}*/}
+                                {/*                options={audios_options}*/}
+                                {/*                onChange={(e, {value, options}) => this.setAudio(value, options)}/>*/}
+                                {/*    </Segment>*/}
+                                {/*    <Segment className='no-border' textAlign='right'>*/}
+                                {/*        <Button color='blue'*/}
+                                {/*                icon='expand arrows alternate'*/}
+                                {/*                onClick={this.toggleFullScreen}/>*/}
+                                {/*        <Button positive={video} negative={!video}*/}
+                                {/*                icon={video ? "eye" : "eye slash"}*/}
+                                {/*                onClick={this.videoMute} />*/}
+                                {/*    </Segment>*/}
+                                {/*</Segment.Group>*/}
                             </Segment.Group>
 
                             <audio
@@ -519,7 +533,7 @@ class MqttMerkaz extends Component {
 
                             {mystream ? '' : <Divider fitted />}
                         </Grid.Column>
-                        <Grid.Column width={1}>
+                        <Grid.Column width={2}>
                             <Segment>
                                 <VolumeSlider orientation='vertical' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />
                             </Segment>
@@ -527,8 +541,32 @@ class MqttMerkaz extends Component {
                     </Grid.Row>
 
                     <Grid.Row stretched>
-                        <Grid.Column width={1}>
-                            <Segment>3</Segment>
+                        <Grid.Column width={2}>
+                            <Segment textAlign='center' secondary>
+                                <Popup
+                                    trigger={<Label as='a' basic><Icon name="headphones" color={!device ? 'red' : ''} /> Output</Label>}
+                                    on='click'
+                                    position='bottom left'
+                                >
+                                    <Popup.Content>
+                                        <Select fluid
+                                                error={!device}
+                                                placeholder="Select Device:"
+                                                value={device}
+                                                options={adevices_list}
+                                                onChange={(e, {value}) => this.setDevice(value)}/>
+                                    </Popup.Content>
+                                </Popup>
+                            </Segment>
+                            <Segment textAlign='center' tertiary>
+                                <Select compact
+                                        upward
+                                        error={!audios}
+                                        placeholder="Audio:"
+                                        value={audios}
+                                        options={audios_options}
+                                        onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                            </Segment>
                         </Grid.Column>
                         <Grid.Column width={10}>
                             <Message color='grey' header='Online Translators:' list={list} />
@@ -539,8 +577,32 @@ class MqttMerkaz extends Component {
                                         room={room}
                                         user={this.state.user} />
                         </Grid.Column>
-                        <Grid.Column width={1}>
-                            <Segment>3</Segment>
+                        <Grid.Column width={2}>
+                            <Segment textAlign='center' secondary>
+                                <Popup
+                                    trigger={<Label as='a' basic><Icon name="headphones" color={!device ? 'red' : ''} /> Output</Label>}
+                                    on='click'
+                                    position='bottom left'
+                                >
+                                    <Popup.Content>
+                                        <Select fluid
+                                                error={!device}
+                                                placeholder="Select Device:"
+                                                value={device}
+                                                options={adevices_list}
+                                                onChange={(e, {value}) => this.setDevice(value)}/>
+                                    </Popup.Content>
+                                </Popup>
+                            </Segment>
+                            <Segment textAlign='center' tertiary>
+                                <Select compact
+                                        upward
+                                        error={!audios}
+                                        placeholder="Audio:"
+                                        value={audios}
+                                        options={audios_options}
+                                        onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                            </Segment>
                         </Grid.Column>
                     </Grid.Row>
                 </Grid>

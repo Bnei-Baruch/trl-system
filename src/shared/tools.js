@@ -87,10 +87,10 @@ export const micVolume = (c) => {
     gradient.addColorStop(0.10, "orange");
     gradient.addColorStop(0, "red");
     devices.micLevel = (volume) => {
-        //console.log("[client] volume: ", volume)
+        // console.log("[client] volume: ", volume, (c.height - volume * 3000))
         cc.clearRect(0, 0, c.width, c.height);
         cc.fillStyle = gradient;
-        cc.fillRect(0, c.height - volume * 300, c.width, c.height);
+        cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
     }
 }
 

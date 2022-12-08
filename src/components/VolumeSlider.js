@@ -33,11 +33,12 @@ class VolumeSlider extends Component {
                         <Table.Row textAlign='center' >
                             <Table.Cell width={3}>
                                 <Icon size='big' name={icon} />
-                                {label}
+                                {label}<br />
                             </Table.Cell>
                         </Table.Row>
                         <Table.Row textAlign='center'>
                             <Table.Cell width={3}>
+                                <br />
                                 <Message compact>
                                     <Slider
                                         type='range'
@@ -50,10 +51,11 @@ class VolumeSlider extends Component {
                                         onChange={this.handleOnChange}>
                                     </Slider>
                                 </Message>
+                                <br />
                             </Table.Cell>
                         </Table.Row>
                             <Table.Row textAlign='center'>
-                                <Table.Cell width={2}>
+                                <Table.Cell width={2}><br />
                                     <Button
                                         positive={!muted}
                                         negative={muted}

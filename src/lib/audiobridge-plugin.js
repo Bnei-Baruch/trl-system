@@ -36,9 +36,11 @@ export class AudiobridgePlugin extends EventEmitter {
 
   join(roomId, user) {
     this.roomId = roomId
-    const param = new URL(window.location.href).searchParams.get("volume");
-    const volume = param ? parseInt(param, 10) : 100;
-    const body = {request: "join", prebuffer: 10, quality: 10, volume, room: roomId, muted: true, display: JSON.stringify(user)};
+    const volume_param = new URL(window.location.href).searchParams.get("volume");
+    const bitrate_param = new URL(window.location.href).searchParams.get("bitrate");
+    const volume = volume_param ? parseInt(volume_param, 10) : 100;
+    const bitrate = bitrate_param ? parseInt(bitrate_param, 10) : 128000;
+    const body = {request: "join", prebuffer: 10, quality: 10, expected_loss: 10, bitrate, volume, room: roomId, muted: true, display: JSON.stringify(user)};
     return new Promise((resolve, reject) => {
       this.transaction('message', { body }, 'event').then((param) => {
         log.info("[audiobridge] join: ", param)
@@ -96,7 +98,9 @@ export class AudiobridgePlugin extends EventEmitter {
       }
 
       this.pc.createOffer().then((offer) => {
-        this.pc.setLocalDescription(offer)
+        this.pc.setLocalDescription(offer);
+        offer.sdp = offer.sdp.replace(/a=rtcp:9 IN IP4 0.0.0.0\r\n/g, 'b=AS:128000\r\na=rtcp:9 IN IP4 0.0.0.0\r\n');
+        offer.sdp = offer.sdp.replace(/a=fmtp:111 minptime=10;useinbandfec=1/g, 'a=fmtp:111 minptime=10;useinbandfec=1;maxaveragebitrate=510000\r\n');
         const jsep = {type: offer.type, sdp: offer.sdp}
         const body = {request: 'configure', muted: true}
         return this.transaction('message', {body, jsep}, 'event').then((param) => {
@@ -104,7 +108,8 @@ export class AudiobridgePlugin extends EventEmitter {
           const jsep = json.jsep
           log.info('[audiobridge] Configure respond: ', param)
           resolve(data)
-
+          json.jsep.sdp = json.jsep.sdp.replace(/a=rtcp:9 IN IP4 0.0.0.0\r\n/g, 'b=AS:128000\r\na=rtcp:9 IN IP4 0.0.0.0\r\n');
+          json.jsep.sdp = json.jsep.sdp.replace(/a=fmtp:111 minptime=10;useinbandfec=1/g, 'a=fmtp:111 minptime=10;useinbandfec=1;maxaveragebitrate=510000\r\n');
           this.pc.setRemoteDescription(json.jsep)
 
         }).catch(error => reject(error))
