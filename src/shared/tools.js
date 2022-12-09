@@ -1,6 +1,8 @@
 import {Janus} from "../lib/janus";
 import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV1, STUN_SRV2} from "./consts";
 import devices from "../lib/devices";
+import device1 from "../apps/Merkaz/device1";
+import device2 from "../apps/Merkaz/device2";
 
 export const randomString = (len) => {
     let charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -79,18 +81,34 @@ export const getDateString = (jsonDate) => {
     return dateString;
 };
 
-export const micVolume = (c) => {
+export const micVolume = (c,d) => {
     let cc = c.getContext("2d");
     let gradient = cc.createLinearGradient(0, 0, 0, 55);
     gradient.addColorStop(1, "green");
     gradient.addColorStop(0.35, "#80ff00");
     gradient.addColorStop(0.10, "orange");
     gradient.addColorStop(0, "red");
-    devices.micLevel = (volume) => {
-        // console.log("[client] volume: ", volume, (c.height - volume * 3000))
-        cc.clearRect(0, 0, c.width, c.height);
-        cc.fillStyle = gradient;
-        cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+    if(d === 1) {
+        device1.micLevel = (volume) => {
+            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            cc.clearRect(0, 0, c.width, c.height);
+            cc.fillStyle = gradient;
+            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+        }
+    } else if(d === 2) {
+        device2.micLevel = (volume) => {
+            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            cc.clearRect(0, 0, c.width, c.height);
+            cc.fillStyle = gradient;
+            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+        }
+    } else {
+        devices.micLevel = (volume) => {
+            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            cc.clearRect(0, 0, c.width, c.height);
+            cc.fillStyle = gradient;
+            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+        }
     }
 }
 

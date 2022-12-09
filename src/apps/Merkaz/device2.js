@@ -1,7 +1,7 @@
 import workerUrl from 'worker-plugin/loader!./volmeter-processor';
 import log from "loglevel";
 
-class LocalDevices {
+class LocalDevice2 {
   constructor() {
     this.audio = {
         context: null,
@@ -121,6 +121,6 @@ class LocalDevices {
 
 }
 
-const defaultDevices = new LocalDevices();
+const defaultDevices = new LocalDevice2();
 
 export default defaultDevices;
