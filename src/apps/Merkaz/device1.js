@@ -6,7 +6,7 @@ class LocalDevice1 {
     this.audio = {
         context: null,
         device: null,
-        devices: [],
+        devices: {in: [], out: []},
         error: null,
         stream: null,
     }
@@ -26,7 +26,8 @@ class LocalDevice1 {
     [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
     console.log(devices)
-    this.audio.devices = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
+    this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
+    this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
 
     if (this.audio.stream) {
       this.audio_stream = this.audio.stream.clone()
@@ -41,7 +42,8 @@ class LocalDevice1 {
       ts = e.timeStamp
       devices = await navigator.mediaDevices.enumerateDevices();
       log.debug("[devices] devices list refreshed: ", devices);
-      this.audio.devices = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
+      this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
+      this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
       // Refresh audio devices list
       let storage_audio = localStorage.getItem("audio_device");
       let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
@@ -117,7 +119,6 @@ class LocalDevice1 {
         return this.audio;
       });
   };
-
 
 }
 

@@ -23,17 +23,19 @@ class MqttMerkaz extends Component {
         audio1: {
             context: null,
             device: null,
-            devices: [],
+            devices: {in: [], out: []},
             error: null,
             stream: null,
         },
         audio2: {
             context: null,
             device: null,
-            devices: [],
+            devices: {in: [], out: []},
             error: null,
             stream: null,
         },
+        audio1_out: localStorage.getItem("audio1_out"),
+        audio2_out: localStorage.getItem("audio2_out"),
         janus: null,
         videostream: null,
         audiostream: null,
@@ -187,63 +189,67 @@ class MqttMerkaz extends Component {
         // }
     };
 
-    setDevice = (device, c) => {
-        if(c === 1) {
-            device1.setAudioDevice(device, c).then(audio => {
-                if(audio.device) {
-                    this.setState({audio1: audio});
-                    const {audiobridge, mystream} = this.state;
-                    micVolume(this.refs.canvas1,1)
-                    if (audiobridge && mystream) {
-                        audio.stream.getAudioTracks()[0].enabled = false;
-                        audiobridge.audio(audio.stream)
+    setDevice = (device, c, io) => {
+        if(io === "in") {
+            if(c === 1) {
+                device1.setAudioDevice(device, c).then(audio => {
+                    if(audio.device) {
+                        this.setState({audio1: audio});
+                        const {audiobridge, mystream} = this.state;
+                        micVolume(this.refs.canvas1,1)
+                        if (audiobridge && mystream) {
+                            audio.stream.getAudioTracks()[0].enabled = false;
+                            audiobridge.audio(audio.stream)
+                        }
                     }
-                }
-            })
+                })
+            }
+            if(c === 2) {
+                device2.setAudioDevice(device, c).then(audio => {
+                    if(audio.device) {
+                        this.setState({audio2: audio});
+                        const {audiobridge, mystream} = this.state;
+                        micVolume(this.refs.canvas2,2)
+                        if (audiobridge && mystream) {
+                            audio.stream.getAudioTracks()[0].enabled = false;
+                            audiobridge.audio(audio.stream)
+                        }
+                    }
+                })
+            }
         }
-        if(c === 2) {
-            device2.setAudioDevice(device, c).then(audio => {
-                if(audio.device) {
-                    this.setState({audio2: audio});
-                    const {audiobridge, mystream} = this.state;
-                    micVolume(this.refs.canvas2,2)
-                    if (audiobridge && mystream) {
-                        audio.stream.getAudioTracks()[0].enabled = false;
-                        audiobridge.audio(audio.stream)
-                    }
-                }
-            })
+        if(io === "out") {
+            if(c === 1) {
+                localStorage.setItem("audio1_out", device);
+                this.setState({audio1_out: device});
+            }
+            if(c === 2) {
+                localStorage.setItem("audio2_out", device);
+                this.setState({audio2_out: device});
+            }
         }
     };
 
     setStream = () => {
         const {audio1,audio2} = this.state;
-        // let track1 = audio1.stream.getAudioTracks()[0]
-        // let track2 = audio2.stream.getAudioTracks()[0]
-        // let stream = new MediaStream();
-        // stream.addTrack(track1)
-        // stream.addTrack(track2)
-        // console.log(stream, stream.getAudioTracks())
 
-        let OutgoingAudioMediaStream = new MediaStream();
-        OutgoingAudioMediaStream.addTrack(audio1.stream.getAudioTracks()[0]);
+        let in1 = new MediaStream();
+        let in2 = new MediaStream();
 
-        let IncomingAudioMediaStream = new MediaStream();
-        IncomingAudioMediaStream.addTrack(audio2.stream.getAudioTracks()[0]);
+        in1.addTrack(audio1.stream.getAudioTracks()[0]);
+        in2.addTrack(audio2.stream.getAudioTracks()[0]);
 
         const audioContext = new AudioContext();
 
-        let audioIn_01 = audioContext.createMediaStreamSource(OutgoingAudioMediaStream);
-        let audioIn_02 = audioContext.createMediaStreamSource(IncomingAudioMediaStream);
+        let ctx1 = audioContext.createMediaStreamSource(in1);
+        let ctx2 = audioContext.createMediaStreamSource(in1);
 
-        let dest = audioContext.createMediaStreamDestination();
+        let dst = audioContext.createMediaStreamDestination();
 
-        audioIn_01.connect(dest);
-        audioIn_02.connect(dest);
+        ctx1.connect(dst);
+        ctx2.connect(dst);
 
-        let FinalStream = dest.stream;
-
-        return FinalStream
+        return dst.stream
     }
 
     onFeedEvent = (list) => {
@@ -373,7 +379,10 @@ class MqttMerkaz extends Component {
                 mqtt.exit("trl/room/" + room + "/chat");
                 this.setState({muted1: false, muted2: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
                 if(reconnect) this.initJanus(reconnect)
-                if(!reconnect) devices.audio.context.resume()
+                if(!reconnect) {
+                    device1.audio.context.resume()
+                    device2.audio.context.resume()
+                }
             })
         });
     };
@@ -447,16 +456,26 @@ class MqttMerkaz extends Component {
 
     render() {
 
-        const {feeds,room,audio1,audio2,audios,i,muted1,muted2,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
+        const {feeds,room,audio1,audio2,audios,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,trl_muted,user,video,janus} = this.state;
         const autoPlay = true;
         const controls = false;
 
-        let adevice1_list = audio1.devices.map((device,i) => {
+        let adevice1_list_in = audio1.devices.in.map((device,i) => {
             const {label, deviceId} = device;
             return ({ key: i, text: label, value: deviceId})
         });
 
-        let adevice2_list = audio2.devices.map((device,i) => {
+        let adevice2_list_in = audio2.devices.in.map((device,i) => {
+            const {label, deviceId} = device;
+            return ({ key: i, text: label, value: deviceId})
+        });
+
+        let adevice1_list_out = audio1.devices.out.map((device,i) => {
+            const {label, deviceId} = device;
+            return ({ key: i, text: label, value: deviceId})
+        });
+
+        let adevice2_list_out = audio2.devices.out.map((device,i) => {
             const {label, deviceId} = device;
             return ({ key: i, text: label, value: deviceId})
         });
@@ -497,8 +516,8 @@ class MqttMerkaz extends Component {
                                                 error={!audio1.device}
                                                 placeholder="Select Device:"
                                                 value={audio1.device}
-                                                options={adevice1_list}
-                                                onChange={(e, {value}) => this.setDevice(value, 1)}/>
+                                                options={adevice1_list_in}
+                                                onChange={(e, {value}) => this.setDevice(value, 1, "in")}/>
                                     </Popup.Content>
                                 </Popup>
                             </div>
@@ -551,8 +570,8 @@ class MqttMerkaz extends Component {
                                                 error={!audio2.device}
                                                 placeholder="Select Device:"
                                                 value={audio2.device}
-                                                options={adevice2_list}
-                                                onChange={(e, {value}) => this.setDevice(value, 2)}/>
+                                                options={adevice2_list_in}
+                                                onChange={(e, {value}) => this.setDevice(value, 2, "in")}/>
                                     </Popup.Content>
                                 </Popup>
                             </div>
@@ -634,17 +653,17 @@ class MqttMerkaz extends Component {
                         <Grid.Column width={2}>
                             <Segment textAlign='center' secondary>
                                 <Popup
-                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.device ? 'red' : ''} /> Output</Label>}
+                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio1.out ? 'red' : ''} /> Output</Label>}
                                     on='click'
                                     position='bottom left'
                                 >
                                     <Popup.Content>
                                         <Select fluid
-                                                error={!audio2.device}
+                                                error={!audio1_out}
                                                 placeholder="Select Device:"
-                                                value={audio2.device}
-                                                options={adevice2_list}
-                                                onChange={(e, {value}) => this.setDevice(value)}/>
+                                                value={audio1_out}
+                                                options={adevice1_list_out}
+                                                onChange={(e, {value}) => this.setDevice(value, 1, "out")}/>
                                     </Popup.Content>
                                 </Popup>
                             </Segment>
@@ -670,17 +689,17 @@ class MqttMerkaz extends Component {
                         <Grid.Column width={2}>
                             <Segment textAlign='center' secondary>
                                 <Popup
-                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.device ? 'red' : ''} /> Output</Label>}
+                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.out ? 'red' : ''} /> Output</Label>}
                                     on='click'
                                     position='bottom left'
                                 >
                                     <Popup.Content>
                                         <Select fluid
-                                                error={!audio2.device}
+                                                error={!audio2_out}
                                                 placeholder="Select Device:"
-                                                value={audio2.device}
-                                                options={adevice2_list}
-                                                onChange={(e, {value}) => this.setDevice(value)}/>
+                                                value={audio2_out}
+                                                options={adevice2_list_out}
+                                                onChange={(e, {value}) => this.setDevice(value, 2, "out")}/>
                                     </Popup.Content>
                                 </Popup>
                             </Segment>
