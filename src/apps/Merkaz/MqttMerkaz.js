@@ -12,9 +12,9 @@ import MarkazChat from "./MarkazChat";
 import VolumeSlider from "../../components/VolumeSlider";
 import LoginPage from "../../components/LoginPage";
 import HomerLimud from "../../components/HomerLimud";
-import MqttStream from "../Stream/MqttStream";
 import {JanusMqtt} from "../../lib/janus-mqtt";
 import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
+import MerkazStream from "./MerkazStream";
 
 class MqttMerkaz extends Component {
 
@@ -580,11 +580,25 @@ class MqttMerkaz extends Component {
 
                     <Grid.Row stretched>
                         <Grid.Column width={2}>
-                            <Segment>
-                                <VolumeSlider orientation='vertical' icon='blogger b' label='PetahTikva'
+                            <Segment basic>
+                                <VolumeSlider orientation='vertical' icon='blogger b' label='1'
                                               volume={(value) => this.setStrVolume(value,true)}
                                               mute={() => this.muteStream(true)} />
                             </Segment>
+                            <Popup
+                                trigger={<Label as='a' basic><Icon name="headphones" color={!audio1.out ? 'red' : ''} /> Output</Label>}
+                                on='click'
+                                position='bottom left'
+                            >
+                                <Popup.Content>
+                                    <Select fluid
+                                            error={!audio1_out}
+                                            placeholder="Select Device:"
+                                            value={audio1_out}
+                                            options={adevice1_list_out}
+                                            onChange={(e, {value}) => this.setDevice(value, 1, "out")}/>
+                                </Popup.Content>
+                            </Popup>
                         </Grid.Column>
                         <Grid.Column width={10}>
                             <Segment padded color='green'>
@@ -594,26 +608,27 @@ class MqttMerkaz extends Component {
                             </Segment>
 
                             <Segment.Group>
-                                <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
-                                {/*<Segment.Group horizontal>*/}
-                                {/*    <Segment className='stream_langs'>*/}
-                                {/*        <Select compact*/}
-                                {/*                upward*/}
-                                {/*                error={!audios}*/}
-                                {/*                placeholder="Audio:"*/}
-                                {/*                value={audios}*/}
-                                {/*                options={audios_options}*/}
-                                {/*                onChange={(e, {value, options}) => this.setAudio(value, options)}/>*/}
-                                {/*    </Segment>*/}
-                                {/*    <Segment className='no-border' textAlign='right'>*/}
-                                {/*        <Button color='blue'*/}
-                                {/*                icon='expand arrows alternate'*/}
-                                {/*                onClick={this.toggleFullScreen}/>*/}
-                                {/*        <Button positive={video} negative={!video}*/}
-                                {/*                icon={video ? "eye" : "eye slash"}*/}
-                                {/*                onClick={this.videoMute} />*/}
-                                {/*    </Segment>*/}
-                                {/*</Segment.Group>*/}
+                                <MerkazStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
+                                <Segment.Group horizontal>
+                                    <Segment className='stream_langs'>
+                                        <Select compact
+                                                upward
+                                                error={!audios}
+                                                placeholder="Audio:"
+                                                value={audios}
+                                                options={audios_options}
+                                                onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                                    </Segment>
+                                    <Segment className='stream_langs' textAlign='right'>
+                                        <Select compact
+                                                upward
+                                                error={!audios}
+                                                placeholder="Audio:"
+                                                value={audios}
+                                                options={audios_options}
+                                                onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                                    </Segment>
+                                </Segment.Group>
                             </Segment.Group>
 
                             <audio
@@ -632,49 +647,35 @@ class MqttMerkaz extends Component {
                                 muted={true}
                                 playsInline={true}/>
 
-                            <audio
-                                ref={"remoteAudio"}
-                                id={"remoteAudio"}
-                                autoPlay={autoPlay}
-                                controls={controls}
-                                muted1={trl_muted}
-                                playsInline={true} />
-
                             {mystream ? '' : <Divider fitted />}
                         </Grid.Column>
                         <Grid.Column width={2}>
-                            <Segment>
-                                <VolumeSlider orientation='vertical' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />
+                            <Segment basic>
+                                <VolumeSlider orientation='vertical' icon='blogger b' label='2'
+                                              volume={(value) => this.setStrVolume(value,true)}
+                                              mute={() => this.muteStream(true)} />
                             </Segment>
+                            <Popup
+                                trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.out ? 'red' : ''} /> Output</Label>}
+                                on='click'
+                                position='bottom left'
+                            >
+                                <Popup.Content>
+                                    <Select fluid
+                                            error={!audio2_out}
+                                            placeholder="Select Device:"
+                                            value={audio2_out}
+                                            options={adevice2_list_out}
+                                            onChange={(e, {value}) => this.setDevice(value, 2, "out")}/>
+                                </Popup.Content>
+                            </Popup>
                         </Grid.Column>
                     </Grid.Row>
 
                     <Grid.Row stretched>
                         <Grid.Column width={2}>
-                            <Segment textAlign='center' secondary>
-                                <Popup
-                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio1.out ? 'red' : ''} /> Output</Label>}
-                                    on='click'
-                                    position='bottom left'
-                                >
-                                    <Popup.Content>
-                                        <Select fluid
-                                                error={!audio1_out}
-                                                placeholder="Select Device:"
-                                                value={audio1_out}
-                                                options={adevice1_list_out}
-                                                onChange={(e, {value}) => this.setDevice(value, 1, "out")}/>
-                                    </Popup.Content>
-                                </Popup>
-                            </Segment>
-                            <Segment textAlign='center' tertiary>
-                                <Select compact
-                                        upward
-                                        error={!audios}
-                                        placeholder="Audio:"
-                                        value={audios}
-                                        options={audios_options}
-                                        onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                            <Segment textAlign='center' basic>
+
                             </Segment>
                         </Grid.Column>
                         <Grid.Column width={10}>
@@ -687,30 +688,8 @@ class MqttMerkaz extends Component {
                                         user={this.state.user} />
                         </Grid.Column>
                         <Grid.Column width={2}>
-                            <Segment textAlign='center' secondary>
-                                <Popup
-                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.out ? 'red' : ''} /> Output</Label>}
-                                    on='click'
-                                    position='bottom left'
-                                >
-                                    <Popup.Content>
-                                        <Select fluid
-                                                error={!audio2_out}
-                                                placeholder="Select Device:"
-                                                value={audio2_out}
-                                                options={adevice2_list_out}
-                                                onChange={(e, {value}) => this.setDevice(value, 2, "out")}/>
-                                    </Popup.Content>
-                                </Popup>
-                            </Segment>
-                            <Segment textAlign='center' tertiary>
-                                <Select compact
-                                        upward
-                                        error={!audios}
-                                        placeholder="Audio:"
-                                        value={audios}
-                                        options={audios_options}
-                                        onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                            <Segment textAlign='center' basic>
+
                             </Segment>
                         </Grid.Column>
                     </Grid.Row>
