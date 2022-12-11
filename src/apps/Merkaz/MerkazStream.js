@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import { Segment } from 'semantic-ui-react';
 import './Stream.css'
 import {StreamingPlugin} from "../../lib/streaming-plugin";
+import {cloneStream} from "../../shared/tools";
 
 
 class MerkazStream extends Component {
@@ -9,15 +10,14 @@ class MerkazStream extends Component {
     state = {
         janus: null,
         videostream: null,
-        audiostream: null,
-        trlstream: null,
-        datastream: null,
+        audiostream1: null,
+        audiostream2: null,
         audio: null,
         videos: Number(localStorage.getItem("video")) || 1,
         audios: Number(localStorage.getItem("lang")) || 15,
         room: Number(localStorage.getItem("room")) || null,
-        str_muted: true,
-        trl_muted: true,
+        str1_muted: true,
+        str2_muted: true,
         mixvolume: null,
         user: null,
         talking: null,
@@ -31,19 +31,19 @@ class MerkazStream extends Component {
         const {janus} = this.props;
         if(this.state.videostream)
             janus.detach(this.state.videostream);
-        if(this.state.audiostream)
-            janus.detach(this.state.audiostream);
-        if(this.state.trlstream)
-            janus.detach(this.state.trlstream);
-        this.setState({video_stream: null, audio_stream: null, trlaudio_stream: null});
+        if(this.state.audiostream1)
+            janus.detach(this.state.audiostream1);
+        if(this.state.audiostream2)
+            janus.detach(this.state.audiostream2);
+        this.setState({video_stream: null, audio_stream1: null, audio_stream2: null});
     };
 
     initJanus = () => {
         const {janus} = this.props
         this.setState({janus});
         this.initVideoStream(janus);
-        this.initAudioStream(janus);
-        this.initTranslationStream(janus, this.props.trl_stream);
+        this.initAudioStream(janus,1);
+        this.initAudioStream(janus,2);
     };
 
     initVideoStream = (janus) => {
@@ -57,29 +57,33 @@ class MerkazStream extends Component {
         })
     };
 
-    initAudioStream = (janus) => {
-        let audiostream = new StreamingPlugin();
-        let {audios} = this.state;
-        janus.attach(audiostream).then(() => {
-            this.setState({audiostream});
-            audiostream.watch(audios).then(stream => {
-                let audio = this.refs.remoteAudio;
-                audio.srcObject = stream;
-                this.setState({audio_stream: stream});
+    initAudioStream = (janus,trl) => {
+        if(trl === 1) {
+            let audiostream1 = new StreamingPlugin();
+            let {audios} = this.state;
+            janus.attach(audiostream1).then(() => {
+                this.setState({audiostream1});
+                audiostream1.watch(audios).then(stream => {
+                    let audio = this.refs.remoteAudio1;
+                    audio.srcObject = stream;
+                    this.setState({audio_stream1: stream});
+                    cloneStream(stream, 1, true);
+                })
             })
-        })
-    };
-
-    initTranslationStream = (janus, streamId) => {
-        let trlstream = new StreamingPlugin();
-        janus.attach(trlstream).then(() => {
-            this.setState({trlstream});
-            trlstream.watch(streamId).then(stream => {
-                let audio = this.refs.trlAudio;
-                audio.srcObject = stream;
-                this.setState({trlaudio_stream: stream});
+        }
+        if(trl === 2) {
+            let audiostream2 = new StreamingPlugin();
+            let {audios} = this.state;
+            janus.attach(audiostream2).then(() => {
+                this.setState({audiostream2});
+                audiostream2.watch(audios).then(stream => {
+                    let audio = this.refs.remoteAudio2;
+                    audio.srcObject = stream;
+                    this.setState({audio_stream2: stream});
+                    cloneStream(stream, 2, true);
+                })
             })
-        })
+        }
     };
 
     setVideo = (videos) => {
@@ -88,28 +92,58 @@ class MerkazStream extends Component {
         localStorage.setItem("video", videos);
     };
 
-    setAudio = (audios,options) => {
-        let text = options.filter(k => k.value === audios)[0].text;
-        this.setState({audios});
-        this.state.audiostream.switch(audios);
-        localStorage.setItem("lang", audios);
-        localStorage.setItem("langtext", text);
+    setAudio = (audios,options,trl) => {
+        if(trl === 1) {
+            let text = options.filter(k => k.value === audios)[0].text;
+            this.setState({audios});
+            this.state.audiostream1.switch(audios);
+            localStorage.setItem("lang_trl1", audios);
+            localStorage.setItem("langtext_trl1", text);
+        }
+        if(trl === 2) {
+            let text = options.filter(k => k.value === audios)[0].text;
+            this.setState({audios});
+            this.state.audiostream2.switch(audios);
+            localStorage.setItem("lang_trl2", audios);
+            localStorage.setItem("langtext_trl2", text);
+        }
     };
 
+    setAudioOut = (d,t) => {
+        if(t === 1) {
+            //this.refs.remoteAudio1.setSinkId(d)
+            window["out"+t].setSinkId(d)
+        }
+        if(t === 2) {
+            //this.refs.remoteAudio2.setSinkId(d)
+            window["out"+t].setSinkId(d)
+        }
+    }
+
     setVolume = (value,trl) => {
-        trl ? this.refs.trlAudio.volume = value : this.refs.remoteAudio.volume = value;
+        window["out"+trl].srcObject.volume = value;
+        // if(trl === 1) {
+        //     this.refs.remoteAudio1.volume = value;
+        // }
+        // if(trl === 2) {
+        //     this.refs.remoteAudio2.volume = value;
+        // }
     };
 
     audioMute = (trl) => {
-        if(trl) {
-            const {trlaudio_stream,trl_muted} = this.state;
-            this.setState({trl_muted: !trl_muted});
-            trlaudio_stream.getAudioTracks()[0].enabled = trl_muted;
-        } else {
-            const {audio_stream,str_muted} = this.state;
-            this.setState({str_muted: !str_muted});
-            audio_stream.getAudioTracks()[0].enabled = str_muted;
+        if(trl === 1) {
+            const {audio_stream1,str1_muted} = this.state;
+            this.setState({str1_muted: !str1_muted});
+            window["out"+trl].muted = !str1_muted;
+            //audio_stream1.getAudioTracks()[0].enabled = str1_muted;
         }
+        if(trl === 2) {
+            const {audio_stream2,str2_muted} = this.state;
+            this.setState({str2_muted: !str2_muted});
+            window["out"+trl].muted = !str2_muted;
+            //audio_stream2.getAudioTracks()[0].enabled = str2_muted;
+        }
+        console.log(window["out"+trl])
     };
 
     toggleFullScreen = () => {
@@ -136,7 +170,7 @@ class MerkazStream extends Component {
 
     render() {
 
-        const {str_muted,trl_muted} = this.state;
+        const {str1_muted,str2_muted} = this.state;
 
         return (
             <Segment textAlign='center'>
@@ -151,17 +185,17 @@ class MerkazStream extends Component {
                            muted={true}
                            playsInline={true}/>
                 </div> : ""}
-                <audio ref="remoteAudio"
-                       id="remoteAudio"
+                <audio ref="remoteAudio1"
+                       id="remoteAudio1"
                        autoPlay={true}
                        controls={false}
-                       muted={str_muted}
+                       muted={true}
                        playsInline={true}/>
-                <audio ref="trlAudio"
-                       id="trlAudio"
+                <audio ref="remoteAudio2"
+                       id="remoteAudio2"
                        autoPlay={true}
                        controls={false}
-                       muted={trl_muted}
+                       muted={true}
                        playsInline={true}/>
             </Segment>
         )

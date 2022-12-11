@@ -222,10 +222,12 @@ class MqttMerkaz extends Component {
             if(c === 1) {
                 localStorage.setItem("audio1_out", device);
                 this.setState({audio1_out: device});
+                this.stream.setAudioOut(device, 1)
             }
             if(c === 2) {
                 localStorage.setItem("audio2_out", device);
                 this.setState({audio2_out: device});
+                this.stream.setAudioOut(device, 2)
             }
         }
     };
@@ -582,8 +584,8 @@ class MqttMerkaz extends Component {
                         <Grid.Column width={2}>
                             <Segment basic>
                                 <VolumeSlider orientation='vertical' icon='blogger b' label='1'
-                                              volume={(value) => this.setStrVolume(value,true)}
-                                              mute={() => this.muteStream(true)} />
+                                              volume={(value) => this.setStrVolume(value,1)}
+                                              mute={() => this.muteStream(1)} />
                             </Segment>
                             <Popup
                                 trigger={<Label as='a' basic><Icon name="headphones" color={!audio1.out ? 'red' : ''} /> Output</Label>}
@@ -601,12 +603,6 @@ class MqttMerkaz extends Component {
                             </Popup>
                         </Grid.Column>
                         <Grid.Column width={10}>
-                            <Segment padded color='green'>
-                                {/*<VolumeSlider orientation='horizontal' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />*/}
-                                <VolumeSlider orientation='horizontal' icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />
-                                <VolumeSlider orientation='horizontal' icon='bullhorn' label='Broadcast' volume={this.setStrVolume} mute={() => this.muteStream(false)}/>
-                            </Segment>
-
                             <Segment.Group>
                                 <MerkazStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
                                 <Segment.Group horizontal>
@@ -648,12 +644,17 @@ class MqttMerkaz extends Component {
                                 playsInline={true}/>
 
                             {mystream ? '' : <Divider fitted />}
+                            <Segment padded color='green'>
+                                {/*<VolumeSlider orientation='horizontal' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />*/}
+                                <VolumeSlider orientation='horizontal' icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />
+                                {/*<VolumeSlider orientation='horizontal' icon='bullhorn' label='Broadcast' volume={this.setStrVolume} mute={() => this.muteStream(false)}/>*/}
+                            </Segment>
                         </Grid.Column>
                         <Grid.Column width={2}>
                             <Segment basic>
                                 <VolumeSlider orientation='vertical' icon='blogger b' label='2'
-                                              volume={(value) => this.setStrVolume(value,true)}
-                                              mute={() => this.muteStream(true)} />
+                                              volume={(value) => this.setStrVolume(value,2)}
+                                              mute={() => this.muteStream(2)} />
                             </Segment>
                             <Popup
                                 trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.out ? 'red' : ''} /> Output</Label>}

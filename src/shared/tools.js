@@ -262,3 +262,75 @@ export const testMic = async (stream) => {
     audio.play();
     await sleep(5000);
 };
+
+export const cloneStream = (stream, n, stereo) => {
+    let context = new AudioContext();
+    let source = context.createMediaStreamSource(stream);
+    let destination = context.createMediaStreamDestination();
+    source.connect(destination);
+    window["out"+n] = new Audio();
+    window["out"+n].srcObject = destination.stream;
+    window["out"+n].muted = true;
+    window["out"+n].play();
+    let device = localStorage.getItem("device" + n);
+    if(device) {
+        window["out"+n].setSinkId(device)
+            .then(() => console.log('Success, audio output device attached: ' + device))
+            .catch((error) => console.error(error));
+    }
+    // if(stereo) {
+    //     let analyser1 = context.createAnalyser();
+    //     let analyser2 = context.createAnalyser();
+    //     let splitter = context.createChannelSplitter(2);
+    //     source.connect(splitter);
+    //     splitter.connect(analyser1,0,0);
+    //     splitter.connect(analyser2,1,0);
+    //     stereoVisualizer(analyser1, analyser2, document.getElementById('canvas'+n),250,n);
+    // } else {
+    //     let analyzer = context.createAnalyser();
+    //     source.connect(analyzer);
+    //     streamVisualizer(analyzer, document.getElementById('canvas'+n),250,n);
+    // }
+};
+
+const streamVisualizer = (analyser, canvas, width, n) => {
+    let mn = width/128;
+
+    let drawContext = canvas.getContext('2d');
+    let gradient = drawContext.createLinearGradient(0,0,width,10);
+    gradient.addColorStop(0,'green');
+    gradient.addColorStop(0.20,'#80ff00');
+    gradient.addColorStop(0.85,'orange');
+    gradient.addColorStop(1,'red');
+
+    let sampleAudioStream = () => {
+        let average = getBufferAverage(analyser);
+        drawContext.clearRect(0, 0, width, 40);
+        drawContext.fillStyle=gradient;
+        drawContext.fillRect(0,0,average*mn,10);
+    };
+
+    p[n] = setInterval(sampleAudioStream, 50);
+};
+
+const stereoVisualizer = (analyser1, analyser2, canvas, width, n) => {
+    let mn = width/128;
+
+    let drawContext = canvas.getContext('2d');
+    let gradient = drawContext.createLinearGradient(0,0,width,10);
+    gradient.addColorStop(0,'green');
+    gradient.addColorStop(0.20,'#80ff00');
+    gradient.addColorStop(0.85,'orange');
+    gradient.addColorStop(1,'red');
+
+    let sampleAudioStream = () => {
+        let average1 = getBufferAverage(analyser1);
+        let average2 = getBufferAverage(analyser2);
+        drawContext.clearRect(0, 0, width, 40);
+        drawContext.fillStyle=gradient;
+        drawContext.fillRect(0,0,average1*mn,10);
+        drawContext.fillRect(0,15, average2*mn,10);
+    };
+
+    p[n] = setInterval(sampleAudioStream, 50);
+};
