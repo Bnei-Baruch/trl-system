@@ -111,23 +111,15 @@ class MerkazStream extends Component {
 
     setAudioOut = (d,t) => {
         if(t === 1) {
-            //this.refs.remoteAudio1.setSinkId(d)
             window["out"+t].setSinkId(d)
         }
         if(t === 2) {
-            //this.refs.remoteAudio2.setSinkId(d)
             window["out"+t].setSinkId(d)
         }
     }
 
     setVolume = (value,trl) => {
-        window["out"+trl].srcObject.volume = value;
-        // if(trl === 1) {
-        //     this.refs.remoteAudio1.volume = value;
-        // }
-        // if(trl === 2) {
-        //     this.refs.remoteAudio2.volume = value;
-        // }
+        window["out"+trl].volume = value;
     };
 
     audioMute = (trl) => {

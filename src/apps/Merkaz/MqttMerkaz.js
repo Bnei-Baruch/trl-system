@@ -55,7 +55,8 @@ class MqttMerkaz extends Component {
         shidur: false,
         protocol: null,
         user: null,
-        audios: Number(localStorage.getItem("lang")) || 15,
+        audios1: Number(localStorage.getItem("lang_trl1")) || 15,
+        audios2: Number(localStorage.getItem("lang_trl2")) || 15,
         users: {},
         visible: true,
         selftest: "Mic Test",
@@ -424,9 +425,15 @@ class MqttMerkaz extends Component {
         }
     };
 
-    setAudio = (audios,options) => {
-        this.setState({audios});
-        this.stream.setAudio(audios, options)
+    setAudio = (audios,options,t) => {
+        if(t === 1) {
+            this.setState({audios1: audios});
+            this.stream.setAudio(audios, options, t)
+        }
+        if(t === 2) {
+            this.setState({audios2: audios});
+            this.stream.setAudio(audios, options, t)
+        }
     };
 
     toggleFullScreen = () => {
@@ -458,7 +465,7 @@ class MqttMerkaz extends Component {
 
     render() {
 
-        const {feeds,room,audio1,audio2,audios,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,trl_muted,user,video,janus} = this.state;
+        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,trl_muted,user,video,janus} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -609,20 +616,20 @@ class MqttMerkaz extends Component {
                                     <Segment className='stream_langs'>
                                         <Select compact
                                                 upward
-                                                error={!audios}
+                                                error={!audios1}
                                                 placeholder="Audio:"
-                                                value={audios}
+                                                value={audios1}
                                                 options={audios_options}
-                                                onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                                                onChange={(e, {value, options}) => this.setAudio(value, options, 1)}/>
                                     </Segment>
                                     <Segment className='stream_langs' textAlign='right'>
                                         <Select compact
                                                 upward
-                                                error={!audios}
+                                                error={!audios2}
                                                 placeholder="Audio:"
-                                                value={audios}
+                                                value={audios2}
                                                 options={audios_options}
-                                                onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                                                onChange={(e, {value, options}) => this.setAudio(value, options, 2)}/>
                                     </Segment>
                                 </Segment.Group>
                             </Segment.Group>
