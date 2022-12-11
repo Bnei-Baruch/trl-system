@@ -14,7 +14,8 @@ class MerkazStream extends Component {
         audiostream2: null,
         audio: null,
         videos: Number(localStorage.getItem("video")) || 1,
-        audios: Number(localStorage.getItem("lang")) || 15,
+        audios1: Number(localStorage.getItem("lang_trl1")) || 15,
+        audios2: Number(localStorage.getItem("lang_trl2")) || 15,
         room: Number(localStorage.getItem("room")) || null,
         str1_muted: true,
         str2_muted: true,
@@ -60,10 +61,10 @@ class MerkazStream extends Component {
     initAudioStream = (janus,trl) => {
         if(trl === 1) {
             let audiostream1 = new StreamingPlugin();
-            let {audios} = this.state;
+            let {audios1} = this.state;
             janus.attach(audiostream1).then(() => {
                 this.setState({audiostream1});
-                audiostream1.watch(audios).then(stream => {
+                audiostream1.watch(audios1).then(stream => {
                     let audio = this.refs.remoteAudio1;
                     audio.srcObject = stream;
                     this.setState({audio_stream1: stream});
@@ -73,10 +74,10 @@ class MerkazStream extends Component {
         }
         if(trl === 2) {
             let audiostream2 = new StreamingPlugin();
-            let {audios} = this.state;
+            let {audios2} = this.state;
             janus.attach(audiostream2).then(() => {
                 this.setState({audiostream2});
-                audiostream2.watch(audios).then(stream => {
+                audiostream2.watch(audios2).then(stream => {
                     let audio = this.refs.remoteAudio2;
                     audio.srcObject = stream;
                     this.setState({audio_stream2: stream});
@@ -95,14 +96,14 @@ class MerkazStream extends Component {
     setAudio = (audios,options,trl) => {
         if(trl === 1) {
             let text = options.filter(k => k.value === audios)[0].text;
-            this.setState({audios});
+            this.setState({audios1: audios});
             this.state.audiostream1.switch(audios);
             localStorage.setItem("lang_trl1", audios);
             localStorage.setItem("langtext_trl1", text);
         }
         if(trl === 2) {
             let text = options.filter(k => k.value === audios)[0].text;
-            this.setState({audios});
+            this.setState({audios2: audios});
             this.state.audiostream2.switch(audios);
             localStorage.setItem("lang_trl2", audios);
             localStorage.setItem("langtext_trl2", text);
