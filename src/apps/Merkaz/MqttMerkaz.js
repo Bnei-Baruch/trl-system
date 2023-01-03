@@ -4,7 +4,7 @@ import mqtt from "../../shared/mqtt";
 import device1 from "./device1";
 import device2 from "./device2";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Label, Divider, Modal, Grid} from "semantic-ui-react";
-import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
+import {geoInfo, checkNotification, testMic, micVolume, cloneStream, cloneTrl} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
@@ -43,14 +43,17 @@ class MqttMerkaz extends Component {
         trl_room: localStorage.getItem("trl_room"),
         room: "",
         selected_room: "",
-        audiobridge: null,
+        audiobridge1: null,
+        audiobridge2: null,
         remotefeed: null,
         myid: null,
         mypvtid: null,
-        mystream: null,
+        mystream1: null,
+        mystream2: null,
         muted1: false,
         muted2: false,
-        trl_muted: true,
+        trl_muted1: true,
+        trl_muted2: true,
         cammuted: false,
         shidur: false,
         protocol: null,
@@ -81,7 +84,8 @@ class MqttMerkaz extends Component {
         this.state.janus.destroy();
     };
 
-    initClient = (user) => {
+    initClient = () => {
+        const user = {id: "bb_trl", email: "trl@merkaz.bb", name: "BB TRL", role: "user", display: "BB TRL"};
         if(this.state.trl_room !== null)
             this.selectRoom(Number(this.state.trl_room));
         checkNotification();
@@ -131,17 +135,26 @@ class MqttMerkaz extends Component {
             }
         }
 
-        let audiobridge = new AudiobridgePlugin();
-        audiobridge.onFeedEvent = this.onFeedEvent
-        audiobridge.onTrack = this.onTrack
-        audiobridge.onLeave = this.onLeave
+        let audiobridge1 = new AudiobridgePlugin();
+        let audiobridge2 = new AudiobridgePlugin();
+        audiobridge1.onFeedEvent = this.onFeedEvent1
+        audiobridge2.onFeedEvent = this.onFeedEvent2
+        audiobridge1.onTrack = this.onTrack1
+        audiobridge2.onTrack = this.onTrack2
+        audiobridge1.onLeave = this.onLeave1
+        audiobridge2.onLeave = this.onLeave2
 
         janus.init().then(data => {
             log.info("[client] Janus init", data)
-            janus.attach(audiobridge).then(data => {
-                log.info('[client] Publisher Handle: ', data);
-                this.setState({janus, audiobridge});
-                this.joinRoom(data, reconnect);
+            janus.attach(audiobridge1).then(data => {
+                log.info('[client1] Publisher Handle: ', data);
+                this.setState({janus, audiobridge1});
+                this.joinRoom(data, reconnect, 1);
+            })
+            janus.attach(audiobridge2).then(data => {
+                log.info('[client2] Publisher Handle: ', data);
+                this.setState({audiobridge2});
+                this.joinRoom(data, reconnect, 2);
             })
         }).catch(err => {
             log.error("[client] Janus init", err);
@@ -224,38 +237,27 @@ class MqttMerkaz extends Component {
                 localStorage.setItem("audio1_out", device);
                 this.setState({audio1_out: device});
                 this.stream.setAudioOut(device, 1)
+                window["trl"+1].setSinkId(device)
             }
             if(c === 2) {
                 localStorage.setItem("audio2_out", device);
                 this.setState({audio2_out: device});
                 this.stream.setAudioOut(device, 2)
+                window["trl"+2].setSinkId(device)
             }
         }
     };
 
-    setStream = () => {
-        const {audio1,audio2} = this.state;
-
-        let in1 = new MediaStream();
-        let in2 = new MediaStream();
-
-        in1.addTrack(audio1.stream.getAudioTracks()[0]);
-        in2.addTrack(audio2.stream.getAudioTracks()[0]);
-
-        const audioContext = new AudioContext();
-
-        let ctx1 = audioContext.createMediaStreamSource(in1);
-        let ctx2 = audioContext.createMediaStreamSource(in1);
-
-        let dst = audioContext.createMediaStreamDestination();
-
-        ctx1.connect(dst);
-        ctx2.connect(dst);
-
-        return dst.stream
+    setTrlOut = (t) => {
+        if(t === 1) {
+            window["trl"+t].setSinkId(this.state.audio1_out)
+        }
+        if(t === 2) {
+            window["trl"+t].setSinkId(this.state.audio2_out)
+        }
     }
 
-    onFeedEvent = (list) => {
+    onFeedEvent1 = (list) => {
         log.debug("[client] Got feed event: ", list);
         const {feeds} = this.state;
         for(let f in list) {
@@ -269,19 +271,50 @@ class MqttMerkaz extends Component {
         this.setState({feeds});
     }
 
-    onLeave = (id) => {
+    onLeave1 = (id) => {
         const {feeds} = this.state;
         delete feeds[id];
         this.setState({feeds});
     }
 
-    onTrack = (track, mid, on) => {
+    onTrack1 = (track, mid, on) => {
+        log.debug("[client1] >> This track is coming from feed :", mid, on);
+        let stream = new MediaStream([track]);
+        // stream.addTrack(track.clone());
+        log.debug("[client1] Created remote audio stream: ", stream);
+        let remoteaudio1 = this.refs.remoteAudio1;
+        if(remoteaudio1) remoteaudio1.srcObject = stream;
+        cloneTrl(stream, 1);
+    }
+
+    onFeedEvent2 = (list) => {
+        // log.debug("[client2] Got feed event: ", list);
+        // const {feeds} = this.state;
+        // for(let f in list) {
+        //     let id = list[f]["id"];
+        //     let user = JSON.parse(list[f]["display"]);
+        //     if(user.role === "admin")
+        //         continue
+        //     list[f]["display"] = user;
+        //     feeds[id] = list[f];
+        // }
+        // this.setState({feeds});
+    }
+
+    onLeave2 = (id) => {
+        // const {feeds} = this.state;
+        // delete feeds[id];
+        // this.setState({feeds});
+    }
+
+    onTrack2 = (track, mid, on) => {
         log.debug("[client] >> This track is coming from feed :", mid, on);
-        let stream = new MediaStream();
-        stream.addTrack(track.clone());
+        let stream = new MediaStream([track]);
+        // stream.addTrack(track.clone());
         log.debug("[client] Created remote audio stream: ", stream);
-        let remoteaudio = this.refs.remoteAudio;
-        if(remoteaudio) remoteaudio.srcObject = stream;
+        let remoteaudio2 = this.refs.remoteAudio2;
+        if(remoteaudio2) remoteaudio2.srcObject = stream;
+        cloneTrl(stream, 2);
     }
 
     selfTest = () => {
@@ -334,49 +367,70 @@ class MqttMerkaz extends Component {
         }
     };
 
-    joinRoom = (audiobridge, reconnect = false) => {
-        let {selected_room, user, tested} = this.state;
-        let stream = this.setStream()
+    joinRoom = (audiobridge, reconnect = false, t) => {
+        let {selected_room, user, tested, audio1, audio2} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
 
+        if(t === 1) {
+            audiobridge.join(selected_room, user).then(data => {
+                log.debug('[client] Joined :', user)
+                log.debug('[client] Joined respond :', data)
+                audiobridge.publish(audio1.stream).then(data => {
+                    log.debug('[client] publish respond :', data)
+                    //device1.audio.context.suspend()
+                    //device2.audio.context.suspend()
+                    this.setState({mystream: audio1.stream})
+                    audiobridge.mute(false);
+                }).catch(err => {
+                    log.error('[client] Publish error :', err);
+                    this.exitRoom(false);
+                })
 
-        audiobridge.join(selected_room, user).then(data => {
-            log.debug('[client] Joined respond :', data)
-            audiobridge.publish(stream).then(data => {
-                log.debug('[client] publish respond :', data)
-                //device1.audio.context.suspend()
-                //device2.audio.context.suspend()
-                this.setState({mystream: stream})
-                audiobridge.mute(false);
+                this.onFeedEvent1(data.participants)
+
+                mqtt.join("trl/room/" + selected_room);
+                mqtt.join("trl/room/" + selected_room + "/chat", true);
+
+                this.chat.initChatEvents();
+
+                this.stream.initJanus();
+
+                //this.setState({muted1: true, muted2: true});
             }).catch(err => {
-                log.error('[client] Publish error :', err);
+                log.error('[client] Join error :', err);
                 this.exitRoom(false);
             })
+        }
 
-            this.onFeedEvent(data.participants)
-
-            mqtt.join("trl/room/" + selected_room);
-            mqtt.join("trl/room/" + selected_room + "/chat", true);
-
-            this.chat.initChatEvents();
-
-            this.stream.initJanus();
-
-            //this.setState({muted1: true, muted2: true});
-        }).catch(err => {
-            log.error('[client] Join error :', err);
-            this.exitRoom(false);
-        })
+        if(t === 2) {
+            audiobridge.join(selected_room, user).then(data => {
+                log.debug('[client] Joined respond :', data)
+                audiobridge.publish(audio2.stream).then(data => {
+                    log.debug('[client] publish respond :', data)
+                    //device1.audio.context.suspend()
+                    //device2.audio.context.suspend()
+                    //this.setState({mystream2: stream})
+                    audiobridge.mute(false);
+                }).catch(err => {
+                    log.error('[client] Publish error :', err);
+                    this.exitRoom(false);
+                })
+            }).catch(err => {
+                log.error('[client] Join error :', err);
+                this.exitRoom(false);
+            })
+        }
 
 
         this.setState({user, room: selected_room});
     };
 
     exitRoom = (reconnect = false) => {
-        let {audiobridge, room, janus} = this.state;
-        audiobridge.leave().then(() => {
-            this.stream.exitJanus()
+        let {audiobridge1, audiobridge2, room, janus} = this.state;
+        this.stream.exitJanus()
+        audiobridge2.leave()
+        audiobridge1.leave().then(() => {
             janus.destroy().then(() => {
                 mqtt.exit("trl/room/" + room);
                 mqtt.exit("trl/room/" + room + "/chat");
@@ -454,18 +508,30 @@ class MqttMerkaz extends Component {
         this.stream.audioMute(trl);
     };
 
-    muteTrl = () => {
-        const {trl_muted} = this.state;
-        this.setState({trl_muted: !trl_muted});
+    setTrlVolume = (value, trl) => {
+        window["trl"+trl].volume = value;
     };
 
-    setTrlVolume = (value) => {
-        this.refs.remoteAudio.volume = value;
+    muteTrl = (trl) => {
+        if(trl === 1) {
+            const {audio_stream1,trl_muted1} = this.state;
+            this.setState({trl_muted1: !trl_muted1});
+            window["trl"+trl].muted = !trl_muted1;
+            //audio_stream1.getAudioTracks()[0].enabled = str1_muted;
+        }
+        if(trl === 2) {
+            const {audio_stream2,trl_muted2} = this.state;
+            this.setState({trl_muted2: !trl_muted2});
+            window["trl"+trl].muted = !trl_muted2;
+            //audio_stream2.getAudioTracks()[0].enabled = str2_muted;
+        }
+        console.log(window["trl"+trl])
     };
+
 
     render() {
 
-        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,trl_muted,user,video,janus} = this.state;
+        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,trl_muted1,trl_muted2,user,video,janus} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -503,33 +569,11 @@ class MqttMerkaz extends Component {
 
         let content = (
             <div className="vclient" >
-                <Grid >
+                <Grid centered>
 
-                    <Grid.Row>
+                    <Grid.Row stretched>
                         <Grid.Column width={2}>
-                            <div className="vclient__toolbar">
-                                <Menu icon='labeled' secondary size="mini" floated='right'>
-                                    <Menu.Item disabled={!mystream} onClick={() => this.micMute(1)} className="mute-button">
-                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
-                                        <Icon color={muted1 ? "red" : ""} name={!muted1 ? "microphone" : "microphone slash"} />
-                                        {!muted1 ? "ON" : "OFF"}
-                                    </Menu.Item>
-                                </Menu>
-                                <Popup
-                                    trigger={<Label as='a' basic><Icon name="plug" color={!audio1.device ? 'red' : ''} /> Input</Label>}
-                                    on='click'
-                                    position='bottom left'
-                                >
-                                    <Popup.Content>
-                                        <Select fluid
-                                                error={!audio1.device}
-                                                placeholder="Select Device:"
-                                                value={audio1.device}
-                                                options={adevice1_list_in}
-                                                onChange={(e, {value}) => this.setDevice(value, 1, "in")}/>
-                                    </Popup.Content>
-                                </Popup>
-                            </div>
+
                         </Grid.Column>
                         <Grid.Column width={10}>
                             <div className="vclient__toolbar">
@@ -561,6 +605,93 @@ class MqttMerkaz extends Component {
                             </div>
                         </Grid.Column>
                         <Grid.Column width={2}>
+
+                        </Grid.Column>
+                    </Grid.Row>
+
+                    <Grid.Row stretched>
+                        <Grid.Column width={2}>
+                            <div className="vclient__toolbar">
+                                <Menu icon='labeled' secondary size="mini" floated='right'>
+                                    <Menu.Item disabled={!mystream} onClick={() => this.micMute(1)} className="mute-button">
+                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                        <Icon color={muted1 ? "red" : ""} name={!muted1 ? "microphone" : "microphone slash"} />
+                                        {!muted1 ? "ON" : "OFF"}
+                                    </Menu.Item>
+                                </Menu>
+                                <Popup
+                                    trigger={<Label as='a' basic><Icon name="plug" color={!audio1.device ? 'red' : ''} /> Input</Label>}
+                                    on='click'
+                                    position='bottom left'
+                                >
+                                    <Popup.Content>
+                                        <Select fluid
+                                                error={!audio1.device}
+                                                placeholder="Select Device:"
+                                                value={audio1.device}
+                                                options={adevice1_list_in}
+                                                onChange={(e, {value}) => this.setDevice(value, 1, "in")}/>
+                                    </Popup.Content>
+                                </Popup>
+                            </div>
+                            <Grid columns={2} stackable textAlign='center'>
+                                <Grid.Row verticalAlign='middle'>
+                                    <Grid.Column>
+                                        <VolumeSlider orientation='vertical' icon='blogger b' label='1'
+                                                      volume={(value) => this.setStrVolume(value,1)}
+                                                      mute={() => this.muteStream(1)} />
+                                    </Grid.Column>
+                                    <Grid.Column>
+                                        <VolumeSlider orientation='vertical' icon='address card' label='1'
+                                                      volume={(value) => this.setTrlVolume(value,1)}
+                                                      mute={() => this.muteTrl(1)} />
+                                    </Grid.Column>
+                                </Grid.Row>
+                            </Grid>
+                        </Grid.Column>
+                        <Grid.Column width={10}>
+                            <Segment.Group>
+                                <Segment >
+                                    <MerkazStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
+                                </Segment>
+                                <Segment.Group horizontal compact>
+                                    <Segment className='stream_langs'>
+                                        <Select compact
+                                                upward
+                                                error={!audios1}
+                                                placeholder="Audio:"
+                                                value={audios1}
+                                                options={audios_options}
+                                                onChange={(e, {value, options}) => this.setAudio(value, options, 1)}/>
+                                    </Segment>
+                                    <Segment className='stream_langs' textAlign='right'>
+                                        <Select compact
+                                                upward
+                                                error={!audios2}
+                                                placeholder="Audio:"
+                                                value={audios2}
+                                                options={audios_options}
+                                                onChange={(e, {value, options}) => this.setAudio(value, options, 2)}/>
+                                    </Segment>
+                                </Segment.Group>
+                                <Segment compact>
+                                    <Message color='grey' header='Online Translators:' list={list} />
+                                </Segment>
+                            </Segment.Group>
+
+                            <audio ref="localAudio1" id="localAudio1" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
+                            <audio ref="localAudio2" id="localAudio2" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
+                            <audio ref="remoteAudio1" id="remoteAudio1" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
+                            <audio ref="remoteAudio2" id="remoteAudio2" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
+
+                            {/*{mystream ? '' : <Divider fitted />}*/}
+                            {/*<Segment padded color='green'>*/}
+                            {/*    /!*<VolumeSlider orientation='horizontal' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />*!/*/}
+                            {/*    <VolumeSlider orientation='horizontal' icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />*/}
+                            {/*    /!*<VolumeSlider orientation='horizontal' icon='bullhorn' label='Broadcast' volume={this.setStrVolume} mute={() => this.muteStream(false)}/>*!/*/}
+                            {/*</Segment>*/}
+                        </Grid.Column>
+                        <Grid.Column width={2}>
                             <div className="vclient__toolbar">
                                 <Menu icon='labeled' secondary size="mini" floated='right'>
                                     <Menu.Item disabled={!mystream} onClick={() => this.micMute(2)} className="mute-button">
@@ -584,110 +715,43 @@ class MqttMerkaz extends Component {
                                     </Popup.Content>
                                 </Popup>
                             </div>
-                        </Grid.Column>
-                    </Grid.Row>
-
-                    <Grid.Row stretched>
-                        <Grid.Column width={2}>
-                            <Segment basic>
-                                <VolumeSlider orientation='vertical' icon='blogger b' label='1'
-                                              volume={(value) => this.setStrVolume(value,1)}
-                                              mute={() => this.muteStream(1)} />
-                            </Segment>
-                            <Popup
-                                trigger={<Label as='a' basic><Icon name="headphones" color={!audio1.out ? 'red' : ''} /> Output</Label>}
-                                on='click'
-                                position='bottom left'
-                            >
-                                <Popup.Content>
-                                    <Select fluid
-                                            error={!audio1_out}
-                                            placeholder="Select Device:"
-                                            value={audio1_out}
-                                            options={adevice1_list_out}
-                                            onChange={(e, {value}) => this.setDevice(value, 1, "out")}/>
-                                </Popup.Content>
-                            </Popup>
-                        </Grid.Column>
-                        <Grid.Column width={10}>
-                            <Segment.Group>
-                                <MerkazStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
-                                <Segment.Group horizontal>
-                                    <Segment className='stream_langs'>
-                                        <Select compact
-                                                upward
-                                                error={!audios1}
-                                                placeholder="Audio:"
-                                                value={audios1}
-                                                options={audios_options}
-                                                onChange={(e, {value, options}) => this.setAudio(value, options, 1)}/>
-                                    </Segment>
-                                    <Segment className='stream_langs' textAlign='right'>
-                                        <Select compact
-                                                upward
-                                                error={!audios2}
-                                                placeholder="Audio:"
-                                                value={audios2}
-                                                options={audios_options}
-                                                onChange={(e, {value, options}) => this.setAudio(value, options, 2)}/>
-                                    </Segment>
-                                </Segment.Group>
-                            </Segment.Group>
-
-                            <audio
-                                ref="localAudio1"
-                                id="localAudio1"
-                                autoPlay={autoPlay}
-                                controls={controls}
-                                muted={true}
-                                playsInline={true}/>
-
-                            <audio
-                                ref="localAudio2"
-                                id="localAudio2"
-                                autoPlay={autoPlay}
-                                controls={controls}
-                                muted={true}
-                                playsInline={true}/>
-
-                            {mystream ? '' : <Divider fitted />}
-                            <Segment padded color='green'>
-                                {/*<VolumeSlider orientation='horizontal' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />*/}
-                                <VolumeSlider orientation='horizontal' icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />
-                                {/*<VolumeSlider orientation='horizontal' icon='bullhorn' label='Broadcast' volume={this.setStrVolume} mute={() => this.muteStream(false)}/>*/}
-                            </Segment>
-                        </Grid.Column>
-                        <Grid.Column width={2}>
-                            <Segment basic>
-                                <VolumeSlider orientation='vertical' icon='blogger b' label='2'
-                                              volume={(value) => this.setStrVolume(value,2)}
-                                              mute={() => this.muteStream(2)} />
-                            </Segment>
-                            <Popup
-                                trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.out ? 'red' : ''} /> Output</Label>}
-                                on='click'
-                                position='bottom left'
-                            >
-                                <Popup.Content>
-                                    <Select fluid
-                                            error={!audio2_out}
-                                            placeholder="Select Device:"
-                                            value={audio2_out}
-                                            options={adevice2_list_out}
-                                            onChange={(e, {value}) => this.setDevice(value, 2, "out")}/>
-                                </Popup.Content>
-                            </Popup>
+                            <Grid columns={2} stackable textAlign='center'>
+                                <Grid.Row verticalAlign='middle'>
+                                    <Grid.Column>
+                                        <VolumeSlider orientation='vertical' icon='blogger b' label='2'
+                                                      volume={(value) => this.setStrVolume(value,2)}
+                                                      mute={() => this.muteStream(2)} />
+                                    </Grid.Column>
+                                    <Grid.Column>
+                                        <VolumeSlider orientation='vertical' icon='address card' label='2'
+                                                      volume={(value) => this.setTrlVolume(value,2)}
+                                                      mute={() => this.muteTrl(2)} />
+                                    </Grid.Column>
+                                </Grid.Row>
+                            </Grid>
                         </Grid.Column>
                     </Grid.Row>
 
                     <Grid.Row stretched>
                         <Grid.Column width={2}>
                             <Segment textAlign='center' basic>
-
+                                <Popup
+                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio1.out ? 'red' : ''} /> Output</Label>}
+                                    on='click'
+                                    position='bottom left'
+                                >
+                                    <Popup.Content>
+                                        <Select fluid
+                                                error={!audio1_out}
+                                                placeholder="Select Device:"
+                                                value={audio1_out}
+                                                options={adevice1_list_out}
+                                                onChange={(e, {value}) => this.setDevice(value, 1, "out")}/>
+                                    </Popup.Content>
+                                </Popup>
                             </Segment>
                         </Grid.Column>
                         <Grid.Column width={10}>
-                            <Message color='grey' header='Online Translators:' list={list} />
                             <MarkazChat {...this.state}
                                         ref={chat => {this.chat = chat;}}
                                         visible={this.state.visible}
@@ -697,7 +761,20 @@ class MqttMerkaz extends Component {
                         </Grid.Column>
                         <Grid.Column width={2}>
                             <Segment textAlign='center' basic>
-
+                                <Popup
+                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.out ? 'red' : ''} /> Output</Label>}
+                                    on='click'
+                                    position='bottom left'
+                                >
+                                    <Popup.Content>
+                                        <Select fluid
+                                                error={!audio2_out}
+                                                placeholder="Select Device:"
+                                                value={audio2_out}
+                                                options={adevice2_list_out}
+                                                onChange={(e, {value}) => this.setDevice(value, 2, "out")}/>
+                                    </Popup.Content>
+                                </Popup>
                             </Segment>
                         </Grid.Column>
                     </Grid.Row>

@@ -293,6 +293,24 @@ export const cloneStream = (stream, n, stereo) => {
     // }
 };
 
+export const cloneTrl = (stream, n, stereo) => {
+    let context = new AudioContext();
+    let source = context.createMediaStreamSource(stream);
+    let destination = context.createMediaStreamDestination();
+    source.connect(destination);
+    window["trl"+n] = new Audio();
+    window["trl"+n].srcObject = destination.stream;
+    window["trl"+n].muted = true;
+    window["trl"+n].play();
+    let device = localStorage.getItem("device" + n);
+    if(device) {
+        window["trl"+n].setSinkId(device)
+            .then(() => console.log('Success, audio output device attached: ' + device))
+            .catch((error) => console.error(error));
+    }
+};
+
+
 const streamVisualizer = (analyser, canvas, width, n) => {
     let mn = width/128;
 
