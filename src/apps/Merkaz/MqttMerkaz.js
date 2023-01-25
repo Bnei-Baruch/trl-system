@@ -374,16 +374,16 @@ class MqttMerkaz extends Component {
 
         if(t === 1) {
             audiobridge.join(selected_room, user).then(data => {
-                log.debug('[client] Joined :', user)
-                log.debug('[client] Joined respond :', data)
+                log.debug('[client1] Joined :', user)
+                log.debug('[client1] Joined respond :', data)
                 audiobridge.publish(audio1.stream).then(data => {
-                    log.debug('[client] publish respond :', data)
+                    log.debug('[client1] publish respond :', data)
                     //device1.audio.context.suspend()
                     //device2.audio.context.suspend()
                     this.setState({mystream: audio1.stream})
                     audiobridge.mute(false);
                 }).catch(err => {
-                    log.error('[client] Publish error :', err);
+                    log.error('[client1] Publish error :', err);
                     this.exitRoom(false);
                 })
 
@@ -398,26 +398,26 @@ class MqttMerkaz extends Component {
 
                 //this.setState({muted1: true, muted2: true});
             }).catch(err => {
-                log.error('[client] Join error :', err);
+                log.error('[client1] Join error :', err);
                 this.exitRoom(false);
             })
         }
 
         if(t === 2) {
             audiobridge.join(selected_room, user).then(data => {
-                log.debug('[client] Joined respond :', data)
+                log.debug('[client2] Joined respond :', data)
                 audiobridge.publish(audio2.stream).then(data => {
-                    log.debug('[client] publish respond :', data)
+                    log.debug('[client2] publish respond :', data)
                     //device1.audio.context.suspend()
                     //device2.audio.context.suspend()
                     //this.setState({mystream2: stream})
                     audiobridge.mute(false);
                 }).catch(err => {
-                    log.error('[client] Publish error :', err);
+                    log.error('[client2] Publish error :', err);
                     this.exitRoom(false);
                 })
             }).catch(err => {
-                log.error('[client] Join error :', err);
+                log.error('[client2] Join error :', err);
                 this.exitRoom(false);
             })
         }

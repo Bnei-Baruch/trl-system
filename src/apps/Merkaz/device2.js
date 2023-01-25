@@ -21,7 +21,7 @@ class LocalDevice2 {
     //TODO: Translate exceptions - https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions
 
     // Check saved devices in local storage
-    let storage_audio = localStorage.getItem("audio_device");
+    let storage_audio = localStorage.getItem("audio_device2");
     this.audio.device = !!storage_audio ? storage_audio : null;
     [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
@@ -45,7 +45,7 @@ class LocalDevice2 {
       this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
       this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
       // Refresh audio devices list
-      let storage_audio = localStorage.getItem("audio_device");
+      let storage_audio = localStorage.getItem("audio_device2");
       let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
       let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
       this.audio.device = isSavedAudio ? storage_audio : default_audio;
@@ -104,7 +104,7 @@ class LocalDevice2 {
           this.audio.error = error
           log.error("[devices] setAudioDevice: ", error);
         } else {
-          localStorage.setItem("audio_device", device);
+          localStorage.setItem("audio_device2", device);
           this.audio.stream = stream;
           this.audio.device = device;
           this.audio_stream = stream.clone()
