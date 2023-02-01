@@ -378,9 +378,8 @@ class MqttMerkaz extends Component {
                 log.debug('[client1] Joined respond :', data)
                 audiobridge.publish(audio1.stream).then(data => {
                     log.debug('[client1] publish respond :', data)
-                    //device1.audio.context.suspend()
-                    //device2.audio.context.suspend()
                     this.setState({mystream: audio1.stream})
+                    this.micMute(1)
                     audiobridge.mute(false);
                 }).catch(err => {
                     log.error('[client1] Publish error :', err);
@@ -408,9 +407,7 @@ class MqttMerkaz extends Component {
                 log.debug('[client2] Joined respond :', data)
                 audiobridge.publish(audio2.stream).then(data => {
                     log.debug('[client2] publish respond :', data)
-                    //device1.audio.context.suspend()
-                    //device2.audio.context.suspend()
-                    //this.setState({mystream2: stream})
+                    this.micMute(2)
                     audiobridge.mute(false);
                 }).catch(err => {
                     log.error('[client2] Publish error :', err);
