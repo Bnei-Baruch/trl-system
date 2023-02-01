@@ -3,8 +3,8 @@ import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import device1 from "./device1";
 import device2 from "./device2";
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Label, Divider, Modal, Grid} from "semantic-ui-react";
-import {geoInfo, checkNotification, testMic, micVolume, cloneStream, cloneTrl} from "../../shared/tools";
+import {Menu, Select, Button, Icon, Popup, Segment, Message, Label, Modal, Grid} from "semantic-ui-react";
+import {geoInfo, checkNotification, testMic, micVolume, cloneTrl} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
@@ -452,8 +452,7 @@ class MqttMerkaz extends Component {
     };
 
     micMute = (d) => {
-        let {audiobridge, muted1,muted2,audio1,audio2} = this.state;
-        //audiobridge.mute(!muted1);
+        let {muted1,muted2,audio1,audio2} = this.state;
         if(d === 1) {
             if(muted1) {
                 audio1.stream.getAudioTracks()[0].enabled = true;
@@ -511,16 +510,14 @@ class MqttMerkaz extends Component {
 
     muteTrl = (trl) => {
         if(trl === 1) {
-            const {audio_stream1,trl_muted1} = this.state;
+            const {trl_muted1} = this.state;
             this.setState({trl_muted1: !trl_muted1});
             window["trl"+trl].muted = !trl_muted1;
-            //audio_stream1.getAudioTracks()[0].enabled = str1_muted;
         }
         if(trl === 2) {
-            const {audio_stream2,trl_muted2} = this.state;
+            const {trl_muted2} = this.state;
             this.setState({trl_muted2: !trl_muted2});
             window["trl"+trl].muted = !trl_muted2;
-            //audio_stream2.getAudioTracks()[0].enabled = str2_muted;
         }
         console.log(window["trl"+trl])
     };
@@ -528,7 +525,7 @@ class MqttMerkaz extends Component {
 
     render() {
 
-        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,trl_muted1,trl_muted2,user,video,janus} = this.state;
+        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,user,video,janus} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -623,6 +620,7 @@ class MqttMerkaz extends Component {
                                 >
                                     <Popup.Content>
                                         <Select fluid
+                                                disabled={mystream}
                                                 error={!audio1.device}
                                                 placeholder="Select Device:"
                                                 value={audio1.device}
@@ -654,6 +652,7 @@ class MqttMerkaz extends Component {
                                 <Segment.Group horizontal compact>
                                     <Segment className='stream_langs'>
                                         <Select compact
+                                                disabled={!mystream}
                                                 upward
                                                 error={!audios1}
                                                 placeholder="Audio:"
@@ -663,6 +662,7 @@ class MqttMerkaz extends Component {
                                     </Segment>
                                     <Segment className='stream_langs' textAlign='right'>
                                         <Select compact
+                                                disabled={!mystream}
                                                 upward
                                                 error={!audios2}
                                                 placeholder="Audio:"
@@ -681,12 +681,6 @@ class MqttMerkaz extends Component {
                             <audio ref="remoteAudio1" id="remoteAudio1" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
                             <audio ref="remoteAudio2" id="remoteAudio2" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
 
-                            {/*{mystream ? '' : <Divider fitted />}*/}
-                            {/*<Segment padded color='green'>*/}
-                            {/*    /!*<VolumeSlider orientation='horizontal' icon='blogger b' label='PetahTikva' volume={(value) => this.setStrVolume(value,true)} mute={() => this.muteStream(true)} />*!/*/}
-                            {/*    <VolumeSlider orientation='horizontal' icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />*/}
-                            {/*    /!*<VolumeSlider orientation='horizontal' icon='bullhorn' label='Broadcast' volume={this.setStrVolume} mute={() => this.muteStream(false)}/>*!/*/}
-                            {/*</Segment>*/}
                         </Grid.Column>
                         <Grid.Column width={2}>
                             <div className="vclient__toolbar">
@@ -704,6 +698,7 @@ class MqttMerkaz extends Component {
                                 >
                                     <Popup.Content>
                                         <Select fluid
+                                                disabled={mystream}
                                                 error={!audio2.device}
                                                 placeholder="Select Device:"
                                                 value={audio2.device}
@@ -739,6 +734,7 @@ class MqttMerkaz extends Component {
                                 >
                                     <Popup.Content>
                                         <Select fluid
+                                                disabled={!mystream}
                                                 error={!audio1_out}
                                                 placeholder="Select Device:"
                                                 value={audio1_out}
@@ -765,6 +761,7 @@ class MqttMerkaz extends Component {
                                 >
                                     <Popup.Content>
                                         <Select fluid
+                                                disabled={!mystream}
                                                 error={!audio2_out}
                                                 placeholder="Select Device:"
                                                 value={audio2_out}
