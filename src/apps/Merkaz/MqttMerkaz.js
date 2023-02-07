@@ -248,15 +248,6 @@ class MqttMerkaz extends Component {
         }
     };
 
-    setTrlOut = (t) => {
-        if(t === 1) {
-            window["trl"+t].setSinkId(this.state.audio1_out)
-        }
-        if(t === 2) {
-            window["trl"+t].setSinkId(this.state.audio2_out)
-        }
-    }
-
     onFeedEvent1 = (list) => {
         log.debug("[client] Got feed event: ", list);
         const {feeds} = this.state;
