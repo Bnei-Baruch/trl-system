@@ -425,8 +425,7 @@ class MqttMerkaz extends Component {
                 this.setState({muted1: false, muted2: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
                 if(reconnect) this.initJanus(reconnect)
                 if(!reconnect) {
-                    device1.audio.context.resume()
-                    device2.audio.context.resume()
+                    window.location.reload()
                 }
             })
         });

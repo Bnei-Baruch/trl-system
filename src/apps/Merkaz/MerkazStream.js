@@ -128,15 +128,12 @@ class MerkazStream extends Component {
             const {audio_stream1,str1_muted} = this.state;
             this.setState({str1_muted: !str1_muted});
             window["out"+trl].muted = !str1_muted;
-            //audio_stream1.getAudioTracks()[0].enabled = str1_muted;
         }
         if(trl === 2) {
             const {audio_stream2,str2_muted} = this.state;
             this.setState({str2_muted: !str2_muted});
             window["out"+trl].muted = !str2_muted;
-            //audio_stream2.getAudioTracks()[0].enabled = str2_muted;
         }
-        console.log(window["out"+trl])
     };
 
     toggleFullScreen = () => {
