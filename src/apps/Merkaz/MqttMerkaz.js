@@ -254,7 +254,7 @@ class MqttMerkaz extends Component {
         for(let f in list) {
             let id = list[f]["id"];
             let user = JSON.parse(list[f]["display"]);
-            if(user.role === "admin")
+            if(user.role === "admin" || user.id === "bb_trl")
                 continue
             list[f]["display"] = user;
             feeds[id] = list[f];
@@ -369,7 +369,6 @@ class MqttMerkaz extends Component {
                     log.debug('[client1] publish respond :', data)
                     this.setState({mystream: audio1.stream})
                     this.micMute(1)
-                    audiobridge.mute(false);
                 }).catch(err => {
                     log.error('[client1] Publish error :', err);
                     this.exitRoom(false);
@@ -397,7 +396,6 @@ class MqttMerkaz extends Component {
                 audiobridge.publish(audio2.stream).then(data => {
                     log.debug('[client2] publish respond :', data)
                     this.micMute(2)
-                    audiobridge.mute(false);
                 }).catch(err => {
                     log.error('[client2] Publish error :', err);
                     this.exitRoom(false);
@@ -440,7 +438,7 @@ class MqttMerkaz extends Component {
     };
 
     micMute = (d) => {
-        let {muted1,muted2,audio1,audio2} = this.state;
+        let {audiobridge1,audiobridge2,muted1,muted2,audio1,audio2} = this.state;
         if(d === 1) {
             if(muted1) {
                 audio1.stream.getAudioTracks()[0].enabled = true;
@@ -449,6 +447,7 @@ class MqttMerkaz extends Component {
                 audio1.stream.getAudioTracks()[0].enabled = false;
                 device1.audio.context.suspend()
             }
+            audiobridge1.mute(!muted1);
             this.setState({muted1: !muted1});
         }
         if(d === 2) {
@@ -459,6 +458,7 @@ class MqttMerkaz extends Component {
                 audio2.stream.getAudioTracks()[0].enabled = false;
                 device2.audio.context.suspend()
             }
+            audiobridge2.mute(!muted2);
             this.setState({muted2: !muted2});
         }
     };
