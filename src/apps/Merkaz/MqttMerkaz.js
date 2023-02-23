@@ -64,7 +64,7 @@ class MqttMerkaz extends Component {
         visible: true,
         selftest: "Mic Test",
         tested: false,
-        video: true,
+        video: false,
         init_devices: false
     };
 
@@ -271,7 +271,6 @@ class MqttMerkaz extends Component {
     onTrack1 = (track, mid, on) => {
         log.debug("[client1] >> This track is coming from feed :", mid, on);
         let stream = new MediaStream([track]);
-        // stream.addTrack(track.clone());
         log.debug("[client1] Created remote audio stream: ", stream);
         let remoteaudio1 = this.refs.remoteAudio1;
         if(remoteaudio1) remoteaudio1.srcObject = stream;
@@ -301,7 +300,6 @@ class MqttMerkaz extends Component {
     onTrack2 = (track, mid, on) => {
         log.debug("[client] >> This track is coming from feed :", mid, on);
         let stream = new MediaStream([track]);
-        // stream.addTrack(track.clone());
         log.debug("[client] Created remote audio stream: ", stream);
         let remoteaudio2 = this.refs.remoteAudio2;
         if(remoteaudio2) remoteaudio2.srcObject = stream;
@@ -635,10 +633,10 @@ class MqttMerkaz extends Component {
                             </Grid>
                         </Grid.Column>
                         <Grid.Column width={10}>
-                            <Segment.Group>
-                                <Segment >
+                            <Segment.Group basic>
+                                {/*<Segment >*/}
                                     <MerkazStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
-                                </Segment>
+                                {/*</Segment>*/}
                                 <Segment.Group horizontal compact>
                                     <Segment className='stream_langs'>
                                         <Select compact
@@ -665,6 +663,12 @@ class MqttMerkaz extends Component {
                                     <Message color='grey' header='Online Translators:' list={list} />
                                 </Segment>
                             </Segment.Group>
+                            <MarkazChat {...this.state}
+                                        ref={chat => {this.chat = chat;}}
+                                        visible={this.state.visible}
+                                        onCmdMsg={this.handleCmdData}
+                                        room={room}
+                                        user={this.state.user} />
 
                             <audio ref="localAudio1" id="localAudio1" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
                             <audio ref="localAudio2" id="localAudio2" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
@@ -735,12 +739,6 @@ class MqttMerkaz extends Component {
                             </Segment>
                         </Grid.Column>
                         <Grid.Column width={10}>
-                            <MarkazChat {...this.state}
-                                        ref={chat => {this.chat = chat;}}
-                                        visible={this.state.visible}
-                                        onCmdMsg={this.handleCmdData}
-                                        room={room}
-                                        user={this.state.user} />
                         </Grid.Column>
                         <Grid.Column width={2}>
                             <Segment textAlign='center' basic>

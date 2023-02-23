@@ -42,7 +42,7 @@ class MerkazStream extends Component {
     initJanus = () => {
         const {janus} = this.props
         this.setState({janus});
-        this.initVideoStream(janus);
+        //this.initVideoStream(janus);
         this.initAudioStream(janus,1);
         this.initAudioStream(janus,2);
     };
