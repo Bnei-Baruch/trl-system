@@ -298,9 +298,9 @@ class MqttMerkaz extends Component {
     }
 
     onTrack2 = (track, mid, on) => {
-        log.debug("[client] >> This track is coming from feed :", mid, on);
+        log.debug("[client2] >> This track is coming from feed :", mid, on);
         let stream = new MediaStream([track]);
-        log.debug("[client] Created remote audio stream: ", stream);
+        log.debug("[client2] Created remote audio stream: ", stream);
         let remoteaudio2 = this.refs.remoteAudio2;
         if(remoteaudio2) remoteaudio2.srcObject = stream;
         cloneTrl(stream, 2);

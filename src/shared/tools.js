@@ -302,7 +302,7 @@ export const cloneTrl = (stream, n, stereo) => {
     window["trl"+n].srcObject = destination.stream;
     window["trl"+n].muted = true;
     window["trl"+n].play();
-    let device = localStorage.getItem("device" + n);
+    let device = localStorage.getItem("audio"+n+"_out");
     if(device) {
         window["trl"+n].setSinkId(device)
             .then(() => console.log('Success, audio output device attached: ' + device))
