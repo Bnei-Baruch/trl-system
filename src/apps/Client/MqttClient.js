@@ -82,7 +82,7 @@ class MqttClient extends Component {
     };
 
     initMQTT = (user) => {
-        mqtt.init("trl", user, (reconnected, error) => {
+        mqtt.init("trl1", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
                 this.setState({mqttOn: false});
@@ -93,8 +93,8 @@ class MqttClient extends Component {
                 log.info("[client] MQTT reconnected");
             } else {
                 this.setState({mqttOn: true});
-                mqtt.join("trl/users/broadcast");
-                mqtt.join("trl/users/" + user.id);
+                mqtt.join("trl1/users/broadcast");
+                mqtt.join("trl1/users/" + user.id);
                 this.initDevices();
                 mqtt.watch((message) => {
                     this.handleCmdData(message);
