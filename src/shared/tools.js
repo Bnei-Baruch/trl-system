@@ -93,14 +93,14 @@ export const micVolume = (c,d) => {
             // console.log("[client] volume: ", volume, (c.height - volume * 3000))
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
         }
     } else if(d === 2) {
         device2.micLevel = (volume) => {
             // console.log("[client] volume: ", volume, (c.height - volume * 3000))
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
         }
     } else {
         devices.micLevel = (volume) => {

@@ -553,50 +553,24 @@ class MqttMerkaz extends Component {
             <div className="vclient" >
                 <Grid centered>
 
-                    <Grid.Row stretched>
-                        <Grid.Column width={2}>
+                    {/*<Grid.Row stretched>*/}
+                    {/*    <Grid.Column width={2}>*/}
 
-                        </Grid.Column>
-                        <Grid.Column width={10}>
-                            <div className="vclient__toolbar">
-                                <Menu icon='labeled' size="mini">
-                                    <Menu.Item disabled >
-                                        <Icon color={mystream ? 'green' : 'red'} name='power off'/>
-                                        {!mystream ? "Disconnected" : "Connected"}
-                                    </Menu.Item>
-                                    <Modal
-                                        trigger={<Menu.Item icon='book' name='Study Material'/>}
-                                        on='click'
-                                        closeIcon>
-                                        <HomerLimud />
-                                    </Modal>
-                                    <Select className='trl_select'
-                                            attached='left'
-                                            compact
-                                            disabled={mystream}
-                                            error={!selected_room}
-                                            placeholder="Translate to:"
-                                            value={i}
-                                            options={langs_list}
-                                            onChange={(e, {value}) => this.selectRoom(value)} />
-                                    {mystream ?
-                                        <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
-                                    {!mystream ?
-                                        <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !audio2.device} onClick={this.initJanus} />:""}
-                                </Menu>
-                            </div>
-                        </Grid.Column>
-                        <Grid.Column width={2}>
+                    {/*    </Grid.Column>*/}
+                    {/*    <Grid.Column width={10}>*/}
 
-                        </Grid.Column>
-                    </Grid.Row>
+                    {/*    </Grid.Column>*/}
+                    {/*    <Grid.Column width={2}>*/}
+
+                    {/*    </Grid.Column>*/}
+                    {/*</Grid.Row>*/}
 
                     <Grid.Row stretched>
                         <Grid.Column width={2}>
                             <div className="vclient__toolbar">
-                                <Menu icon='labeled' secondary size="mini" floated='right'>
+                                <Menu icon='labeled' secondary size="massive" floated='right'>
                                     <Menu.Item disabled={!mystream} onClick={() => this.micMute(1)} className="mute-button">
-                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="35" height="35" />
                                         <Icon color={muted1 ? "red" : ""} name={!muted1 ? "microphone" : "microphone slash"} />
                                         {!muted1 ? "ON" : "OFF"}
                                     </Menu.Item>
@@ -634,6 +608,33 @@ class MqttMerkaz extends Component {
                         </Grid.Column>
                         <Grid.Column width={10}>
                             <Segment.Group basic>
+                                <div className="vclient__toolbar">
+                                    <Menu icon='labeled' size="mini">
+                                        <Menu.Item disabled >
+                                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
+                                            {!mystream ? "Disconnected" : "Connected"}
+                                        </Menu.Item>
+                                        <Modal
+                                            trigger={<Menu.Item icon='book' name='Study Material'/>}
+                                            on='click'
+                                            closeIcon>
+                                            <HomerLimud />
+                                        </Modal>
+                                        <Select className='trl_select'
+                                                attached='left'
+                                                compact
+                                                disabled={mystream}
+                                                error={!selected_room}
+                                                placeholder="Translate to:"
+                                                value={i}
+                                                options={langs_list}
+                                                onChange={(e, {value}) => this.selectRoom(value)} />
+                                        {mystream ?
+                                            <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
+                                        {!mystream ?
+                                            <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !audio2.device} onClick={this.initJanus} />:""}
+                                    </Menu>
+                                </div>
                                 {/*<Segment >*/}
                                     <MerkazStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
                                 {/*</Segment>*/}
@@ -678,7 +679,7 @@ class MqttMerkaz extends Component {
                         </Grid.Column>
                         <Grid.Column width={2}>
                             <div className="vclient__toolbar">
-                                <Menu icon='labeled' secondary size="mini" floated='right'>
+                                <Menu icon='labeled' secondary size="massive" floated='right'>
                                     <Menu.Item disabled={!mystream} onClick={() => this.micMute(2)} className="mute-button">
                                         <canvas className={muted2 ? 'hidden' : 'vumeter'} ref="canvas2" id="canvas2" width="15" height="35" />
                                         <Icon color={muted2 ? "red" : ""} name={!muted2 ? "microphone" : "microphone slash"} />
