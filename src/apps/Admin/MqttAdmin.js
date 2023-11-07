@@ -10,6 +10,7 @@ import mqtt from "../../shared/mqtt";
 import log from "loglevel";
 import {JanusMqtt} from "../../lib/janus-mqtt";
 import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
+import version from '../../Version.js';
 
 class MqttAdmin extends Component {
 
@@ -58,6 +59,7 @@ class MqttAdmin extends Component {
     };
 
     checkPermission = (user) => {
+        log.info(" :: Version :: ", version);
         const gxy_group = kc.hasRealmRole("trl_admin");
         const gxy_root = kc.hasRealmRole("trl_root");
         if (gxy_group) {

@@ -14,6 +14,7 @@ import HomerLimud from "../../components/HomerLimud";
 import MqttStream from "../Stream/MqttStream";
 import {JanusMqtt} from "../../lib/janus-mqtt";
 import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
+import version from '../../Version.js';
 
 class MqttClient extends Component {
 
@@ -54,6 +55,7 @@ class MqttClient extends Component {
     };
 
     checkPermission = (user) => {
+        log.info(" :: Version :: ", version);
         const gxy_group = kc.hasRealmRole("trl_user");
         if (gxy_group) {
             delete user.roles;
