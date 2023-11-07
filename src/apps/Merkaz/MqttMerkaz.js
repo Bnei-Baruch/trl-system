@@ -122,7 +122,7 @@ class MqttMerkaz extends Component {
     initJanus = (reconnect = false) => {
         this.setState({delay: true});
         const {user} = this.state;
-        let janus = new JanusMqtt(user, "trl1")
+        let janus = new JanusMqtt(user, "mkz")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
                 alert("Janus Server - " + srv + " - Offline")

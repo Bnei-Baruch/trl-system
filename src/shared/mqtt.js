@@ -1,5 +1,5 @@
 import mqtt from "mqtt";
-import {TRL_MQTT_URL, WE_MQTT_URL} from "./consts";
+import {MKZ_MQTT_URL, TRL_MQTT_URL, WE_MQTT_URL} from "./consts";
 import {randomString} from "./tools";
 import log from "loglevel";
 
@@ -42,7 +42,7 @@ class MqttMsg {
             },
         };
 
-        let url = app === "trl" ? TRL_MQTT_URL : WE_MQTT_URL;
+        let url = app === "trl" ? MKZ_MQTT_URL : app === "trl1" ? TRL_MQTT_URL : WE_MQTT_URL;
         this.mq = mqtt.connect(`wss://${url}`, options);
         this.mq.setMaxListeners(50)
 
