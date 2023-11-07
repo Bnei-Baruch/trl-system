@@ -79,7 +79,7 @@ class MqttAdmin extends Component {
     };
 
     initMQTT = (user) => {
-        mqtt.init("trl", user, (reconnected, error) => {
+        mqtt.init("trl1", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
                 this.setState({mqttOn: false});
