@@ -78,7 +78,7 @@ class MqttMsg {
     join = (topic, chat) => {
         if (!this.mq) return;
         log.info("[mqtt] Subscribe to: ", topic);
-        let options = chat ? {qos: 0, nl: false} : {qos: 2, nl: true};
+        let options = chat ? {qos: 0, nl: false} : {qos: 1, nl: true};
         this.mq.subscribe(topic, {...options}, (err) => {
             err && log.error("[mqtt] Error: ", err);
         });
