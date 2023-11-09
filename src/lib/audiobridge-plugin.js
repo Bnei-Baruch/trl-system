@@ -257,12 +257,12 @@ export class AudiobridgePlugin extends EventEmitter {
       this.iceState = e.target.connectionState
 
       if(this.iceState === "disconnected") {
-        this.iceRestart()
+        //this.iceRestart()
       }
 
       // ICE restart does not help here, peer connection will be down
       if(this.iceState === "failed") {
-        //TODO: handle failed ice state
+        this.iceFailed()
       }
 
     };

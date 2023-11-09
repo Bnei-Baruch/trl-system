@@ -3,8 +3,8 @@ import {MKZ_MQTT_URL, TRL_MQTT_URL, WE_MQTT_URL} from "./consts";
 import {randomString} from "./tools";
 import log from "loglevel";
 
-const mqttTimeout = 30 // Seconds
-const mqttKeepalive = 3 // Seconds
+const mqttTimeout = 5 // Seconds
+const mqttKeepalive = 2 // Seconds
 
 class MqttMsg {
     constructor() {
