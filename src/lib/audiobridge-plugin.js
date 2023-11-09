@@ -15,6 +15,7 @@ export class AudiobridgePlugin extends EventEmitter {
     this.onTrack = null
     this.onLeave = null
     this.onFeedEvent = null
+    this.iceFailed = null
     this.iceState = null
     this.pc = new RTCPeerConnection({
       iceServers: list
@@ -301,8 +302,7 @@ export class AudiobridgePlugin extends EventEmitter {
         } else if (count >= 10) {
           clearInterval(chk);
           log.error("[audiobridge] - ICE Restart failed - ");
-          window.location.reload()
-          alert("- Lost Peer Connection to TRL System -")
+          this.iceFailed()
         } else {
           log.debug("[audiobridge] ICE Restart try: " + count)
         }
@@ -374,6 +374,7 @@ export class AudiobridgePlugin extends EventEmitter {
 
   webrtcState (isReady) {
     log.info('[audiobridge] webrtcState: RTCPeerConnection is: ' + (isReady ? "up" : "down"))
+    if(!isReady && typeof this.iceFailed === "function") this.iceFailed()
     //this.emit('webrtcState', isReady, cause)
   }
 

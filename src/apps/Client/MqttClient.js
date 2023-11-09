@@ -20,6 +20,7 @@ class MqttClient extends Component {
 
     state = {
         delay: true,
+        exit_room: true,
         audio: {
             context: null,
             device: null,
@@ -125,6 +126,7 @@ class MqttClient extends Component {
         audiobridge.onFeedEvent = this.onFeedEvent
         audiobridge.onTrack = this.onTrack
         audiobridge.onLeave = this.onLeave
+        audiobridge.iceFailed = this.iceFailed;
 
         janus.init().then(data => {
             log.info("[client] Janus init", data)
@@ -260,6 +262,7 @@ class MqttClient extends Component {
     };
 
     joinRoom = (audiobridge, reconnect = false) => {
+        this.setState({exit_room: false});
         let {selected_room, user, tested, audio: {stream}} = this.state;
         localStorage.setItem("room", selected_room);
         user.self_test = tested;
@@ -295,7 +298,18 @@ class MqttClient extends Component {
         this.setState({user, room: selected_room});
     };
 
+    iceFailed = () => {
+        const {exit_room} = this.state;
+        if(!exit_room) {
+            //this.exitRoom(true);
+            log.warn("[client] iceFailed");
+            alert("- Lost Peer Connection to TRL System -")
+            window.location.reload();
+        }
+    };
+
     exitRoom = (reconnect = false) => {
+        this.setState({exit_room: true});
         let {audiobridge, room, janus} = this.state;
         audiobridge.leave().then(() => {
             this.stream.exitJanus()
