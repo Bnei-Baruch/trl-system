@@ -17,6 +17,7 @@ export class AudiobridgePlugin extends EventEmitter {
     this.onFeedEvent = null
     this.iceFailed = null
     this.iceState = null
+    this.mediaJanus = null
     this.pc = new RTCPeerConnection({
       iceServers: list
     })
@@ -229,7 +230,7 @@ export class AudiobridgePlugin extends EventEmitter {
         const {data, json} = param || {}
         const jsep = json.jsep
         log.info('[audiobridge] Configure respond: ', param)
-        this.pc.setRemoteDescription(jsep)
+        this.pc.setRemoteDescription(jsep).then(a => log.info('setRemoteDescription: ', a))
       })
     })
   }
@@ -310,6 +311,25 @@ export class AudiobridgePlugin extends EventEmitter {
     },1000)
   }
 
+  handleMediaJanus() {
+    setTimeout(() => {
+      let count = 0;
+      let chk = setInterval(() => {
+        count++;
+        if (count < 10 && this.mediaJanus) {
+          clearInterval(chk);
+        } else if (count > 10) {
+          clearInterval(chk);
+          log.error("[audiobridge] Janus did not receive media more then 10 seconds ");
+          alert("- Server stop receiving your media -")
+          //window.location.reload();
+        } else {
+          log.debug("[audiobridge] Not receiving media try: " + count)
+        }
+      }, 1000);
+    },1000)
+  }
+
   success (janus, janusHandleId) {
     this.janus = janus
     this.janusHandleId = janusHandleId
@@ -369,6 +389,8 @@ export class AudiobridgePlugin extends EventEmitter {
 
   mediaState (media, on) {
     log.info('[audiobridge] mediaState: Janus ' + (on ? "start" : "stop") + " receiving our " + media)
+    this.mediaJanus = on
+    if(!on) this.handleMediaJanus()
     //this.emit('mediaState', medium, on)
   }
 
