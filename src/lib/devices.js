@@ -36,20 +36,20 @@ class LocalDevices {
       this.audio.device = "";
     }
 
-    navigator.mediaDevices.ondevicechange = async(e) => {
-      if(e.timeStamp - ts < 1000) return
-      ts = e.timeStamp
-      devices = await navigator.mediaDevices.enumerateDevices();
-      log.debug("[devices] devices list refreshed: ", devices);
-      this.audio.devices = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
-      // Refresh audio devices list
-      let storage_audio = localStorage.getItem("audio_device");
-      let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
-      let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
-      this.audio.device = isSavedAudio ? storage_audio : default_audio;
-
-      if(typeof this.onChange === "function") this.onChange(this.audio)
-    }
+    // navigator.mediaDevices.ondevicechange = async(e) => {
+    //   if(e.timeStamp - ts < 1000) return
+    //   ts = e.timeStamp
+    //   devices = await navigator.mediaDevices.enumerateDevices();
+    //   log.debug("[devices] devices list refreshed: ", devices);
+    //   this.audio.devices = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
+    //   // Refresh audio devices list
+    //   let storage_audio = localStorage.getItem("audio_device");
+    //   let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
+    //   let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
+    //   this.audio.device = isSavedAudio ? storage_audio : default_audio;
+    //
+    //   if(typeof this.onChange === "function") this.onChange(this.audio)
+    // }
 
     log.debug("[devices] init: ", this)
     return this.audio;

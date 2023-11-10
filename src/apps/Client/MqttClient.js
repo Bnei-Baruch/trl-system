@@ -156,16 +156,18 @@ class MqttClient extends Component {
                 this.setState({audio, init_devices: true, delay: false})
             }
         })
-        devices.onChange = (audio) => {
-            setTimeout(() => {
-                if(audio.device) {
-                    this.setDevice(audio.device)
-                } else {
-                    log.warn("[client] No left audio devices")
-                    //FIXME: remove it from pc?
-                }
-            }, 1000)
-        }
+
+        // FIXME: It's does not work anymore
+        // devices.onChange = (audio) => {
+        //     setTimeout(() => {
+        //         if(audio.device) {
+        //             this.setDevice(audio.device)
+        //         } else {
+        //             log.warn("[client] No left audio devices")
+        //             //FIXME: remove it from pc?
+        //         }
+        //     }, 1000)
+        // }
     };
 
     setDevice = (device, cam_mute) => {
@@ -410,6 +412,7 @@ class MqttClient extends Component {
                         >
                             <Popup.Content>
                                 <Select fluid
+                                        disabled={mystream}
                                         error={!device}
                                         placeholder="Select Device:"
                                         value={device}
