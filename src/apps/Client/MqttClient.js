@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import devices from "../../lib/devices";
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal} from "semantic-ui-react";
+import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal, Checkbox} from "semantic-ui-react";
 import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
@@ -52,7 +52,8 @@ class MqttClient extends Component {
         selftest: "Mic Test",
         tested: false,
         video: true,
-        init_devices: false
+        init_devices: false,
+        trl_switch: true
     };
 
     checkPermission = (user) => {
@@ -344,6 +345,8 @@ class MqttClient extends Component {
 
     setAudio = (audios,options) => {
         this.setState({audios});
+        const trl_switch = audios !== 61
+        this.setState({trl_switch})
         this.stream.setAudio(audios, options)
     };
 
@@ -374,9 +377,16 @@ class MqttClient extends Component {
         this.refs.remoteAudio.volume = value;
     };
 
+    switchTrl = () => {
+        const {trl_switch} = this.state;
+        const audios = trl_switch ? 61 : Number(localStorage.getItem("lang"));
+        this.setState({trl_switch: !trl_switch, audios})
+        this.stream.switchTrl(audios)
+    }
+
     render() {
 
-        const {feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
+        const {trl_switch, feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -481,7 +491,7 @@ class MqttClient extends Component {
                                 <Message color='grey' header='Online Translators:' list={list} />
                                 <Segment.Group>
                                     <MqttStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
-                                    <Segment.Group horizontal>
+                                    <Segment.Group horizontal compact>
                                         <Segment className='stream_langs'>
                                             <Select compact
                                                     upward
@@ -490,6 +500,7 @@ class MqttClient extends Component {
                                                     value={audios}
                                                     options={audios_options}
                                                     onChange={(e, {value, options}) => this.setAudio(value, options)}/>
+                                            <Checkbox className='trl_switch' label='Translation' toggle checked={trl_switch} onChange={this.switchTrl} />
                                         </Segment>
                                         <Segment className='no-border' textAlign='right'>
                                             <Button color='blue'

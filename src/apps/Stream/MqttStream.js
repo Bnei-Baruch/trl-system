@@ -96,6 +96,11 @@ class MqttStream extends Component {
         localStorage.setItem("langtext", text);
     };
 
+    switchTrl = (id) => {
+        this.state.audiostream.switch(id);
+        this.setState({audios: id});
+    }
+
     setVolume = (value,trl) => {
         trl ? this.refs.trlAudio.volume = value : this.refs.remoteAudio.volume = value;
     };
