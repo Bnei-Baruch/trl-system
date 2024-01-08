@@ -3003,10 +3003,10 @@ js-sdsl@4.3.0:
   resolved "https://registry.yarnpkg.com/js-sdsl/-/js-sdsl-4.3.0.tgz#aeefe32a451f7af88425b11fdb5f58c90ae1d711"
   integrity sha512-mifzlm2+5nZ+lEcLJMoBK0/IH/bDg8XnJfd/Wq6IP+xoCjLZsTOnV2QpxlVbX9bMnkl5PdEjNtBJ9Cj1NjifhQ==
 
-js-sha256@^0.9.0:
-  version "0.9.0"
-  resolved "https://registry.yarnpkg.com/js-sha256/-/js-sha256-0.9.0.tgz#0b89ac166583e91ef9123644bd3c5334ce9d0966"
-  integrity sha512-sga3MHh9sgQN2+pJ9VYZ+1LPwXOxuBJBA5nrR5/ofPfuiJBE2hnjsaN8se8JznOmGLN2p49Pe5U/ttafcs/apA==
+js-sha256@^0.10.1:
+  version "0.10.1"
+  resolved "https://registry.yarnpkg.com/js-sha256/-/js-sha256-0.10.1.tgz#b40104ba1368e823fdd5f41b66b104b15a0da60d"
+  integrity sha512-5obBtsz9301ULlsgggLg542s/jqtddfOpV5KJc4hajc9JV8GeY2gZHSVpYBn4nWqAUTJ9v+xwtbJ1mIBgIH5Vw==
 
 "js-tokens@^3.0.0 || ^4.0.0", js-tokens@^4.0.0:
   version "4.0.0"
@@ -3052,18 +3052,24 @@ json5@^2.1.2:
   dependencies:
     minimist "^1.2.5"
 
+jwt-decode@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/jwt-decode/-/jwt-decode-4.0.0.tgz#2270352425fd413785b2faf11f6e755c5151bd4b"
+  integrity sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==
+
 keyboard-key@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/keyboard-key/-/keyboard-key-1.1.0.tgz#6f2e8e37fa11475bb1f1d65d5174f1b35653f5b7"
   integrity sha512-qkBzPTi3rlAKvX7k0/ub44sqOfXeLc/jcnGGmj5c7BJpU8eDrEVPyhCvNYAaoubbsLm9uGWwQJO1ytQK1a9/dQ==
 
-keycloak-js@21.1.2:
-  version "21.1.2"
-  resolved "https://registry.yarnpkg.com/keycloak-js/-/keycloak-js-21.1.2.tgz#949889848c024c2a585c177875e012f0163a1d6a"
-  integrity sha512-+6r1BvmutWGJBtibo7bcFbHWIlA7XoXRCwcA4vopeJh59Nv2Js0ju2u+t8AYth+C6Cg7/BNfO3eCTbsl/dTBHw==
+keycloak-js@23.0.3:
+  version "23.0.3"
+  resolved "https://registry.yarnpkg.com/keycloak-js/-/keycloak-js-23.0.3.tgz#91c71ac5c8e3bbafe9c7e5b8ef81756ffdd023ac"
+  integrity sha512-T28rdeRgGdOvIUMl6Wo9IiHEGcDxZhUZxXBwk3EwDFWrn8uhWBngDFxdsdsv7qGGKAMKrkZVL2JN/h81sllN7A==
   dependencies:
     base64-js "^1.5.1"
-    js-sha256 "^0.9.0"
+    js-sha256 "^0.10.1"
+    jwt-decode "^4.0.0"
 
 kind-of@^6.0.2:
   version "6.0.3"
@@ -3272,7 +3278,30 @@ mqtt-packet@^9.0.0:
     debug "^4.3.4"
     process-nextick-args "^2.0.1"
 
-mqtt@5.3.3, mqtt@^5.2.0:
+mqtt@5.3.4:
+  version "5.3.4"
+  resolved "https://registry.yarnpkg.com/mqtt/-/mqtt-5.3.4.tgz#743272714c2e10fc3e51d7b68b5eb1b9f70f340f"
+  integrity sha512-nyhr2bnFtyiv68jV3yfR6eQtGcGs/jr2l3ETKXYc0amttsasXa1KgvETHRNRjfeDt/yc68IqoEjFzKkHpoQUPQ==
+  dependencies:
+    "@types/readable-stream" "^4.0.5"
+    "@types/ws" "^8.5.9"
+    commist "^3.2.0"
+    concat-stream "^2.0.0"
+    debug "^4.3.4"
+    help-me "^4.2.0"
+    lru-cache "^10.0.1"
+    minimist "^1.2.8"
+    mqtt "^5.2.0"
+    mqtt-packet "^9.0.0"
+    number-allocator "^1.0.14"
+    readable-stream "^4.4.2"
+    reinterval "^1.1.0"
+    rfdc "^1.3.0"
+    split2 "^4.2.0"
+    worker-timers "^7.0.78"
+    ws "^8.14.2"
+
+mqtt@^5.2.0:
   version "5.3.3"
   resolved "https://registry.yarnpkg.com/mqtt/-/mqtt-5.3.3.tgz#5b3da7a757f618f5d203bae47a4043fe43488e36"
   integrity sha512-iy/9I81xnmYxENKL91hdiJ1LOkNYygCE0xCUtLeEo3BjQHraOky5gB/X3aPnvZ2fqlm1C0BhLmVcL6NRJ/U4tA==

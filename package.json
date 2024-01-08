@@ -8,9 +8,9 @@
   "license": "ISC",
   "dependencies": {
     "@sentry/browser": "7.80.0",
-    "keycloak-js": "21.1.2",
+    "keycloak-js": "23.0.3",
     "loglevel": "1.8.1",
-    "mqtt": "5.3.3",
+    "mqtt": "5.3.4",
     "platform": "^1.3.6",
     "react": "18.2.0",
     "react-dom": "18.2.0",
