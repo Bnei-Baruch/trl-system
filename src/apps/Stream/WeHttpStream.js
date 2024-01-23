@@ -7,11 +7,12 @@ import {kc} from "../../components/UserManager";
 import mqtt from "../../shared/mqtt";
 import log from "loglevel";
 import {geoInfo} from "../../shared/tools";
-import {GEO_IP_INFO, langs_list, lnglist} from "../../shared/consts";
+import {GEO_IP_INFO, JANUS_SRV_STR, langs_list, lnglist, STUN_SRV1, STUN_SRV2} from "../../shared/consts";
 import LoginPage from "../../components/LoginPage";
 import {JanusMqtt} from "../../lib/janus-mqtt";
+import {Janus} from "../../lib/janus";
 
-class WeStream extends Component {
+class WeHttpStream extends Component {
 
     state = {
         janus: null,
@@ -25,83 +26,107 @@ class WeStream extends Component {
         talking: null,
     };
 
-    checkPermission = (user) => {
-        if (user) {
-            delete user.roles;
-            user.role = "listener";
-            this.initClient(user);
-        } else {
-            alert("Access denied!");
-            kc.logout();
-        }
+    componentDidMount() {
+        //this.initJanus();
     };
 
     componentWillUnmount() {
+        this.exitJanus();
+    };
+
+    exitJanus = () => {
+        if(this.state.videostream)
+            this.state.videostream.hangup();
+        if(this.state.audiostream)
+            this.state.audiostream.hangup();
+        if(this.state.trlstream)
+            this.state.trlstream.hangup();
+        this.setState({video_stream: null, audio_stream: null, trlaudio_stream: null});
         this.state.janus.destroy();
     };
 
-    initClient = (user) => {
-        geoInfo(`${GEO_IP_INFO}`, data => {
-            user.ip = data.ip;
-            user.system = navigator.userAgent;
-            this.setState({user})
-            this.initMQTT(user)
-        });
-    };
-
-    initMQTT = (user) => {
-        mqtt.init("we", user, (reconnected, error) => {
-            if (error) {
-                log.info("[client] MQTT disconnected");
-                this.setState({mqttOn: false});
-                window.location.reload()
-                alert("- Lost Connection to TRL System -")
-            } else if (reconnected) {
-                this.setState({mqttOn: true});
-                log.info("[client] MQTT reconnected");
-            } else {
-                this.setState({mqttOn: true});
-                mqtt.join("we/users/broadcast");
-                mqtt.join("we/users/" + user.id);
-                mqtt.watch((message) => {
-                    this.handleCmdData(message);
+    initJanus = () => {
+        if(this.state.janus)
+            this.state.janus.destroy();
+        Janus.init({
+            debug: ["error"],
+            callback: () => {
+                let janus = new Janus({
+                    server: JANUS_SRV_STR,
+                    iceServers: [{urls: [STUN_SRV1, STUN_SRV2]}],
+                    success: () => {
+                        Janus.log(" :: Connected to JANUS");
+                        this.setState({janus});
+                        this.initAudioStream(janus);
+                    },
+                    error: (error) => {
+                        Janus.log(error);
+                    },
+                    destroyed: () => {
+                        Janus.log("kill");
+                    }
                 });
             }
+        })
+    };
+
+    initAudioStream = (janus) => {
+        let {audios} = this.state;
+        janus.attach({
+            plugin: "janus.plugin.streaming",
+            opaqueId: "audiostream-"+Janus.randomString(12),
+            success: (audiostream) => {
+                Janus.log(audiostream);
+                this.setState({audiostream}, () => {
+                    //this.audioMute();
+                });
+                audiostream.send({message: {request: "watch", id: audios}});
+                audiostream.muteAudio()
+            },
+            error: (error) => {
+                Janus.log("Error attaching plugin: " + error);
+            },
+            onmessage: (msg, jsep) => {
+                this.onStreamingMessage(this.state.audiostream, msg, jsep, false);
+            },
+            onremotetrack: (track, mid, on) => {
+                Janus.debug(" ::: Got a remote audio track event :::");
+                Janus.debug("Remote audio track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
+                if(this.state.audio_stream) return;
+                let stream = new MediaStream();
+                stream.addTrack(track.clone());
+                this.setState({audio_stream: stream});
+                Janus.log("Created remote audio stream:", stream);
+                let audio = this.refs.remoteAudio;
+                Janus.attachMediaStream(audio, stream);
+                //StreamVisualizer2(stream, this.refs.canvas1.current,50);
+            },
+            oncleanup: () => {
+                Janus.log("Got a cleanup notification");
+            }
         });
     };
 
-    initJanus = () => {
-        this.setState({delay: true});
-        const {user, streamId} = this.state;
-        let janus = new JanusMqtt(user, "we")
-        janus.onStatus = (srv, status) => {
-            if(status === "offline") {
-                alert("Janus Server - " + srv + " - Offline")
-                window.location.reload()
-            }
+    onStreamingMessage = (handle, msg, jsep) => {
+        Janus.log("Got a message", msg);
 
-            if(status === "error") {
-                log.error("[client] Janus error, reconnecting...")
-                this.exitRoom(false);
-            }
+        if(jsep !== undefined && jsep !== null) {
+            Janus.log("Handling SDP as well...", jsep);
+
+            // Answer
+            handle.createAnswer({
+                jsep: jsep,
+                media: { audioSend: false, videoSend: false, data: false },
+                success: (jsep) => {
+                    Janus.log("Got SDP!", jsep);
+                    let body = { request: "start" };
+                    handle.send({message: body, jsep: jsep});
+                },
+                error: (error) => {
+                    Janus.log("WebRTC error: " + error);
+                }
+            });
         }
-
-        let audiostream = new StreamingPlugin();
-
-        janus.init().then(data => {
-            log.info("[client] Janus init", data)
-            janus.attach(audiostream).then(() => {
-                this.setState({audiostream});
-                audiostream.watch(streamId).then(stream => {
-                    let audio = this.refs.remoteAudio;
-                    audio.srcObject = stream;
-                    this.setState({janus, audio_stream: stream});
-                })
-            })
-        }).catch(err => {
-            log.error("[client] Janus init", err);
-            this.exitRoom(false);
-        })
     };
 
     selectRoom = (i) => {
@@ -228,11 +253,11 @@ class WeStream extends Component {
         return (
 
             <div>
-                {user ? content : login}
+                {content}
             </div>
 
         );
     }
 }
 
-export default WeStream;
+export default WeHttpStream;

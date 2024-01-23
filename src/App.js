@@ -1,7 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import 'semantic-ui-css/semantic.min.css';
 // import Main from "./apps/Main";
-import MqttClient from "./apps/Client/MqttClient";
+// import MqttClient from "./apps/Client/MqttClient";
 // import HttpClient from "./apps/Client/HttpClient";
 // import MqttAdmin from "./apps/Admin/MqttAdmin";
 // import HttpAdmin from "./apps/Admin/HttpAdmin";
@@ -9,7 +9,7 @@ import MqttClient from "./apps/Client/MqttClient";
 // import MqttMerkaz from "./apps/Merkaz/MqttMerkaz";
 // import WeMain from "./apps/WeMain";
 // import WeClient from "./apps/Client/WeClient";
-// import WeStream from "./apps/Stream/WeStream";
+import WeHttpStream from "./apps/Stream/WeHttpStream";
 
 class App extends Component {
 
@@ -21,14 +21,14 @@ class App extends Component {
             <Fragment>
                 {/*<Main />*/}
                 {/*<MqttMerkaz />*/}
-                <MqttClient />
+                {/*<MqttClient />*/}
                 {/*<HttpClient />*/}
                 {/*<MqttAdmin />*/}
                 {/*<HttpAdmin />*/}
                 {/*<TrlChat />*/}
                 {/*<WeMain />*/}
                 {/*<WeClient />*/}
-                {/*<WeStream />*/}
+                <WeHttpStream />
             </Fragment>
 
         );
