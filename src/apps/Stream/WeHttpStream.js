@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import {Menu, Select, Button, Icon, Segment, Message, Table, Divider} from "semantic-ui-react";
 import '../Client/Client.scss'
 import VolumeSlider from "../../components/VolumeSlider";
-import {JANUS_SRV_STR, langs_list, lnglist, STUN_SRV1, STUN_SRV2} from "../../shared/consts";
+import {JANUS_SRV_STR, langs_list, lnglist, STUN_SRV1, STUN_SRV2, trllang} from "../../shared/consts";
 import LoginPage from "../../components/LoginPage";
 import {Janus} from "../../lib/janus";
 
@@ -12,7 +12,9 @@ class WeHttpStream extends Component {
         janus: null,
         audiostream: null,
         audio_stream: null,
-        streamId: Number(localStorage.getItem("streamId")) || 15,
+        streamId: Number(localStorage.getItem("tsl_streamId")) || "",
+        i: Number(localStorage.getItem("tsl_room")) || "",
+        selected_room: langs_list[Number(localStorage.getItem("tsl_room"))].key,
         str_muted: true,
         trl_muted: true,
         mixvolume: null,
@@ -35,7 +37,7 @@ class WeHttpStream extends Component {
             this.state.audiostream.hangup();
         if(this.state.trlstream)
             this.state.trlstream.hangup();
-        this.setState({muted: false, audio_stream: null, room: "", selected_room : "", i: "", feeds: {}, we_room: null, delay: false});
+        this.setState({muted: false, audio_stream: null, room: "", selected_room : "", i: "", feeds: {}, tsl_room: null, delay: false});
         this.state.janus.destroy();
     };
 
@@ -44,7 +46,7 @@ class WeHttpStream extends Component {
         if(this.state.janus)
             this.state.janus.destroy();
         Janus.init({
-            debug: ["error"],
+            debug: "all",
             callback: () => {
                 let janus = new Janus({
                     server: JANUS_SRV_STR,
@@ -66,17 +68,15 @@ class WeHttpStream extends Component {
     };
 
     initAudioStream = (janus) => {
-        let {audios} = this.state;
+        let {streamId} = this.state;
         janus.attach({
             plugin: "janus.plugin.streaming",
             opaqueId: "audiostream-"+Janus.randomString(12),
             success: (audio_stream) => {
-                Janus.log(audio_stream);
-                this.setState({audio_stream}, () => {
-                    //this.audioMute();
-                });
-                audio_stream.send({message: {request: "watch", id: audios}});
-                audio_stream.muteAudio()
+                this.setState({audio_stream});
+                console.log(streamId)
+                audio_stream.send({message: {request: "watch", id: streamId}});
+                //audio_stream.muteAudio()
             },
             error: (error) => {
                 Janus.log("Error attaching plugin: " + error);
@@ -125,12 +125,13 @@ class WeHttpStream extends Component {
     };
 
     selectRoom = (i) => {
-        localStorage.setItem("we_room", i);
+        localStorage.setItem("tsl_room", i);
         let selected_room = langs_list[i].key;
         let name = langs_list[i].text;
         if (this.state.room === selected_room)
             return;
-        let streamId = lnglist[name].streamid;
+        let streamId = trllang[name];
+        localStorage.setItem("tsl_streamId", streamId);
         this.setState({selected_room,name,i,streamId});
     };
 
