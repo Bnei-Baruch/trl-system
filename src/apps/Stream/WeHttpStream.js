@@ -2,14 +2,8 @@ import React, { Component } from 'react';
 import {Menu, Select, Button, Icon, Segment, Message, Table, Divider} from "semantic-ui-react";
 import '../Client/Client.scss'
 import VolumeSlider from "../../components/VolumeSlider";
-import {StreamingPlugin} from "../../lib/streaming-plugin";
-import {kc} from "../../components/UserManager";
-import mqtt from "../../shared/mqtt";
-import log from "loglevel";
-import {geoInfo} from "../../shared/tools";
-import {GEO_IP_INFO, JANUS_SRV_STR, langs_list, lnglist, STUN_SRV1, STUN_SRV2} from "../../shared/consts";
+import {JANUS_SRV_STR, langs_list, lnglist, STUN_SRV1, STUN_SRV2} from "../../shared/consts";
 import LoginPage from "../../components/LoginPage";
-import {JanusMqtt} from "../../lib/janus-mqtt";
 import {Janus} from "../../lib/janus";
 
 class WeHttpStream extends Component {
@@ -41,11 +35,12 @@ class WeHttpStream extends Component {
             this.state.audiostream.hangup();
         if(this.state.trlstream)
             this.state.trlstream.hangup();
-        this.setState({video_stream: null, audio_stream: null, trlaudio_stream: null});
+        this.setState({muted: false, audio_stream: null, room: "", selected_room : "", i: "", feeds: {}, we_room: null, delay: false});
         this.state.janus.destroy();
     };
 
     initJanus = () => {
+        this.setState({delay: true});
         if(this.state.janus)
             this.state.janus.destroy();
         Janus.init({
@@ -75,27 +70,27 @@ class WeHttpStream extends Component {
         janus.attach({
             plugin: "janus.plugin.streaming",
             opaqueId: "audiostream-"+Janus.randomString(12),
-            success: (audiostream) => {
-                Janus.log(audiostream);
-                this.setState({audiostream}, () => {
+            success: (audio_stream) => {
+                Janus.log(audio_stream);
+                this.setState({audio_stream}, () => {
                     //this.audioMute();
                 });
-                audiostream.send({message: {request: "watch", id: audios}});
-                audiostream.muteAudio()
+                audio_stream.send({message: {request: "watch", id: audios}});
+                audio_stream.muteAudio()
             },
             error: (error) => {
                 Janus.log("Error attaching plugin: " + error);
             },
             onmessage: (msg, jsep) => {
-                this.onStreamingMessage(this.state.audiostream, msg, jsep, false);
+                this.onStreamingMessage(this.state.audio_stream, msg, jsep, false);
             },
             onremotetrack: (track, mid, on) => {
                 Janus.debug(" ::: Got a remote audio track event :::");
                 Janus.debug("Remote audio track (mid=" + mid + ") " + (on ? "added" : "removed") + ":", track);
-                if(this.state.audio_stream) return;
+                //if(this.state.audio_stream) return;
                 let stream = new MediaStream();
                 stream.addTrack(track.clone());
-                this.setState({audio_stream: stream});
+                //this.setState({audio_stream: stream});
                 Janus.log("Created remote audio stream:", stream);
                 let audio = this.refs.remoteAudio;
                 Janus.attachMediaStream(audio, stream);
@@ -139,21 +134,6 @@ class WeHttpStream extends Component {
         this.setState({selected_room,name,i,streamId});
     };
 
-    exitRoom = () => {
-        let {room, janus} = this.state;
-        janus.destroy().then(() => {
-            this.setState({muted: false, audio_stream: null, room: "", selected_room : "", i: "", feeds: {}, we_room: null, delay: false});
-        })
-    };
-
-    setAudio = (audios, options) => {
-        let text = options.filter(k => k.value === audios)[0].text;
-        this.setState({audios});
-        this.state.audiostream.switch(audios);
-        localStorage.setItem("lang", audios);
-        localStorage.setItem("langtext", text);
-    };
-
     muteTrl = () => {
         const {trl_muted} = this.state;
         this.setState({trl_muted: !trl_muted});
@@ -180,21 +160,6 @@ class WeHttpStream extends Component {
                             <Icon color={audio_stream ? 'green' : 'red'} name='power off'/>
                             {!audio_stream ? "Disconnected" : "Connected"}
                         </Menu.Item>
-                        {/*<Popup*/}
-                        {/*    trigger={<Menu.Item><Icon name="settings" color={!audio_device ? 'red' : ''} />Input Device</Menu.Item>}*/}
-                        {/*    on='click'*/}
-                        {/*    position='bottom left'*/}
-                        {/*>*/}
-                        {/*    <Popup.Content>*/}
-                        {/*        <Select fluid*/}
-                        {/*                disabled={audio_stream}*/}
-                        {/*                error={!audio_device}*/}
-                        {/*                placeholder="Select Device:"*/}
-                        {/*                value={audio_device}*/}
-                        {/*                options={adevices_list}*/}
-                        {/*                onChange={(e, {value}) => this.setDevice(value)}/>*/}
-                        {/*    </Popup.Content>*/}
-                        {/*</Popup>*/}
                     </Menu>
                     <Menu icon='labeled' secondary size="mini">
                         <Select className='trl_select'
@@ -207,22 +172,10 @@ class WeHttpStream extends Component {
                                 options={langs_list}
                                 onChange={(e, {value}) => this.selectRoom(value)} />
                         {audio_stream ?
-                            <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
+                            <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitJanus()} />:""}
                         {!audio_stream ?
                             <Button attached='right' size='huge' positive loading={delay} icon='sign-in' disabled={delay || !selected_room} onClick={this.initJanus} />:""}
                     </Menu>
-                    {/*<Menu icon='labeled' secondary size="mini" floated='right'>*/}
-                    {/*    {!audio_stream ?*/}
-                    {/*        <Menu.Item position='right' disabled={selftest !== "Mic Test" || audio_stream} onClick={this.selfTest}>*/}
-                    {/*            <Icon color={tested ? 'green' : 'red'} name="sound" />*/}
-                    {/*            {selftest}*/}
-                    {/*        </Menu.Item> : ""}*/}
-                    {/*    <Menu.Item disabled={!audio_stream} onClick={this.micMute} className="mute-button">*/}
-                    {/*        <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />*/}
-                    {/*        <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />*/}
-                    {/*        {!muted ? "ON" : "OFF"}*/}
-                    {/*    </Menu.Item>*/}
-                    {/*</Menu>*/}
                 </div>
 
                 <audio
