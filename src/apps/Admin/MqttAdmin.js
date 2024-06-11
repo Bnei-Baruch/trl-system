@@ -10,7 +10,7 @@ import mqtt from "../../shared/mqtt";
 import log from "loglevel";
 import {JanusMqtt} from "../../lib/janus-mqtt";
 import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
-import version from '../../Version.js';
+import version from './version.js';
 
 class MqttAdmin extends Component {
 
@@ -621,8 +621,13 @@ class MqttAdmin extends Component {
                       on='click'
                       hideOnScroll
                   />
-                  <Menu secondary className='volume' >
-                      <VolumeSlider volume={this.setTrlVolume} mute={this.muteTrl} />
+                  <Menu icon='labeled' secondary size="mini" floated='right'>
+                      <Menu.Item position='right'  onClick={this.selfTest}>
+                          <VolumeSlider icon='microphone' label='WebRTC' volume={this.setTrlVolume} mute={this.muteTrl} />
+                      </Menu.Item>
+                      <Menu.Item onClick={this.micMute} className="mute-button">
+
+                      </Menu.Item>
                   </Menu>
                   {/*{root ? root_content : ""}*/}
               </Segment>

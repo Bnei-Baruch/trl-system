@@ -14,7 +14,7 @@ import HomerLimud from "../../components/HomerLimud";
 import MqttStream from "../Stream/MqttStream";
 import {JanusMqtt} from "../../lib/janus-mqtt";
 import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
-import version from '../../version.js';
+import version from './version.js';
 
 class MqttClient extends Component {
 
