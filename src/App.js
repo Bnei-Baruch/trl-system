@@ -1,9 +1,9 @@
 import React, { Component, Fragment } from 'react';
 import 'semantic-ui-css/semantic.min.css';
 // import Main from "./apps/Main";
-// import MqttClient from "./apps/Client/MqttClient";
+import MqttClient from "./apps/Client/MqttClient";
 // import HttpClient from "./apps/Client/HttpClient";
-import MqttAdmin from "./apps/Admin/MqttAdmin";
+// import MqttAdmin from "./apps/Admin/MqttAdmin";
 // import HttpAdmin from "./apps/Admin/HttpAdmin";
 // import TrlChat from "./apps/Chat/TrlChat";
 // import MqttMerkaz from "./apps/Merkaz/MqttMerkaz";
@@ -21,9 +21,9 @@ class App extends Component {
             <Fragment>
                 {/*<Main />*/}
                 {/*<MqttMerkaz />*/}
-                {/*<MqttClient />*/}
+                <MqttClient />
                 {/*<HttpClient />*/}
-                <MqttAdmin />
+                {/*<MqttAdmin />*/}
                 {/*<HttpAdmin />*/}
                 {/*<TrlChat />*/}
                 {/*<WeMain />*/}

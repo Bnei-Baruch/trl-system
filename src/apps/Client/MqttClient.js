@@ -3,7 +3,7 @@ import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import devices from "../../lib/devices";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider, Modal, Checkbox} from "semantic-ui-react";
-import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
+import {geoInfo, checkNotification, testMic, micVolume, muteSwitch} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
@@ -275,7 +275,7 @@ class MqttClient extends Component {
             log.debug('[client] Joined respond :', data)
             audiobridge.publish(stream).then(data => {
                 log.debug('[client] publish respond :', data)
-                devices.audio.context.suspend()
+                //devices.audio.context.suspend()
                 this.setState({mystream: stream})
             }).catch(err => {
                 log.error('[client] Publish error :', err);
@@ -292,6 +292,8 @@ class MqttClient extends Component {
             this.stream.initJanus();
 
             this.setState({muted: true});
+
+            muteSwitch(true)
         }).catch(err => {
             log.error('[client] Join error :', err);
             this.exitRoom(false);
@@ -321,7 +323,7 @@ class MqttClient extends Component {
                 mqtt.exit("trl/room/" + room + "/chat");
                 this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
                 if(reconnect) this.initJanus(reconnect)
-                if(!reconnect) devices.audio.context.resume()
+                //if(!reconnect) devices.audio.context.resume()
             })
         });
     };
@@ -339,7 +341,8 @@ class MqttClient extends Component {
     micMute = () => {
         let {audiobridge, muted} = this.state;
         audiobridge.mute(!muted);
-        muted ? devices.audio.context.resume() : devices.audio.context.suspend()
+        //muted ? devices.audio.context.resume() : devices.audio.context.suspend()
+        muteSwitch(!muted)
         this.setState({muted: !muted});
     };
 

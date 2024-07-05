@@ -4,6 +4,12 @@ import devices from "../lib/devices";
 import device1 from "../apps/Merkaz/device1";
 import device2 from "../apps/Merkaz/device2";
 
+let muted_button = false;
+
+export const muteSwitch = (val) => {
+    muted_button = val;
+}
+
 export const randomString = (len) => {
     let charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let randomString = "";
@@ -104,10 +110,13 @@ export const micVolume = (c,d) => {
         }
     } else {
         devices.micLevel = (volume) => {
-            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            if(volume > 0.1 && muted_button) {
+                console.log("[client] volume: ", volume, (c.height - volume * 200), muted_button)
+                beepAudio()
+            }
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+            cc.fillRect(0, c.height - volume * 200, c.width, c.height);
         }
     }
 }
@@ -352,3 +361,18 @@ const stereoVisualizer = (analyser1, analyser2, canvas, width, n) => {
 
     p[n] = setInterval(sampleAudioStream, 50);
 };
+
+const beepAudio = (freq = 660, duration = 90, vol = 5) => {
+    let context = new(window.AudioContext || window.webkitAudioContext);
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0, context.currentTime);
+    gain.gain.linearRampToValueAtTime(1, context.currentTime + 0.002);
+    oscillator.connect(gain);
+    oscillator.frequency.value = freq;
+    oscillator.type = "square";
+    gain.connect(context.destination);
+    oscillator.start(context.currentTime);
+    oscillator.stop(context.currentTime + duration * .001);
+    oscillator.onended = () => context.close();
+}
