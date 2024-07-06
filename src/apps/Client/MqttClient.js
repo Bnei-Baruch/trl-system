@@ -323,6 +323,7 @@ class MqttClient extends Component {
                 mqtt.exit("trl/room/" + room + "/chat");
                 this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
                 if(reconnect) this.initJanus(reconnect)
+                muteSwitch(false)
                 //if(!reconnect) devices.audio.context.resume()
             })
         });

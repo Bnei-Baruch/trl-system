@@ -110,7 +110,7 @@ export const micVolume = (c,d) => {
         }
     } else {
         devices.micLevel = (volume) => {
-            if(volume > 0.1 && muted_button) {
+            if(volume > 0.2 && muted_button) {
                 console.log("[client] volume: ", volume, (c.height - volume * 200), muted_button)
                 beepAudio()
             }
