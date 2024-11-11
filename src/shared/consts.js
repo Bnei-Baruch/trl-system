@@ -41,12 +41,17 @@ export const audios_options = [
     { key: 'ua', value: 55, text: 'Ukrainian' },
     { key: 'nl', value: 56, text: 'Dutch' },
     { key: 'cn', value: 57, text: 'Chinese' },
-    { key: 'et', value: 58, text: 'Amharic' },
+    { key: 'am', value: 58, text: 'Amharic' },
     { key: 'in', value: 59, text: 'Hindi' },
     { key: 'ir', value: 60, text: 'Persian' },
     { key: 'ar', value: 62, text: 'Arabic' },
     { key: 'id', value: 63, text: 'Indonesian' },
-    { key: 'am', value: 65, text: 'Armenian' },
+    { key: 'hy', value: 65, text: 'Armenian' },
+    { key: 'da', value: 66, text: 'Danish' },
+    { key: 'et', value: 67, text: 'Estonian' },
+    { key: 'el', value: 68, text: 'Greek' },
+    { key: 'tl', value: 69, text: 'Tagalog' },
+    { key: 'ab', value: 70, text: 'Azerbaijani' },
 ];
 
 export const trllang = {
@@ -79,7 +84,13 @@ export const trllang = {
     Hindi: 326,
     Persian: 327,
     Arabic: 328,
-    Indonesian: 329
+    Indonesian: 329,
+    Armenian: 330,
+    Danish: 331,
+    Estonian: 332,
+    Greek: 333,
+    Tagalog: 334,
+    Azerbaijani: 335,
 };
 
 export const lnglist = {
@@ -113,6 +124,11 @@ export const lnglist = {
     Arabic : {port: 5690, streamid: 62},
     Indonesian : {port: 5700, streamid: 63},
     Armenian : {port: 5720, streamid: 65},
+    Danish : {port: 5720, streamid: 66},
+    Estonian : {port: 5720, streamid: 67},
+    Greek : {port: 5720, streamid: 68},
+    Tagalog : {port: 5720, streamid: 69},
+    Azerbaijani : {port: 5720, streamid: 70},
 };
 
 export const langs_list = [
@@ -146,4 +162,9 @@ export const langs_list = [
     {"key":1610,"text":"Arabic","value":27},
     {"key":1620,"text":"Indonesian","value":28},
     {"key":1630,"text":"Armenian","value":29},
+    {"key":1640,"text":"Danish","value":30},
+    {"key":1650,"text":"Estonian","value":31},
+    {"key":1660,"text":"Greek","value":32},
+    {"key":1670,"text":"Tagalog","value":33},
+    {"key":1680,"text":"Azerbaijani","value":34},
 ]
