@@ -83,7 +83,25 @@ class MqttMerkaz extends Component {
     };
 
     componentWillUnmount() {
+        document.removeEventListener("keydown", this.onKeyPressed);
         this.state.janus.destroy();
+    };
+
+    componentDidMount() {
+        document.addEventListener("keydown", this.onKeyPressed);
+    };
+
+    onKeyPressed = (e) => {
+        // Minus key ('-' на английской и русской раскладке)
+        if(e.code === "Minus" || e.key === "-" || e.key === "-") {
+            // Toggle the right microphone when '-' is pressed
+            this.micMute(2);  // Right microphone (second microphone)
+        }
+        // Backquote key ('`' на английской, 'ё' на русской раскладке)
+        else if(e.code === "Backquote" || e.key === "`" || e.key === "ё" || e.key === "Ё") {
+            // Toggle the left microphone when '`' is pressed
+            this.micMute(1);  // Left microphone (first microphone)
+        }
     };
 
     initClient = () => {
