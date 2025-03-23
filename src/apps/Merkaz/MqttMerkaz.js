@@ -118,7 +118,7 @@ class MqttMerkaz extends Component {
     };
 
     initMQTT = (user) => {
-        mqtt.init("trl", user, (reconnected, error) => {
+        mqtt.init("trl1", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
                 this.setState({mqttOn: false});
@@ -142,7 +142,7 @@ class MqttMerkaz extends Component {
     initJanus = (reconnect = false) => {
         this.setState({delay: true});
         const {user} = this.state;
-        let janus = new JanusMqtt(user, "mkz")
+        let janus = new JanusMqtt(user, "trl1")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
                 alert("Janus Server - " + srv + " - Offline")
@@ -210,6 +210,12 @@ class MqttMerkaz extends Component {
                 if(this.refs?.canvas2) micVolume(this.refs.canvas2,2)
                 this.setState({audio2: audio, init_devices: true, delay: false})
             }
+        })
+        device1.onMute = (muted => {
+            this.setState({muted1: muted})
+        })
+        device2.onMute = (muted => {
+            this.setState({muted2: muted})
         })
         // devices.onChange = (audio) => {
         //     setTimeout(() => {

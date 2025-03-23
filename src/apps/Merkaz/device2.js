@@ -11,6 +11,7 @@ class LocalDevice2 {
         stream: null,
     }
     this.onChange = null
+    this.onMute = null
     this.audio_stream = null
     this.micLevel = null
   }
@@ -79,6 +80,7 @@ class LocalDevice2 {
       let _volume = 0
       let _rms = 0
       let _dB = 0
+      let _muted = false
 
       //log.debug('[devices] mic level: ', event.data)
 
@@ -86,9 +88,12 @@ class LocalDevice2 {
         _volume = event.data.volume
         _rms = event.data.rms
         _dB = event.data.dB
+        _muted = event.data.rms < 0.0000011
 
         if(typeof this.micLevel === "function")
           this.micLevel(_volume)
+        if(typeof this.onMute === "function")
+          this.onMute(_muted)
       }
     }
 
