@@ -215,15 +215,15 @@ class MqttMerkaz extends Component {
             const {muted1} = this.state;
             if(muted1 !== muted) {
                 log.info("MIC1 - muted: " + muted + " rms: " + rms)
+                this.setState({muted1: muted})
             }
-            this.setState({muted1: muted})
         })
         device2.onMute = ((muted, rms) => {
             const {muted2} = this.state;
             if(muted2 !== muted) {
                 log.info("MIC2 - muted: " + muted + " rms: " + rms)
+                this.setState({muted2: muted})
             }
-            this.setState({muted2: muted})
         })
         // devices.onChange = (audio) => {
         //     setTimeout(() => {
