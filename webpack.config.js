@@ -5,12 +5,18 @@ const HtmlWebPackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const WorkerPlugin = require('worker-plugin');
-const env = dotenv.config().parsed;
+const env = dotenv.config().parsed || {};
 
+// Get environment variables
 const envKeys = Object.keys(env).reduce((prev, next) => {
   prev[`process.env.${next}`] = JSON.stringify(env[next]);
   return prev;
 }, {});
+
+// Add REACT_APP_TARGET from command line env variable if it exists
+if (process.env.REACT_APP_TARGET) {
+  envKeys['process.env.REACT_APP_TARGET'] = JSON.stringify(process.env.REACT_APP_TARGET);
+}
 
 module.exports = {
   devServer: {
