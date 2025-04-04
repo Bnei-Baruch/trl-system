@@ -24,8 +24,25 @@
   },
   "scripts": {
     "start": "webpack-dev-server --mode=development --no-open --hot",
+    "start:merkaz": "cross-env REACT_APP_TARGET=MqttMerkaz webpack-dev-server --mode=development --no-open --hot",
+    "start:mqttclient": "cross-env REACT_APP_TARGET=MqttClient webpack-dev-server --mode=development --no-open --hot",
+    "start:httpclient": "cross-env REACT_APP_TARGET=HttpClient webpack-dev-server --mode=development --no-open --hot",
+    "start:mqttadmin": "cross-env REACT_APP_TARGET=MqttAdmin webpack-dev-server --mode=development --no-open --hot",
+    "start:httpadmin": "cross-env REACT_APP_TARGET=HttpAdmin webpack-dev-server --mode=development --no-open --hot",
+    "start:trlchat": "cross-env REACT_APP_TARGET=TrlChat webpack-dev-server --mode=development --no-open --hot",
+    "start:wemain": "cross-env REACT_APP_TARGET=WeMain webpack-dev-server --mode=development --no-open --hot",
+    "start:weclient": "cross-env REACT_APP_TARGET=WeClient webpack-dev-server --mode=development --no-open --hot",
+    "start:wehttpstream": "cross-env REACT_APP_TARGET=WeHttpStream webpack-dev-server --mode=development --no-open --hot",
     "build": "webpack --mode=production",
-    "deploy": "webpack --mode=production && scripts/deploy.sh"
+    "build:merkaz": "cross-env REACT_APP_TARGET=MqttMerkaz webpack --mode=production",
+    "build:mqttclient": "cross-env REACT_APP_TARGET=MqttClient webpack --mode=production",
+    "build:httpclient": "cross-env REACT_APP_TARGET=HttpClient webpack --mode=production",
+    "build:mqttadmin": "cross-env REACT_APP_TARGET=MqttAdmin webpack --mode=production",
+    "build:httpadmin": "cross-env REACT_APP_TARGET=HttpAdmin webpack --mode=production",
+    "build:trlchat": "cross-env REACT_APP_TARGET=TrlChat webpack --mode=production",
+    "build:wemain": "cross-env REACT_APP_TARGET=WeMain webpack --mode=production",
+    "build:weclient": "cross-env REACT_APP_TARGET=WeClient webpack --mode=production",
+    "build:wehttpstream": "cross-env REACT_APP_TARGET=WeHttpStream webpack --mode=production"
   },
   "browserslist": {
     "production": [
@@ -47,6 +64,7 @@
     "@babel/runtime": "^7.16.5",
     "babel-loader": "^8.1.0",
     "copy-webpack-plugin": "^10.2.0",
+    "cross-env": "^7.0.3",
     "css-loader": "^4.2.0",
     "dotenv": "^10.0.0",
     "file-loader": "^6.2.0",

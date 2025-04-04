@@ -1,8 +1,7 @@
 import {Janus} from "../lib/janus";
 import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV1, STUN_SRV2} from "./consts";
 import devices from "../lib/devices";
-import device1 from "../apps/Merkaz/device1";
-import device2 from "../apps/Merkaz/device2";
+import { device1, device2 } from "../apps/Merkaz/device";
 
 export const randomString = (len) => {
     let charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";

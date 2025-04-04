@@ -1,8 +1,12 @@
 import workerUrl from 'worker-plugin/loader!./volmeter-processor';
 import log from "loglevel";
 
-class LocalDevice2 {
-  constructor() {
+class LocalDevice {
+  // Class constants
+  static RMS_MUTE_THRESHOLD = 0.000006;
+  
+  constructor(deviceNumber) {
+    this.deviceNumber = deviceNumber;
     this.audio = {
         context: null,
         device: null,
@@ -22,7 +26,7 @@ class LocalDevice2 {
     //TODO: Translate exceptions - https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions
 
     // Check saved devices in local storage
-    let storage_audio = localStorage.getItem("audio_device2");
+    let storage_audio = localStorage.getItem(`audio_device${this.deviceNumber}`);
     this.audio.device = !!storage_audio ? storage_audio : null;
     [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
@@ -46,7 +50,7 @@ class LocalDevice2 {
       this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
       this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
       // Refresh audio devices list
-      let storage_audio = localStorage.getItem("audio_device2");
+      let storage_audio = localStorage.getItem(`audio_device${this.deviceNumber}`);
       let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
       let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
       this.audio.device = isSavedAudio ? storage_audio : default_audio;
@@ -88,7 +92,7 @@ class LocalDevice2 {
         _volume = event.data.volume
         _rms = event.data.rms
         _dB = event.data.dB
-        _muted = event.data.rms < 0.000006
+        _muted = event.data.rms < LocalDevice.RMS_MUTE_THRESHOLD
 
         if(typeof this.micLevel === "function")
           this.micLevel(_volume)
@@ -109,7 +113,7 @@ class LocalDevice2 {
           this.audio.error = error
           log.error("[devices] setAudioDevice: ", error);
         } else {
-          localStorage.setItem("audio_device2", device);
+          localStorage.setItem(`audio_device${this.deviceNumber}`, device);
           this.audio.stream = stream;
           this.audio.device = device;
           this.audio_stream = stream.clone()
@@ -124,10 +128,8 @@ class LocalDevice2 {
         return this.audio;
       });
   };
-
-
 }
 
-const defaultDevices = new LocalDevice2();
-
-export default defaultDevices;
+// Export instances for device1 and device2
+export const device1 = new LocalDevice(1);
+export const device2 = new LocalDevice(2); 

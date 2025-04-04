@@ -1,0 +1,5 @@
+// This file is maintained for backward compatibility
+// Import from the new combined file and re-export
+import { device1 } from './device';
+
+export default device1;
