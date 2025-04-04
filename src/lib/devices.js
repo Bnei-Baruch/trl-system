@@ -80,10 +80,7 @@ class LocalDevices {
       let _dB = 0
       let _muted = false
 
-      if(event.data.rms < 0.0000011) {
-        log.debug('MUTED')
-      }
-      log.debug('[devices] mic level: ', event.data)
+      //log.debug('[devices] mic level: ', event.data)
 
       if (event.data.volume) {
         _volume = event.data.volume

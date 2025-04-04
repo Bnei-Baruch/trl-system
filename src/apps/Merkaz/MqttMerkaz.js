@@ -211,10 +211,18 @@ class MqttMerkaz extends Component {
                 this.setState({audio2: audio, init_devices: true, delay: false})
             }
         })
-        device1.onMute = (muted => {
+        device1.onMute = ((muted, rms) => {
+            const {muted1} = this.state;
+            if(muted1 !== muted) {
+                log.info("MIC1 - muted: " + muted + " rms: " + rms)
+            }
             this.setState({muted1: muted})
         })
-        device2.onMute = (muted => {
+        device2.onMute = ((muted, rms) => {
+            const {muted2} = this.state;
+            if(muted2 !== muted) {
+                log.info("MIC2 - muted: " + muted + " rms: " + rms)
+            }
             this.setState({muted2: muted})
         })
         // devices.onChange = (audio) => {

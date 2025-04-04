@@ -88,12 +88,12 @@ class LocalDevice1 {
         _volume = event.data.volume
         _rms = event.data.rms
         _dB = event.data.dB
-        _muted = event.data.rms < 0.0000011
+        _muted = event.data.rms < 0.000006
 
         if(typeof this.micLevel === "function")
           this.micLevel(_volume)
         if(typeof this.onMute === "function")
-          this.onMute(_muted)
+          this.onMute(_muted, event.data.rms)
       }
     }
 
