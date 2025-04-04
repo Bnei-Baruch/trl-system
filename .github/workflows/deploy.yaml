@@ -1,0 +1,66 @@
+name: Deploy TRL System
+
+on:
+  push:
+    branches:
+      - master
+      - prod
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    # Set environment based on the branch
+    environment: ${{ github.ref == 'refs/heads/master' && 'dev' || 'prod' }}
+    env:
+      NODE_VERSION: 16
+    
+    # Define a matrix of applications to build and deploy
+    strategy:
+      matrix:
+        app: [
+        #   'MqttMerkaz',
+          'MqttClient',
+        #   'HttpClient',
+        #   'MqttAdmin',
+        #   'HttpAdmin',
+        #   'TrlChat',
+        #   'WeMain',
+        #   'WeClient',
+        #   'WeHttpStream'
+        ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # Build the specific application from the matrix
+      - name: Build ${{ matrix.app }}
+        run: npm run build:$(echo "${{ matrix.app }}" | tr '[:upper:]' '[:lower:]')
+
+      # Setup SSH with direct key file
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+      
+      # Deploy the application
+      - name: Deploy ${{ matrix.app }}
+        run: |
+          echo "Deploying ${{ matrix.app }} to ${{ github.ref == 'refs/heads/master' && 'dev' || 'prod' }} environment"
+          scp -o StrictHostKeyChecking=no -r build/* ${{ vars.DEPLOY_SERVER_USER }}@${{ vars.DEPLOY_SERVER_ADDR }}:${{ vars.DEPLOY_SERVER_DIR }}/${{ matrix.app }}/
+      
+      # Cleanup SSH key
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa 
