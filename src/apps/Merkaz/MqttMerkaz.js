@@ -189,9 +189,8 @@ class MqttMerkaz extends Component {
         
         this.setState({init_devices: true});
         
-        // Create empty canvases first to ensure they're in the DOM
-        setTimeout(() => {
-            // Initialize device1
+        // Sequence the initialization to avoid conflicts
+        const initDevice1 = () => {
             device1.init().then(audio => {
                 log.info("[client] init device1: ", audio);
                 if (audio.error) {
@@ -202,46 +201,102 @@ class MqttMerkaz extends Component {
                     let myaudio = this.refs.localAudio1;
                     if (myaudio) myaudio.srcObject = audio.stream;
                     
-                    // Set state first, then init micVolume after render
-                    this.setState({audio1: audio, delay: false}, () => {
-                        if(this.refs.canvas1) {
-                            // Reset any existing callbacks
-                            device1.micLevel = null;
-                            setTimeout(() => {
-                                micVolume(this.refs.canvas1, 1);
-                            }, 100);
+                    // Set up mic visualization after the audio stream is ready
+                    this.setState({audio1: audio}, () => {
+                        if (this.refs.canvas1) {
+                            try {
+                                // Set up the visualization
+                                const canvas = this.refs.canvas1;
+                                const callback = (volume) => {
+                                    try {
+                                        const ctx = canvas.getContext("2d");
+                                        // Create gradient
+                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                                        gradient.addColorStop(1, 'green');
+                                        gradient.addColorStop(0.35, '#80ff00');
+                                        gradient.addColorStop(0.10, 'orange');
+                                        gradient.addColorStop(0, 'red');
+                                        
+                                        // Draw volume
+                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                        ctx.fillStyle = gradient;
+                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
+                                    } catch (err) {
+                                        console.error("Error in mic1 visualization:", err);
+                                    }
+                                };
+                                
+                                // Assign the callback
+                                device1.micLevel = callback;
+                                log.info("[client] Set up mic1 visualization");
+                            } catch (err) {
+                                console.error("Error setting up mic1 visualization:", err);
+                            }
                         }
                     });
                 }
+                
+                // Initialize device2 after device1 is complete
+                setTimeout(initDevice2, 500);
+            }).catch(err => {
+                console.error("Error initializing device1:", err);
+                // Still try to init device2 even if device1 failed
+                setTimeout(initDevice2, 500);
             });
-            
-            // Delay device2 initialization
-            setTimeout(() => {
-                // Initialize device2
-                device2.init().then(audio => {
-                    log.info("[client] init device2: ", audio);
-                    if (audio.error) {
-                        console.error("Device 2 error:", audio.error);
-                        alert("Audio device 2 not detected");
-                    }
-                    if (audio.stream) {
-                        let myaudio = this.refs.localAudio2;
-                        if (myaudio) myaudio.srcObject = audio.stream;
-                        
-                        // Set state first, then init micVolume after render
-                        this.setState({audio2: audio, delay: false}, () => {
-                            if(this.refs.canvas2) {
-                                // Reset any existing callbacks
-                                device2.micLevel = null;
-                                setTimeout(() => {
-                                    micVolume(this.refs.canvas2, 2);
-                                }, 100);
+        };
+        
+        const initDevice2 = () => {
+            device2.init().then(audio => {
+                log.info("[client] init device2: ", audio);
+                if (audio.error) {
+                    console.error("Device 2 error:", audio.error);
+                    alert("Audio device 2 not detected");
+                }
+                if (audio.stream) {
+                    let myaudio = this.refs.localAudio2;
+                    if (myaudio) myaudio.srcObject = audio.stream;
+                    
+                    // Set up mic visualization after the audio stream is ready
+                    this.setState({audio2: audio, delay: false}, () => {
+                        if (this.refs.canvas2) {
+                            try {
+                                // Set up the visualization
+                                const canvas = this.refs.canvas2;
+                                const callback = (volume) => {
+                                    try {
+                                        const ctx = canvas.getContext("2d");
+                                        // Create gradient
+                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                                        gradient.addColorStop(1, 'green');
+                                        gradient.addColorStop(0.35, '#80ff00');
+                                        gradient.addColorStop(0.10, 'orange');
+                                        gradient.addColorStop(0, 'red');
+                                        
+                                        // Draw volume
+                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                        ctx.fillStyle = gradient;
+                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
+                                    } catch (err) {
+                                        console.error("Error in mic2 visualization:", err);
+                                    }
+                                };
+                                
+                                // Assign the callback
+                                device2.micLevel = callback;
+                                log.info("[client] Set up mic2 visualization");
+                            } catch (err) {
+                                console.error("Error setting up mic2 visualization:", err);
                             }
-                        });
-                    }
-                });
-            }, 500); // Delay device2 initialization by 500ms
-        }, 100);
+                        }
+                    });
+                }
+            }).catch(err => {
+                console.error("Error initializing device2:", err);
+            });
+        };
+        
+        // Start the initialization sequence
+        initDevice1();
         
         // Set up device event handlers
         device1.onMute = (muted, rms) => this.handleMicMute(1, muted, rms);
@@ -275,14 +330,38 @@ class MqttMerkaz extends Component {
             if(c === 1) {
                 device1.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
-                        this.setState({audio1: audio}, () => {
-                            // Re-initialize the visualization after state update
-                            if(this.refs?.canvas1) {
-                                setTimeout(() => {
-                                    micVolume(this.refs.canvas1, 1);
-                                }, 100);
+                        this.setState({audio1: audio});
+                        
+                        // Re-initialize the micLevel after changing devices
+                        if (this.refs.canvas1) {
+                            try {
+                                const canvas = this.refs.canvas1;
+                                const callback = (volume) => {
+                                    try {
+                                        const ctx = canvas.getContext("2d");
+                                        // Create gradient
+                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                                        gradient.addColorStop(1, 'green');
+                                        gradient.addColorStop(0.35, '#80ff00');
+                                        gradient.addColorStop(0.10, 'orange');
+                                        gradient.addColorStop(0, 'red');
+                                        
+                                        // Draw volume
+                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                        ctx.fillStyle = gradient;
+                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
+                                    } catch (err) {
+                                        console.error("Error in mic1 visualization:", err);
+                                    }
+                                };
+                                
+                                // Assign the callback
+                                device1.micLevel = callback;
+                                log.info("[client] Re-setup mic1 visualization after device change");
+                            } catch (err) {
+                                console.error("Error re-setting up mic1 visualization:", err);
                             }
-                        });
+                        }
                         
                         const {audiobridge, mystream} = this.state;
                         if (audiobridge && mystream) {
@@ -295,14 +374,38 @@ class MqttMerkaz extends Component {
             if(c === 2) {
                 device2.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
-                        this.setState({audio2: audio}, () => {
-                            // Re-initialize the visualization after state update
-                            if(this.refs?.canvas2) {
-                                setTimeout(() => {
-                                    micVolume(this.refs.canvas2, 2);
-                                }, 100);
+                        this.setState({audio2: audio});
+                        
+                        // Re-initialize the micLevel after changing devices
+                        if (this.refs.canvas2) {
+                            try {
+                                const canvas = this.refs.canvas2;
+                                const callback = (volume) => {
+                                    try {
+                                        const ctx = canvas.getContext("2d");
+                                        // Create gradient
+                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                                        gradient.addColorStop(1, 'green');
+                                        gradient.addColorStop(0.35, '#80ff00');
+                                        gradient.addColorStop(0.10, 'orange');
+                                        gradient.addColorStop(0, 'red');
+                                        
+                                        // Draw volume
+                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                        ctx.fillStyle = gradient;
+                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
+                                    } catch (err) {
+                                        console.error("Error in mic2 visualization:", err);
+                                    }
+                                };
+                                
+                                // Assign the callback
+                                device2.micLevel = callback;
+                                log.info("[client] Re-setup mic2 visualization after device change");
+                            } catch (err) {
+                                console.error("Error re-setting up mic2 visualization:", err);
                             }
-                        });
+                        }
                         
                         const {audiobridge, mystream} = this.state;
                         if (audiobridge && mystream) {

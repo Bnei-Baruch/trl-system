@@ -86,58 +86,52 @@ export const micVolume = (c, d) => {
         return;
     }
     
-    // Store the canvas element in a closure for this device
-    const canvasElement = c;
-    let canvasCtx;
-    
     try {
-        canvasCtx = canvasElement.getContext("2d");
-        if (!canvasCtx) {
+        const canvas = c;
+        const ctx = canvas.getContext("2d");
+        
+        if (!ctx) {
             console.error(`Could not get 2D context for device ${d} canvas`);
             return;
         }
-    } catch (err) {
-        console.error(`Error getting canvas context for device ${d}:`, err);
-        return;
-    }
-    
-    // Create a gradient for visualization
-    let gradient = canvasCtx.createLinearGradient(0, 0, 0, 55);
-    gradient.addColorStop(1, "green");
-    gradient.addColorStop(0.35, "#80ff00");
-    gradient.addColorStop(0.10, "orange");
-    gradient.addColorStop(0, "red");
-    
-    // Use the same scaling factor for all devices
-    const volumeScale = 150;
-    
-    // Initial clear
-    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    
-    // Create a helper function to draw the meter for this specific device
-    const drawMeter = (volume) => {
-        // We're using a specific canvas context captured in closure
-        // so no need to check canvas validity each time
-        try {
-            // Get latest context in case the canvas was replaced
-            const ctx = canvasElement.getContext("2d");
-            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, canvasElement.height - volume * volumeScale, canvasElement.width, canvasElement.height);
-        } catch (err) {
-            console.error(`Error drawing meter for device ${d}:`, err);
+        
+        // Create a gradient for visualization
+        let gradient = ctx.createLinearGradient(0, 0, 0, 55);
+        gradient.addColorStop(1, "green");
+        gradient.addColorStop(0.35, "#80ff00");
+        gradient.addColorStop(0.10, "orange");
+        gradient.addColorStop(0, "red");
+        
+        // Use the same scaling factor for all devices
+        const volumeScale = 150;
+        
+        // Initial clear
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Create a dedicated callback for this specific canvas
+        const drawFunction = (volume) => {
+            try {
+                if (!canvas) return;
+                const context = canvas.getContext("2d");
+                context.clearRect(0, 0, canvas.width, canvas.height);
+                context.fillStyle = gradient;
+                context.fillRect(0, canvas.height - volume * volumeScale, canvas.width, canvas.height);
+            } catch (err) {
+                console.error(`Error updating meter for device ${d}:`, err);
+            }
+        };
+        
+        // Assign the callback to the appropriate device
+        console.log(`Setting up micLevel callback for device ${d}`);
+        if (d === 1) {
+            device1.micLevel = drawFunction;
+        } else if (d === 2) {
+            device2.micLevel = drawFunction;
+        } else {
+            devices.micLevel = drawFunction;
         }
-    };
-    
-    // Assign the drawing function to the appropriate device
-    console.log(`Setting up micLevel callback for device ${d}`);
-    
-    if(d === 1) {
-        device1.micLevel = drawMeter;
-    } else if(d === 2) {
-        device2.micLevel = drawMeter;
-    } else {
-        devices.micLevel = drawMeter;
+    } catch (err) {
+        console.error(`Error setting up micVolume for device ${d}:`, err);
     }
 }
 
