@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import log from "loglevel";
 import mqtt from "../../shared/mqtt";
-import { device1, device2 } from "./device";
+import device1 from "./device1";
+import device2 from "./device2";
 import {Menu, Select, Button, Icon, Popup, Segment, Message, Label, Modal, Grid} from "semantic-ui-react";
 import {geoInfo, checkNotification, testMic, micVolume, cloneTrl} from "../../shared/tools";
 import './Client.scss'
@@ -185,122 +186,47 @@ class MqttMerkaz extends Component {
     }
 
     initDevices = () => {
-        if(this.state.init_devices) return;
+        if(this.state.init_devices) return
+        device1.init().then(audio => {
+            log.info("[client] init devices: ", audio);
+            if (audio.error) {
+                console.error(audio.error)
+                alert("audio device not detected");
+            }
+            if (audio.stream) {
+                let myaudio = this.refs.localAudio1;
+                if (myaudio) myaudio.srcObject = audio.stream;
+                if(this.refs?.canvas1) micVolume(this.refs.canvas1,1)
+                this.setState({audio1: audio, init_devices: true, delay: false})
+            }
+        })
+        device2.init().then(audio => {
+            log.info("[client] init devices: ", audio);
+            if (audio.error) {
+                console.error(audio.error)
+                alert("audio device not detected");
+            }
+            if (audio.stream) {
+                let myaudio = this.refs.localAudio2;
+                if (myaudio) myaudio.srcObject = audio.stream;
+                if(this.refs?.canvas2) micVolume(this.refs.canvas2,2)
+                this.setState({audio2: audio, init_devices: true, delay: false})
+            }
+        })
         
-        this.setState({init_devices: true});
-        
-        // Sequence the initialization to avoid conflicts
-        const initDevice1 = () => {
-            device1.init().then(audio => {
-                log.info("[client] init device1: ", audio);
-                if (audio.error) {
-                    console.error("Device 1 error:", audio.error);
-                    alert("Audio device 1 not detected");
-                }
-                if (audio.stream) {
-                    let myaudio = this.refs.localAudio1;
-                    if (myaudio) myaudio.srcObject = audio.stream;
-                    
-                    // Set up mic visualization after the audio stream is ready
-                    this.setState({audio1: audio}, () => {
-                        if (this.refs.canvas1) {
-                            try {
-                                // Set up the visualization
-                                const canvas = this.refs.canvas1;
-                                const callback = (volume) => {
-                                    try {
-                                        const ctx = canvas.getContext("2d");
-                                        // Create gradient
-                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(1, 'green');
-                                        gradient.addColorStop(0.35, '#80ff00');
-                                        gradient.addColorStop(0.10, 'orange');
-                                        gradient.addColorStop(0, 'red');
-                                        
-                                        // Draw volume
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                        ctx.fillStyle = gradient;
-                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
-                                    } catch (err) {
-                                        console.error("Error in mic1 visualization:", err);
-                                    }
-                                };
-                                
-                                // Assign the callback
-                                device1.micLevel = callback;
-                                log.info("[client] Set up mic1 visualization");
-                            } catch (err) {
-                                console.error("Error setting up mic1 visualization:", err);
-                            }
-                        }
-                    });
-                }
-                
-                // Initialize device2 after device1 is complete
-                setTimeout(initDevice2, 500);
-            }).catch(err => {
-                console.error("Error initializing device1:", err);
-                // Still try to init device2 even if device1 failed
-                setTimeout(initDevice2, 500);
-            });
-        };
-        
-        const initDevice2 = () => {
-            device2.init().then(audio => {
-                log.info("[client] init device2: ", audio);
-                if (audio.error) {
-                    console.error("Device 2 error:", audio.error);
-                    alert("Audio device 2 not detected");
-                }
-                if (audio.stream) {
-                    let myaudio = this.refs.localAudio2;
-                    if (myaudio) myaudio.srcObject = audio.stream;
-                    
-                    // Set up mic visualization after the audio stream is ready
-                    this.setState({audio2: audio, delay: false}, () => {
-                        if (this.refs.canvas2) {
-                            try {
-                                // Set up the visualization
-                                const canvas = this.refs.canvas2;
-                                const callback = (volume) => {
-                                    try {
-                                        const ctx = canvas.getContext("2d");
-                                        // Create gradient
-                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(1, 'green');
-                                        gradient.addColorStop(0.35, '#80ff00');
-                                        gradient.addColorStop(0.10, 'orange');
-                                        gradient.addColorStop(0, 'red');
-                                        
-                                        // Draw volume
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                        ctx.fillStyle = gradient;
-                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
-                                    } catch (err) {
-                                        console.error("Error in mic2 visualization:", err);
-                                    }
-                                };
-                                
-                                // Assign the callback
-                                device2.micLevel = callback;
-                                log.info("[client] Set up mic2 visualization");
-                            } catch (err) {
-                                console.error("Error setting up mic2 visualization:", err);
-                            }
-                        }
-                    });
-                }
-            }).catch(err => {
-                console.error("Error initializing device2:", err);
-            });
-        };
-        
-        // Start the initialization sequence
-        initDevice1();
-        
-        // Set up device event handlers
         device1.onMute = (muted, rms) => this.handleMicMute(1, muted, rms);
         device2.onMute = (muted, rms) => this.handleMicMute(2, muted, rms);
+        
+        // devices.onChange = (audio) => {
+        //     setTimeout(() => {
+        //         if(audio.device) {
+        //             this.setDevice(audio.device)
+        //         } else {
+        //             log.warn("[client] No left audio devices")
+        //             //FIXME: remove it from pc?
+        //         }
+        //     }, 1000)
+        // }
     };
 
     handleMicMute = (micNumber, muted, rms) => {
@@ -331,89 +257,27 @@ class MqttMerkaz extends Component {
                 device1.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
                         this.setState({audio1: audio});
-                        
-                        // Re-initialize the micLevel after changing devices
-                        if (this.refs.canvas1) {
-                            try {
-                                const canvas = this.refs.canvas1;
-                                const callback = (volume) => {
-                                    try {
-                                        const ctx = canvas.getContext("2d");
-                                        // Create gradient
-                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(1, 'green');
-                                        gradient.addColorStop(0.35, '#80ff00');
-                                        gradient.addColorStop(0.10, 'orange');
-                                        gradient.addColorStop(0, 'red');
-                                        
-                                        // Draw volume
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                        ctx.fillStyle = gradient;
-                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
-                                    } catch (err) {
-                                        console.error("Error in mic1 visualization:", err);
-                                    }
-                                };
-                                
-                                // Assign the callback
-                                device1.micLevel = callback;
-                                log.info("[client] Re-setup mic1 visualization after device change");
-                            } catch (err) {
-                                console.error("Error re-setting up mic1 visualization:", err);
-                            }
-                        }
-                        
                         const {audiobridge, mystream} = this.state;
+                        micVolume(this.refs.canvas1,1)
                         if (audiobridge && mystream) {
                             audio.stream.getAudioTracks()[0].enabled = false;
                             audiobridge.audio(audio.stream)
                         }
                     }
-                });
+                })
             }
             if(c === 2) {
                 device2.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
                         this.setState({audio2: audio});
-                        
-                        // Re-initialize the micLevel after changing devices
-                        if (this.refs.canvas2) {
-                            try {
-                                const canvas = this.refs.canvas2;
-                                const callback = (volume) => {
-                                    try {
-                                        const ctx = canvas.getContext("2d");
-                                        // Create gradient
-                                        let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-                                        gradient.addColorStop(1, 'green');
-                                        gradient.addColorStop(0.35, '#80ff00');
-                                        gradient.addColorStop(0.10, 'orange');
-                                        gradient.addColorStop(0, 'red');
-                                        
-                                        // Draw volume
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                        ctx.fillStyle = gradient;
-                                        ctx.fillRect(0, canvas.height - volume * 150, canvas.width, canvas.height);
-                                    } catch (err) {
-                                        console.error("Error in mic2 visualization:", err);
-                                    }
-                                };
-                                
-                                // Assign the callback
-                                device2.micLevel = callback;
-                                log.info("[client] Re-setup mic2 visualization after device change");
-                            } catch (err) {
-                                console.error("Error re-setting up mic2 visualization:", err);
-                            }
-                        }
-                        
                         const {audiobridge, mystream} = this.state;
+                        micVolume(this.refs.canvas2,2)
                         if (audiobridge && mystream) {
                             audio.stream.getAudioTracks()[0].enabled = false;
                             audiobridge.audio(audio.stream)
                         }
                     }
-                });
+                })
             }
         }
         if(io === "out") {
@@ -625,63 +489,26 @@ class MqttMerkaz extends Component {
         let {audiobridge1,audiobridge2,muted1,muted2,audio1,audio2} = this.state;
         
         if(d === 1) {
-            const newMutedState = !muted1;
-            
-            // Update track enabled state
-            if(audio1.stream && audio1.stream.getAudioTracks().length > 0) {
-                audio1.stream.getAudioTracks()[0].enabled = !newMutedState;
+            if(muted1) {
+                audio1.stream.getAudioTracks()[0].enabled = true;
+                device1.audio.context.resume()
+            } else {
+                audio1.stream.getAudioTracks()[0].enabled = false;
+                device1.audio.context.suspend()
             }
-            
-            // Update audio context state
-            if(device1.audio.context) {
-                try {
-                    if(newMutedState) {
-                        device1.audio.context.suspend();
-                    } else {
-                        device1.audio.context.resume();
-                    }
-                } catch(err) {
-                    console.error("Error updating audio context state for device 1:", err);
-                }
-            }
-            
-            // Update Janus audiobridge mute state
-            if(audiobridge1) {
-                audiobridge1.mute(newMutedState);
-            }
-            
-            // Update component state
-            this.setState({muted1: newMutedState});
+            audiobridge1.mute(!muted1);
+            this.setState({muted1: !muted1});
         }
-        
         if(d === 2) {
-            const newMutedState = !muted2;
-            
-            // Update track enabled state
-            if(audio2.stream && audio2.stream.getAudioTracks().length > 0) {
-                audio2.stream.getAudioTracks()[0].enabled = !newMutedState;
+            if(muted2) {
+                audio2.stream.getAudioTracks()[0].enabled = true;
+                device2.audio.context.resume()
+            } else {
+                audio2.stream.getAudioTracks()[0].enabled = false;
+                device2.audio.context.suspend()
             }
-            
-            // Update audio context state
-            if(device2.audio.context) {
-                try {
-                    if(newMutedState) {
-                        device2.audio.context.suspend();
-                    } else {
-                        device2.audio.context.resume();
-                    }
-                } catch(err) {
-                    console.error("Error updating audio context state for device 2:", err);
-                }
-            }
-            
-            // Update Janus audiobridge mute state
-            if(audiobridge2) {
-                audiobridge2.mute(newMutedState);
-            }
-            
-            // Update component state
-            this.setState({muted2: newMutedState});
+            audiobridge2.mute(!muted2);
+            this.setState({muted2: !muted2});
         }
     };
 

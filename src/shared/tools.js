@@ -1,7 +1,8 @@
 import {Janus} from "../lib/janus";
 import {JANUS_SRV_ADMIN, JANUS_SRV_TRL, ADMIN_SECRET, STUN_SRV1, STUN_SRV2} from "./consts";
 import devices from "../lib/devices";
-import { device1, device2 } from "../apps/Merkaz/device";
+import device1 from "../apps/Merkaz/device1";
+import device2 from "../apps/Merkaz/device2";
 
 export const randomString = (len) => {
     let charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -80,58 +81,34 @@ export const getDateString = (jsonDate) => {
     return dateString;
 };
 
-export const micVolume = (c, d) => {
-    if (!c) {
-        console.error(`Canvas for device ${d} is not available`);
-        return;
-    }
-    
-    try {
-        const canvas = c;
-        const ctx = canvas.getContext("2d");
-        
-        if (!ctx) {
-            console.error(`Could not get 2D context for device ${d} canvas`);
-            return;
+export const micVolume = (c,d) => {
+    let cc = c.getContext("2d");
+    let gradient = cc.createLinearGradient(0, 0, 0, 55);
+    gradient.addColorStop(1, "green");
+    gradient.addColorStop(0.35, "#80ff00");
+    gradient.addColorStop(0.10, "orange");
+    gradient.addColorStop(0, "red");
+    if(d === 1) {
+        device1.micLevel = (volume) => {
+            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            cc.clearRect(0, 0, c.width, c.height);
+            cc.fillStyle = gradient;
+            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
         }
-        
-        // Create a gradient for visualization
-        let gradient = ctx.createLinearGradient(0, 0, 0, 55);
-        gradient.addColorStop(1, "green");
-        gradient.addColorStop(0.35, "#80ff00");
-        gradient.addColorStop(0.10, "orange");
-        gradient.addColorStop(0, "red");
-        
-        // Use the same scaling factor for all devices
-        const volumeScale = 150;
-        
-        // Initial clear
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Create a dedicated callback for this specific canvas
-        const drawFunction = (volume) => {
-            try {
-                if (!canvas) return;
-                const context = canvas.getContext("2d");
-                context.clearRect(0, 0, canvas.width, canvas.height);
-                context.fillStyle = gradient;
-                context.fillRect(0, canvas.height - volume * volumeScale, canvas.width, canvas.height);
-            } catch (err) {
-                console.error(`Error updating meter for device ${d}:`, err);
-            }
-        };
-        
-        // Assign the callback to the appropriate device
-        console.log(`Setting up micLevel callback for device ${d}`);
-        if (d === 1) {
-            device1.micLevel = drawFunction;
-        } else if (d === 2) {
-            device2.micLevel = drawFunction;
-        } else {
-            devices.micLevel = drawFunction;
+    } else if(d === 2) {
+        device2.micLevel = (volume) => {
+            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            cc.clearRect(0, 0, c.width, c.height);
+            cc.fillStyle = gradient;
+            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
         }
-    } catch (err) {
-        console.error(`Error setting up micVolume for device ${d}:`, err);
+    } else {
+        devices.micLevel = (volume) => {
+            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            cc.clearRect(0, 0, c.width, c.height);
+            cc.fillStyle = gradient;
+            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+        }
     }
 }
 
