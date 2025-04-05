@@ -13,7 +13,7 @@ jobs:
     # Set environment based on the branch
     environment: ${{ github.ref == 'refs/heads/master' && 'dev' || 'prod' }}
     env:
-      NODE_VERSION: 22
+      NODE_VERSION: 23
     
     # Define a matrix of applications to build and deploy
     strategy:
@@ -32,16 +32,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: npm ci # install --legacy-peer-deps
 
       - name: env vars from dotenv
         run: |
