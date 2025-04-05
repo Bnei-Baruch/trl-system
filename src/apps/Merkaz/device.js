@@ -18,6 +18,7 @@ class LocalDevice {
     this.onMute = null
     this.audio_stream = null
     this.micLevel = null
+    this.node = null
   }
 
   init = async () => {
@@ -73,35 +74,56 @@ class LocalDevice {
 
   initMicLevel = async() => {
     if(!this.audio_stream) return
+    
+    // Clean up previous audio resources if they exist
+    this.cleanupAudioResources();
 
-    this.audio.context = new AudioContext()
-    log.debug(`[devices${this.deviceNumber}] AudioContext: `, this.audio.context)
-    await this.audio.context.audioWorklet.addModule(workerUrl)
-    let microphone = this.audio.context.createMediaStreamSource(this.audio_stream)
-    const node = new AudioWorkletNode(this.audio.context, 'volume_meter')
+    try {
+      // Create a new AudioContext
+      this.audio.context = new AudioContext();
+      log.debug(`[devices${this.deviceNumber}] AudioContext: `, this.audio.context);
+      
+      // Add the audio worklet
+      await this.audio.context.audioWorklet.addModule(workerUrl);
+      
+      // Create and connect the source
+      let microphone = this.audio.context.createMediaStreamSource(this.audio_stream);
+      this.node = new AudioWorkletNode(this.audio.context, 'volume_meter');
 
-    node.port.onmessage = event => {
-      let _volume = 0
-      let _rms = 0
-      let _dB = 0
-      let _muted = false
-
-      //log.debug(`[devices${this.deviceNumber}] mic level: `, event.data)
-
-      if (event.data.volume) {
-        _volume = event.data.volume
-        _rms = event.data.rms
-        _dB = event.data.dB
-        _muted = event.data.rms < LocalDevice.RMS_MUTE_THRESHOLD
+      this.node.port.onmessage = event => {
+        if (!event.data.volume) return;
+        
+        let _volume = event.data.volume;
+        let _rms = event.data.rms;
+        let _dB = event.data.dB;
+        let _muted = event.data.rms < LocalDevice.RMS_MUTE_THRESHOLD;
 
         if(typeof this.micLevel === "function")
-          this.micLevel(_volume)
+          this.micLevel(_volume);
         if(typeof this.onMute === "function")
-          this.onMute(_muted, event.data.rms)
+          this.onMute(_muted, event.data.rms);
+      };
+
+      // Connect the nodes
+      microphone.connect(this.node);
+    } catch (err) {
+      log.error(`[devices${this.deviceNumber}] Error initializing mic level:`, err);
+    }
+  };
+  
+  cleanupAudioResources = () => {
+    // Close any existing audio context
+    if (this.audio.context && this.audio.context.state !== 'closed') {
+      try {
+        this.audio.context.close();
+        log.debug(`[devices${this.deviceNumber}] Closed previous AudioContext`);
+      } catch (err) {
+        log.error(`[devices${this.deviceNumber}] Error closing AudioContext:`, err);
       }
     }
-
-    microphone.connect(node)
+    
+    // Reset node reference
+    this.node = null;
   };
 
   setAudioDevice = (device, cam_mute) => {
@@ -110,20 +132,17 @@ class LocalDevice {
         log.debug(`[devices${this.deviceNumber}] setAudioDevice: `, data);
         const [stream, error] = data;
         if (error) {
-          this.audio.error = error
+          this.audio.error = error;
           log.error(`[devices${this.deviceNumber}] setAudioDevice: `, error);
         } else {
           localStorage.setItem(`audio_device${this.deviceNumber}`, device);
           this.audio.stream = stream;
           this.audio.device = device;
-          this.audio_stream = stream.clone()
-          if (this.audio.context) {
-            this.audio.context.close();
-            this.initMicLevel()
-            // if(cam_mute) {
-            //   this.audio.context.suspend()
-            // }
-          }
+          this.audio_stream = stream.clone();
+          
+          // Clean up and reinitialize the audio processing
+          this.cleanupAudioResources();
+          this.initMicLevel();
         }
         return this.audio;
       });

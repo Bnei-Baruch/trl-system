@@ -80,42 +80,59 @@ export const getDateString = (jsonDate) => {
     return dateString;
 };
 
-export const micVolume = (c,d) => {
-    let cc = c.getContext("2d");
+export const micVolume = (c, d) => {
+    if (!c) {
+        console.error(`Canvas for device ${d} is not available`);
+        return;
+    }
+    
+    let cc;
+    try {
+        cc = c.getContext("2d");
+        if (!cc) {
+            console.error(`Could not get 2D context for device ${d} canvas`);
+            return;
+        }
+    } catch (err) {
+        console.error(`Error getting canvas context for device ${d}:`, err);
+        return;
+    }
+    
+    // Create a gradient for visualization
     let gradient = cc.createLinearGradient(0, 0, 0, 55);
     gradient.addColorStop(1, "green");
     gradient.addColorStop(0.35, "#80ff00");
     gradient.addColorStop(0.10, "orange");
     gradient.addColorStop(0, "red");
     
-    // Use the same scaling factor for both devices for consistent visualization
+    // Use the same scaling factor for all devices
     const volumeScale = 150;
     
+    // Create a helper function to draw the meter
+    const drawMeter = (volume) => {
+        // Check if canvas and context are still valid
+        if (!c || !cc) return;
+        
+        try {
+            cc.clearRect(0, 0, c.width, c.height);
+            cc.fillStyle = gradient;
+            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
+        } catch (err) {
+            console.error(`Error drawing meter for device ${d}:`, err);
+        }
+    };
+    
+    // Assign the drawing function to the appropriate device
     if(d === 1) {
-        device1.micLevel = (volume) => {
-            // Make sure canvas is valid before drawing
-            if (!c || !cc) return;
-            cc.clearRect(0, 0, c.width, c.height);
-            cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
-        }
+        device1.micLevel = drawMeter;
     } else if(d === 2) {
-        device2.micLevel = (volume) => {
-            // Make sure canvas is valid before drawing
-            if (!c || !cc) return;
-            cc.clearRect(0, 0, c.width, c.height);
-            cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
-        }
+        device2.micLevel = drawMeter;
     } else {
-        devices.micLevel = (volume) => {
-            // Make sure canvas is valid before drawing
-            if (!c || !cc) return;
-            cc.clearRect(0, 0, c.width, c.height);
-            cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
-        }
+        devices.micLevel = drawMeter;
     }
+    
+    // Initial clear
+    cc.clearRect(0, 0, c.width, c.height);
 }
 
 export const micLevel = (stream, canvas, cb) => {

@@ -494,27 +494,65 @@ class MqttMerkaz extends Component {
 
     micMute = (d) => {
         let {audiobridge1,audiobridge2,muted1,muted2,audio1,audio2} = this.state;
+        
         if(d === 1) {
-            if(muted1) {
-                audio1.stream.getAudioTracks()[0].enabled = true;
-                device1.audio.context.resume()
-            } else {
-                audio1.stream.getAudioTracks()[0].enabled = false;
-                device1.audio.context.suspend()
+            const newMutedState = !muted1;
+            
+            // Update track enabled state
+            if(audio1.stream && audio1.stream.getAudioTracks().length > 0) {
+                audio1.stream.getAudioTracks()[0].enabled = !newMutedState;
             }
-            audiobridge1.mute(!muted1);
-            this.setState({muted1: !muted1});
+            
+            // Update audio context state
+            if(device1.audio.context) {
+                try {
+                    if(newMutedState) {
+                        device1.audio.context.suspend();
+                    } else {
+                        device1.audio.context.resume();
+                    }
+                } catch(err) {
+                    console.error("Error updating audio context state for device 1:", err);
+                }
+            }
+            
+            // Update Janus audiobridge mute state
+            if(audiobridge1) {
+                audiobridge1.mute(newMutedState);
+            }
+            
+            // Update component state
+            this.setState({muted1: newMutedState});
         }
+        
         if(d === 2) {
-            if(muted2) {
-                audio2.stream.getAudioTracks()[0].enabled = true;
-                device2.audio.context.resume()
-            } else {
-                audio2.stream.getAudioTracks()[0].enabled = false;
-                device2.audio.context.suspend()
+            const newMutedState = !muted2;
+            
+            // Update track enabled state
+            if(audio2.stream && audio2.stream.getAudioTracks().length > 0) {
+                audio2.stream.getAudioTracks()[0].enabled = !newMutedState;
             }
-            audiobridge2.mute(!muted2);
-            this.setState({muted2: !muted2});
+            
+            // Update audio context state
+            if(device2.audio.context) {
+                try {
+                    if(newMutedState) {
+                        device2.audio.context.suspend();
+                    } else {
+                        device2.audio.context.resume();
+                    }
+                } catch(err) {
+                    console.error("Error updating audio context state for device 2:", err);
+                }
+            }
+            
+            // Update Janus audiobridge mute state
+            if(audiobridge2) {
+                audiobridge2.mute(newMutedState);
+            }
+            
+            // Update component state
+            this.setState({muted2: newMutedState});
         }
     };
 
