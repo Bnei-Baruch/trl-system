@@ -43,6 +43,11 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: env vars from dotenv
+        run: echo "${{ vars.DOT_ENV_VARS }}" > .env
+        # env:
+        #   DOT_ENV_VARS: ${{ vars.DOT_ENV_VARS }}
+
       # Build the specific application from the matrix
       - name: Build ${{ matrix.app }}
         run: npm run build:$(echo "${{ matrix.app }}" | tr '[:upper:]' '[:lower:]')
@@ -54,11 +59,29 @@ jobs:
           echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
       
-      # Deploy the application
-      - name: Deploy ${{ matrix.app }}
-        run: |
-          echo "Deploying ${{ matrix.app }} to ${{ github.ref == 'refs/heads/master' && 'dev' || 'prod' }} environment"
-          scp -o StrictHostKeyChecking=no -r build/* ${{ vars.DEPLOY_SERVER_USER }}@${{ vars.DEPLOY_SERVER_ADDR }}:${{ vars.DEPLOY_SERVER_DIR }}/${{ matrix.app }}/
+      # Prepare build archive
+      - name: Prepare build archive
+        run: tar -czf build.tar.gz -C build .
+      
+      # Delete previous backups on remote
+      - name: Delete previous backup
+        run: ssh -o StrictHostKeyChecking=no ${{ vars.DEPLOY_SERVER_USER }}@${{ vars.DEPLOY_SERVER_ADDR }} "cd ${{ vars.DEPLOY_SERVER_DIR }}/ && rm -rf ${{ matrix.app }}.bak"
+      
+      # Backup current deployment
+      - name: Backup current deployment
+        run: ssh -o StrictHostKeyChecking=no ${{ vars.DEPLOY_SERVER_USER }}@${{ vars.DEPLOY_SERVER_ADDR }} "cd ${{ vars.DEPLOY_SERVER_DIR }}/ && [ -d ${{ matrix.app }} ] && mv ${{ matrix.app }} ${{ matrix.app }}.bak || echo 'No previous deployment to backup'"
+      
+      # Create directory for new deployment
+      - name: Create deployment directory
+        run: ssh -o StrictHostKeyChecking=no ${{ vars.DEPLOY_SERVER_USER }}@${{ vars.DEPLOY_SERVER_ADDR }} "mkdir -p ${{ vars.DEPLOY_SERVER_DIR }}/${{ matrix.app }}"
+      
+      # Upload build archive
+      - name: Upload build archive
+        run: scp -o StrictHostKeyChecking=no build.tar.gz ${{ vars.DEPLOY_SERVER_USER }}@${{ vars.DEPLOY_SERVER_ADDR }}:${{ vars.DEPLOY_SERVER_DIR }}/${{ matrix.app }}/
+      
+      # Extract build archive
+      - name: Extract build archive
+        run: ssh -o StrictHostKeyChecking=no ${{ vars.DEPLOY_SERVER_USER }}@${{ vars.DEPLOY_SERVER_ADDR }} "cd ${{ vars.DEPLOY_SERVER_DIR }}/${{ matrix.app }}/ && tar -xzf build.tar.gz && rm build.tar.gz"
       
       # Cleanup SSH key
       - name: Cleanup SSH key
