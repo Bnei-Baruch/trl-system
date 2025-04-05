@@ -186,33 +186,41 @@ class MqttMerkaz extends Component {
 
     initDevices = () => {
         if(this.state.init_devices) return
+        
+        // Initialize device1
         device1.init().then(audio => {
-            log.info("[client] init devices: ", audio);
+            log.info("[client] init device1: ", audio);
             if (audio.error) {
-                console.error(audio.error)
-                alert("audio device not detected");
+                console.error("Device 1 error:", audio.error)
+                alert("Audio device 1 not detected");
             }
             if (audio.stream) {
                 let myaudio = this.refs.localAudio1;
                 if (myaudio) myaudio.srcObject = audio.stream;
-                if(this.refs?.canvas1) micVolume(this.refs.canvas1,1)
-                this.setState({audio1: audio, init_devices: true, delay: false})
+                if(this.refs?.canvas1) micVolume(this.refs.canvas1, 1)
+                this.setState({audio1: audio, delay: false})
             }
         })
+        
+        // Initialize device2
         device2.init().then(audio => {
-            log.info("[client] init devices: ", audio);
+            log.info("[client] init device2: ", audio);
             if (audio.error) {
-                console.error(audio.error)
-                alert("audio device not detected");
+                console.error("Device 2 error:", audio.error)
+                alert("Audio device 2 not detected");
             }
             if (audio.stream) {
                 let myaudio = this.refs.localAudio2;
                 if (myaudio) myaudio.srcObject = audio.stream;
-                if(this.refs?.canvas2) micVolume(this.refs.canvas2,2)
-                this.setState({audio2: audio, init_devices: true, delay: false})
+                if(this.refs?.canvas2) micVolume(this.refs.canvas2, 2)
+                this.setState({audio2: audio, delay: false})
             }
+            
+            // Only set init_devices to true after both have been initialized
+            this.setState({init_devices: true})
         })
         
+        // Set up device event handlers
         device1.onMute = (muted, rms) => this.handleMicMute(1, muted, rms);
         device2.onMute = (muted, rms) => this.handleMicMute(2, muted, rms);
         
@@ -617,7 +625,7 @@ class MqttMerkaz extends Component {
                             <div className="vclient__toolbar">
                                 <Menu icon='labeled' secondary size="massive" floated='right'>
                                     <Menu.Item disabled={!mystream} onClick={() => this.micMute(1)} className="mute-button">
-                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="35" height="35" />
+                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
                                         <Icon color={muted1 ? "red" : ""} name={!muted1 ? "microphone" : "microphone slash"} />
                                         {!muted1 ? "ON" : "OFF"}
                                     </Menu.Item>

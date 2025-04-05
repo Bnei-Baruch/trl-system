@@ -30,7 +30,7 @@ class LocalDevice {
     this.audio.device = !!storage_audio ? storage_audio : null;
     [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
-    console.log(devices)
+    console.log(`Device ${this.deviceNumber} init:`, devices);
     this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
     this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
 
@@ -46,19 +46,19 @@ class LocalDevice {
       if(e.timeStamp - ts < 1000) return
       ts = e.timeStamp
       devices = await navigator.mediaDevices.enumerateDevices();
-      log.debug("[devices] devices list refreshed: ", devices);
+      log.debug(`[devices${this.deviceNumber}] devices list refreshed: `, devices);
       this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
       this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
       // Refresh audio devices list
       let storage_audio = localStorage.getItem(`audio_device${this.deviceNumber}`);
-      let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
-      let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
+      let isSavedAudio = this.audio.devices.in.find(d => d.deviceId === storage_audio);
+      let default_audio = this.audio.devices.in.length > 0 ? this.audio.devices.in[0].deviceId : null;
       this.audio.device = isSavedAudio ? storage_audio : default_audio;
 
       if(typeof this.onChange === "function") this.onChange(this.audio)
     }
 
-    log.debug("[devices] init: ", this)
+    log.debug(`[devices${this.deviceNumber}] init: `, this)
     return this.audio;
   };
 
@@ -75,7 +75,7 @@ class LocalDevice {
     if(!this.audio_stream) return
 
     this.audio.context = new AudioContext()
-    log.debug("[devices] AudioContext: ", this.audio.context)
+    log.debug(`[devices${this.deviceNumber}] AudioContext: `, this.audio.context)
     await this.audio.context.audioWorklet.addModule(workerUrl)
     let microphone = this.audio.context.createMediaStreamSource(this.audio_stream)
     const node = new AudioWorkletNode(this.audio.context, 'volume_meter')
@@ -86,7 +86,7 @@ class LocalDevice {
       let _dB = 0
       let _muted = false
 
-      //log.debug('[devices] mic level: ', event.data)
+      //log.debug(`[devices${this.deviceNumber}] mic level: `, event.data)
 
       if (event.data.volume) {
         _volume = event.data.volume
@@ -107,11 +107,11 @@ class LocalDevice {
   setAudioDevice = (device, cam_mute) => {
     return this.getMediaStream(device)
       .then((data) => {
-        log.debug("[devices] setAudioDevice: ", data);
+        log.debug(`[devices${this.deviceNumber}] setAudioDevice: `, data);
         const [stream, error] = data;
         if (error) {
           this.audio.error = error
-          log.error("[devices] setAudioDevice: ", error);
+          log.error(`[devices${this.deviceNumber}] setAudioDevice: `, error);
         } else {
           localStorage.setItem(`audio_device${this.deviceNumber}`, device);
           this.audio.stream = stream;

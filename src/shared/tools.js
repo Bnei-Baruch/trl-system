@@ -87,26 +87,33 @@ export const micVolume = (c,d) => {
     gradient.addColorStop(0.35, "#80ff00");
     gradient.addColorStop(0.10, "orange");
     gradient.addColorStop(0, "red");
+    
+    // Use the same scaling factor for both devices for consistent visualization
+    const volumeScale = 150;
+    
     if(d === 1) {
         device1.micLevel = (volume) => {
-            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            // Make sure canvas is valid before drawing
+            if (!c || !cc) return;
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
+            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
         }
     } else if(d === 2) {
         device2.micLevel = (volume) => {
-            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            // Make sure canvas is valid before drawing
+            if (!c || !cc) return;
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
+            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
         }
     } else {
         devices.micLevel = (volume) => {
-            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
+            // Make sure canvas is valid before drawing
+            if (!c || !cc) return;
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
+            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
         }
     }
 }
