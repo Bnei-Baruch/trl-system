@@ -66,9 +66,7 @@ class MqttMerkaz extends Component {
         selftest: "Mic Test",
         tested: false,
         video: false,
-        init_devices: false,
-        rms1: 0,
-        rms2: 0
+        init_devices: false
     };
 
     checkPermission = (user) => {
@@ -213,10 +211,20 @@ class MqttMerkaz extends Component {
                 this.setState({audio2: audio, init_devices: true, delay: false})
             }
         })
-        
-        device1.onMute = (muted, rms) => this.handleMicMute(1, muted, rms);
-        device2.onMute = (muted, rms) => this.handleMicMute(2, muted, rms);
-        
+        device1.onMute = ((muted, rms) => {
+            const {muted1} = this.state;
+            if(muted1 !== muted) {
+                log.info("MIC1 - muted: " + muted + " rms: " + rms)
+                this.setState({muted1: muted})
+            }
+        })
+        device2.onMute = ((muted, rms) => {
+            const {muted2} = this.state;
+            if(muted2 !== muted) {
+                log.info("MIC2 - muted: " + muted + " rms: " + rms)
+                this.setState({muted2: muted})
+            }
+        })
         // devices.onChange = (audio) => {
         //     setTimeout(() => {
         //         if(audio.device) {
@@ -227,28 +235,6 @@ class MqttMerkaz extends Component {
         //         }
         //     }, 1000)
         // }
-    };
-
-    handleMicMute = (micNumber, muted, rms) => {
-        // Get property names based on mic number
-        const mutedProp = `muted${micNumber}`;
-        const rmsProp = `rms${micNumber}`;
-        
-        // Get current value
-        const prevMuted = this.state[mutedProp];
-        
-        // Create state update object dynamically
-        const stateUpdate = {
-            [rmsProp]: rms,
-            [mutedProp]: muted  // Note: muted flag is set when rms < 0.000006 in device1/2.js
-        };
-        
-        this.setState(stateUpdate);
-        
-        // Log if mute state changed
-        if (prevMuted !== muted) {
-            log.info(`MIC${micNumber} - ${muted ? "muted" : "unmuted"} (rms=${rms})`);
-        }
     };
 
     setDevice = (device, c, io) => {
@@ -487,7 +473,6 @@ class MqttMerkaz extends Component {
 
     micMute = (d) => {
         let {audiobridge1,audiobridge2,muted1,muted2,audio1,audio2} = this.state;
-        
         if(d === 1) {
             if(muted1) {
                 audio1.stream.getAudioTracks()[0].enabled = true;
@@ -619,7 +604,7 @@ class MqttMerkaz extends Component {
                             <div className="vclient__toolbar">
                                 <Menu icon='labeled' secondary size="massive" floated='right'>
                                     <Menu.Item disabled={!mystream} onClick={() => this.micMute(1)} className="mute-button">
-                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="35" height="35" />
                                         <Icon color={muted1 ? "red" : ""} name={!muted1 ? "microphone" : "microphone slash"} />
                                         {!muted1 ? "ON" : "OFF"}
                                     </Menu.Item>

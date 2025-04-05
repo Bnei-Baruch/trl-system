@@ -2,11 +2,7 @@ import workerUrl from 'worker-plugin/loader!./volmeter-processor';
 import log from "loglevel";
 
 class LocalDevice1 {
-  // Class constants
-  static RMS_MUTE_THRESHOLD = 0.000006;
-  
   constructor() {
-    this.deviceNumber = 1;
     this.audio = {
         context: null,
         device: null,
@@ -23,8 +19,10 @@ class LocalDevice1 {
   init = async () => {
     let devices = [], ts = 0;
 
+    //TODO: Translate exceptions - https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions
+
     // Check saved devices in local storage
-    let storage_audio = localStorage.getItem(`audio_device1`);
+    let storage_audio = localStorage.getItem("audio_device1");
     this.audio.device = !!storage_audio ? storage_audio : null;
     [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
@@ -44,19 +42,19 @@ class LocalDevice1 {
       if(e.timeStamp - ts < 1000) return
       ts = e.timeStamp
       devices = await navigator.mediaDevices.enumerateDevices();
-      log.debug("[device1] devices list refreshed: ", devices);
+      log.debug("[devices] devices list refreshed: ", devices);
       this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
       this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
       // Refresh audio devices list
-      let storage_audio = localStorage.getItem(`audio_device1`);
-      let isSavedAudio = this.audio.devices.in.find(d => d.deviceId === storage_audio)
-      let default_audio = this.audio.devices.in.length > 0 ? this.audio.devices.in[0].deviceId : null;
+      let storage_audio = localStorage.getItem("audio_device1");
+      let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
+      let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
       this.audio.device = isSavedAudio ? storage_audio : default_audio;
 
       if(typeof this.onChange === "function") this.onChange(this.audio)
     }
 
-    log.debug("[device1] init: ", this)
+    log.debug("[devices] init: ", this)
     return this.audio;
   };
 
@@ -73,7 +71,7 @@ class LocalDevice1 {
     if(!this.audio_stream) return
 
     this.audio.context = new AudioContext()
-    log.debug("[device1] AudioContext: ", this.audio.context)
+    log.debug("[devices] AudioContext: ", this.audio.context)
     await this.audio.context.audioWorklet.addModule(workerUrl)
     let microphone = this.audio.context.createMediaStreamSource(this.audio_stream)
     const node = new AudioWorkletNode(this.audio.context, 'volume_meter')
@@ -84,13 +82,13 @@ class LocalDevice1 {
       let _dB = 0
       let _muted = false
 
-      //log.debug('[device1] mic level: ', event.data)
+      //log.debug('[devices] mic level: ', event.data)
 
       if (event.data.volume) {
         _volume = event.data.volume
         _rms = event.data.rms
         _dB = event.data.dB
-        _muted = event.data.rms < LocalDevice1.RMS_MUTE_THRESHOLD
+        _muted = event.data.rms < 0.000006
 
         if(typeof this.micLevel === "function")
           this.micLevel(_volume)
@@ -105,13 +103,13 @@ class LocalDevice1 {
   setAudioDevice = (device, cam_mute) => {
     return this.getMediaStream(device)
       .then((data) => {
-        log.debug("[device1] setAudioDevice: ", data);
+        log.debug("[devices] setAudioDevice: ", data);
         const [stream, error] = data;
         if (error) {
           this.audio.error = error
-          log.error("[device1] setAudioDevice: ", error);
+          log.error("[devices] setAudioDevice: ", error);
         } else {
-          localStorage.setItem(`audio_device1`, device);
+          localStorage.setItem("audio_device1", device);
           this.audio.stream = stream;
           this.audio.device = device;
           this.audio_stream = stream.clone()
@@ -126,7 +124,9 @@ class LocalDevice1 {
         return this.audio;
       });
   };
+
 }
 
-const device1 = new LocalDevice1();
-export default device1; 
+const defaultDevices = new LocalDevice1();
+
+export default defaultDevices;
