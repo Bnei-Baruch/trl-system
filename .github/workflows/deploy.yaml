@@ -20,7 +20,7 @@ jobs:
       matrix:
         app: [
         #   'MqttMerkaz',
-          'MqttClient',
+          'MqttClient'
         #   'HttpClient',
         #   'MqttAdmin',
         #   'HttpAdmin',
@@ -44,7 +44,9 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: env vars from dotenv
-        run: echo "${{ vars.DOT_ENV_VARS }}" > .env
+        run: |
+          echo "${{ vars.DOT_ENV_VARS }}" > .env
+          echo "environment: ${{ vars.environment }}"
         # env:
         #   DOT_ENV_VARS: ${{ vars.DOT_ENV_VARS }}
 
