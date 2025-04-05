@@ -185,55 +185,67 @@ class MqttMerkaz extends Component {
     }
 
     initDevices = () => {
-        if(this.state.init_devices) return
+        if(this.state.init_devices) return;
         
-        // Initialize device1
-        device1.init().then(audio => {
-            log.info("[client] init device1: ", audio);
-            if (audio.error) {
-                console.error("Device 1 error:", audio.error)
-                alert("Audio device 1 not detected");
-            }
-            if (audio.stream) {
-                let myaudio = this.refs.localAudio1;
-                if (myaudio) myaudio.srcObject = audio.stream;
-                if(this.refs?.canvas1) micVolume(this.refs.canvas1, 1)
-                this.setState({audio1: audio, delay: false})
-            }
-        })
+        this.setState({init_devices: true});
         
-        // Initialize device2
-        device2.init().then(audio => {
-            log.info("[client] init device2: ", audio);
-            if (audio.error) {
-                console.error("Device 2 error:", audio.error)
-                alert("Audio device 2 not detected");
-            }
-            if (audio.stream) {
-                let myaudio = this.refs.localAudio2;
-                if (myaudio) myaudio.srcObject = audio.stream;
-                if(this.refs?.canvas2) micVolume(this.refs.canvas2, 2)
-                this.setState({audio2: audio, delay: false})
-            }
+        // Create empty canvases first to ensure they're in the DOM
+        setTimeout(() => {
+            // Initialize device1
+            device1.init().then(audio => {
+                log.info("[client] init device1: ", audio);
+                if (audio.error) {
+                    console.error("Device 1 error:", audio.error);
+                    alert("Audio device 1 not detected");
+                }
+                if (audio.stream) {
+                    let myaudio = this.refs.localAudio1;
+                    if (myaudio) myaudio.srcObject = audio.stream;
+                    
+                    // Set state first, then init micVolume after render
+                    this.setState({audio1: audio, delay: false}, () => {
+                        if(this.refs.canvas1) {
+                            // Reset any existing callbacks
+                            device1.micLevel = null;
+                            setTimeout(() => {
+                                micVolume(this.refs.canvas1, 1);
+                            }, 100);
+                        }
+                    });
+                }
+            });
             
-            // Only set init_devices to true after both have been initialized
-            this.setState({init_devices: true})
-        })
+            // Delay device2 initialization
+            setTimeout(() => {
+                // Initialize device2
+                device2.init().then(audio => {
+                    log.info("[client] init device2: ", audio);
+                    if (audio.error) {
+                        console.error("Device 2 error:", audio.error);
+                        alert("Audio device 2 not detected");
+                    }
+                    if (audio.stream) {
+                        let myaudio = this.refs.localAudio2;
+                        if (myaudio) myaudio.srcObject = audio.stream;
+                        
+                        // Set state first, then init micVolume after render
+                        this.setState({audio2: audio, delay: false}, () => {
+                            if(this.refs.canvas2) {
+                                // Reset any existing callbacks
+                                device2.micLevel = null;
+                                setTimeout(() => {
+                                    micVolume(this.refs.canvas2, 2);
+                                }, 100);
+                            }
+                        });
+                    }
+                });
+            }, 500); // Delay device2 initialization by 500ms
+        }, 100);
         
         // Set up device event handlers
         device1.onMute = (muted, rms) => this.handleMicMute(1, muted, rms);
         device2.onMute = (muted, rms) => this.handleMicMute(2, muted, rms);
-        
-        // devices.onChange = (audio) => {
-        //     setTimeout(() => {
-        //         if(audio.device) {
-        //             this.setDevice(audio.device)
-        //         } else {
-        //             log.warn("[client] No left audio devices")
-        //             //FIXME: remove it from pc?
-        //         }
-        //     }, 1000)
-        // }
     };
 
     handleMicMute = (micNumber, muted, rms) => {
@@ -263,28 +275,42 @@ class MqttMerkaz extends Component {
             if(c === 1) {
                 device1.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
-                        this.setState({audio1: audio});
+                        this.setState({audio1: audio}, () => {
+                            // Re-initialize the visualization after state update
+                            if(this.refs?.canvas1) {
+                                setTimeout(() => {
+                                    micVolume(this.refs.canvas1, 1);
+                                }, 100);
+                            }
+                        });
+                        
                         const {audiobridge, mystream} = this.state;
-                        micVolume(this.refs.canvas1,1)
                         if (audiobridge && mystream) {
                             audio.stream.getAudioTracks()[0].enabled = false;
                             audiobridge.audio(audio.stream)
                         }
                     }
-                })
+                });
             }
             if(c === 2) {
                 device2.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
-                        this.setState({audio2: audio});
+                        this.setState({audio2: audio}, () => {
+                            // Re-initialize the visualization after state update
+                            if(this.refs?.canvas2) {
+                                setTimeout(() => {
+                                    micVolume(this.refs.canvas2, 2);
+                                }, 100);
+                            }
+                        });
+                        
                         const {audiobridge, mystream} = this.state;
-                        micVolume(this.refs.canvas2,2)
                         if (audiobridge && mystream) {
                             audio.stream.getAudioTracks()[0].enabled = false;
                             audiobridge.audio(audio.stream)
                         }
                     }
-                })
+                });
             }
         }
         if(io === "out") {

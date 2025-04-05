@@ -86,10 +86,13 @@ export const micVolume = (c, d) => {
         return;
     }
     
-    let cc;
+    // Store the canvas element in a closure for this device
+    const canvasElement = c;
+    let canvasCtx;
+    
     try {
-        cc = c.getContext("2d");
-        if (!cc) {
+        canvasCtx = canvasElement.getContext("2d");
+        if (!canvasCtx) {
             console.error(`Could not get 2D context for device ${d} canvas`);
             return;
         }
@@ -99,7 +102,7 @@ export const micVolume = (c, d) => {
     }
     
     // Create a gradient for visualization
-    let gradient = cc.createLinearGradient(0, 0, 0, 55);
+    let gradient = canvasCtx.createLinearGradient(0, 0, 0, 55);
     gradient.addColorStop(1, "green");
     gradient.addColorStop(0.35, "#80ff00");
     gradient.addColorStop(0.10, "orange");
@@ -108,21 +111,27 @@ export const micVolume = (c, d) => {
     // Use the same scaling factor for all devices
     const volumeScale = 150;
     
-    // Create a helper function to draw the meter
+    // Initial clear
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    
+    // Create a helper function to draw the meter for this specific device
     const drawMeter = (volume) => {
-        // Check if canvas and context are still valid
-        if (!c || !cc) return;
-        
+        // We're using a specific canvas context captured in closure
+        // so no need to check canvas validity each time
         try {
-            cc.clearRect(0, 0, c.width, c.height);
-            cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * volumeScale, c.width, c.height);
+            // Get latest context in case the canvas was replaced
+            const ctx = canvasElement.getContext("2d");
+            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, canvasElement.height - volume * volumeScale, canvasElement.width, canvasElement.height);
         } catch (err) {
             console.error(`Error drawing meter for device ${d}:`, err);
         }
     };
     
     // Assign the drawing function to the appropriate device
+    console.log(`Setting up micLevel callback for device ${d}`);
+    
     if(d === 1) {
         device1.micLevel = drawMeter;
     } else if(d === 2) {
@@ -130,9 +139,6 @@ export const micVolume = (c, d) => {
     } else {
         devices.micLevel = drawMeter;
     }
-    
-    // Initial clear
-    cc.clearRect(0, 0, c.width, c.height);
 }
 
 export const micLevel = (stream, canvas, cb) => {
