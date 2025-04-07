@@ -3,8 +3,9 @@ import log from "loglevel";
 import mqtt from "../../shared/mqtt";
 import device1 from "./device1";
 import device2 from "./device2";
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Label, Modal, Grid} from "semantic-ui-react";
-import {geoInfo, checkNotification, testMic, micVolume, cloneTrl} from "../../shared/tools";
+import { Button, Badge, Group, Modal, ActionIcon, Paper, Stack, Popover, Select, Alert, Text, Grid, SimpleGrid, Container } from '@mantine/core';
+import { IconMicrophone, IconMicrophoneOff, IconPlug, IconPower, IconBook, IconHeadphones, IconLogin, IconLogout, IconInfoCircle } from '@tabler/icons-react';
+import {geoInfo, checkNotification, testMic, micVolume, cloneTrl, setupLogCapture} from "../../shared/tools";
 import './Client.scss'
 import {audios_options, lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
@@ -66,7 +67,8 @@ class MqttMerkaz extends Component {
         selftest: "Mic Test",
         tested: false,
         video: false,
-        init_devices: false
+        init_devices: false,
+        studyModalOpen: false
     };
 
     checkPermission = (user) => {
@@ -84,11 +86,74 @@ class MqttMerkaz extends Component {
 
     componentWillUnmount() {
         document.removeEventListener("keydown", this.onKeyPressed);
+        window.removeEventListener('resize', this.initVolumeMeter);
         this.state.janus.destroy();
     };
 
     componentDidMount() {
         document.addEventListener("keydown", this.onKeyPressed);
+        setupLogCapture();
+        
+        // Improved initialization for volume meters
+        const initVolumeMeter = () => {
+            if (this.refs?.canvas1) {
+                const container = this.refs.canvas1.parentElement;
+                if (container) {
+                    // Set canvas dimensions to match container width
+                    this.refs.canvas1.width = container.clientWidth;
+                }
+                
+                // Force clear the canvas first
+                const ctx1 = this.refs.canvas1.getContext('2d');
+                ctx1.clearRect(0, 0, this.refs.canvas1.width, this.refs.canvas1.height);
+                
+                // Initialize the volume meter
+                micVolume(this.refs.canvas1, 1);
+                
+                // Ensure audio context is initialized if available
+                if (device1.audio && device1.audio.context) {
+                    device1.initMicLevel();
+                }
+            }
+            
+            if (this.refs?.canvas2) {
+                const container = this.refs.canvas2.parentElement;
+                if (container) {
+                    // Set canvas dimensions to match container width
+                    this.refs.canvas2.width = container.clientWidth;
+                }
+                
+                // Force clear the canvas first
+                const ctx2 = this.refs.canvas2.getContext('2d');
+                ctx2.clearRect(0, 0, this.refs.canvas2.width, this.refs.canvas2.height);
+                
+                // Initialize the volume meter
+                micVolume(this.refs.canvas2, 2);
+                
+                // Ensure audio context is initialized if available
+                if (device2.audio && device2.audio.context) {
+                    device2.initMicLevel();
+                }
+            }
+            
+            console.log("Volume meters initialized");
+        };
+        
+        // Initial setup
+        initVolumeMeter();
+        
+        // Make multiple attempts to initialize, as sometimes the canvases may not be ready immediately
+        setTimeout(initVolumeMeter, 500);
+        setTimeout(initVolumeMeter, 1000);
+        setTimeout(initVolumeMeter, 2000);
+        
+        // Re-initialize after device configuration if needed
+        if (this.state.init_devices) {
+            this.initDevices();
+        }
+        
+        // Handle window resize to adjust canvas dimensions
+        window.addEventListener('resize', initVolumeMeter);
     };
 
     onKeyPressed = (e) => {
@@ -194,7 +259,19 @@ class MqttMerkaz extends Component {
             if (audio.stream) {
                 let myaudio = this.refs.localAudio1;
                 if (myaudio) myaudio.srcObject = audio.stream;
-                if(this.refs?.canvas1) micVolume(this.refs.canvas1,1)
+                if(this.refs?.canvas1) {
+                    micVolume(this.refs.canvas1, 1);
+                    // Ensure audio context is active
+                    device1.initMicLevel();
+                    // Reset the mute callback
+                    device1.onMute = ((muted, rms) => {
+                        const {muted1} = this.state;
+                        if(muted1 !== muted) {
+                            log.info("MIC1 - muted: " + muted + " rms: " + rms);
+                            this.setState({muted1: muted});
+                        }
+                    });
+                }
                 this.setState({audio1: audio, init_devices: true, delay: false})
             }
         })
@@ -207,34 +284,22 @@ class MqttMerkaz extends Component {
             if (audio.stream) {
                 let myaudio = this.refs.localAudio2;
                 if (myaudio) myaudio.srcObject = audio.stream;
-                if(this.refs?.canvas2) micVolume(this.refs.canvas2,2)
+                if(this.refs?.canvas2) {
+                    micVolume(this.refs.canvas2, 2);
+                    // Ensure audio context is active
+                    device2.initMicLevel();
+                    // Reset the mute callback
+                    device2.onMute = ((muted, rms) => {
+                        const {muted2} = this.state;
+                        if(muted2 !== muted) {
+                            log.info("MIC2 - muted: " + muted + " rms: " + rms);
+                            this.setState({muted2: muted});
+                        }
+                    });
+                }
                 this.setState({audio2: audio, init_devices: true, delay: false})
             }
         })
-        device1.onMute = ((muted, rms) => {
-            const {muted1} = this.state;
-            if(muted1 !== muted) {
-                log.info("MIC1 - muted: " + muted + " rms: " + rms)
-                this.setState({muted1: muted})
-            }
-        })
-        device2.onMute = ((muted, rms) => {
-            const {muted2} = this.state;
-            if(muted2 !== muted) {
-                log.info("MIC2 - muted: " + muted + " rms: " + rms)
-                this.setState({muted2: muted})
-            }
-        })
-        // devices.onChange = (audio) => {
-        //     setTimeout(() => {
-        //         if(audio.device) {
-        //             this.setDevice(audio.device)
-        //         } else {
-        //             log.warn("[client] No left audio devices")
-        //             //FIXME: remove it from pc?
-        //         }
-        //     }, 1000)
-        // }
     };
 
     setDevice = (device, c, io) => {
@@ -243,27 +308,33 @@ class MqttMerkaz extends Component {
                 device1.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
                         this.setState({audio1: audio});
-                        const {audiobridge, mystream} = this.state;
-                        micVolume(this.refs.canvas1,1)
-                        if (audiobridge && mystream) {
+                        const {audiobridge1, mystream} = this.state;
+                        if(this.refs?.canvas1) {
+                            micVolume(this.refs.canvas1, 1);
+                            device1.initMicLevel();
+                        }
+                        if (audiobridge1 && mystream) {
                             audio.stream.getAudioTracks()[0].enabled = false;
-                            audiobridge.audio(audio.stream)
+                            audiobridge1.audio(audio.stream);
                         }
                     }
-                })
+                });
             }
             if(c === 2) {
                 device2.setAudioDevice(device, c).then(audio => {
                     if(audio.device) {
                         this.setState({audio2: audio});
-                        const {audiobridge, mystream} = this.state;
-                        micVolume(this.refs.canvas2,2)
-                        if (audiobridge && mystream) {
+                        const {audiobridge2, mystream} = this.state;
+                        if(this.refs?.canvas2) {
+                            micVolume(this.refs.canvas2, 2);
+                            device2.initMicLevel();
+                        }
+                        if (audiobridge2 && mystream) {
                             audio.stream.getAudioTracks()[0].enabled = false;
-                            audiobridge.audio(audio.stream)
+                            audiobridge2.audio(audio.stream);
                         }
                     }
-                })
+                });
             }
         }
         if(io === "out") {
@@ -527,177 +598,254 @@ class MqttMerkaz extends Component {
     };
 
     setTrlVolume = (value, trl) => {
-        window["trl"+trl].volume = value;
+        try { const audioEl = window["trl"+trl]; if(audioEl) { audioEl.volume = value; } } catch(e) { console.warn("Audio element not ready"); }
     };
 
     muteTrl = (trl) => {
         if(trl === 1) {
             const {trl_muted1} = this.state;
             this.setState({trl_muted1: !trl_muted1});
-            window["trl"+trl].muted = !trl_muted1;
+            try { const audioEl = window["trl"+trl]; if(audioEl) { audioEl.muted = !trl_muted1; } } catch(e) {}
         }
         if(trl === 2) {
             const {trl_muted2} = this.state;
             this.setState({trl_muted2: !trl_muted2});
-            window["trl"+trl].muted = !trl_muted2;
+            try { const audioEl = window["trl"+trl]; if(audioEl) { audioEl.muted = !trl_muted2; } } catch(e) {}
         }
-        console.log(window["trl"+trl])
+        // Safely handled
     };
 
+    toggleStudyModal = () => {
+        this.setState({ studyModalOpen: !this.state.studyModalOpen });
+    };
 
     render() {
 
-        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,user,video,janus} = this.state;
+        const {feeds, room, audio1, audio2, audios1, audios2, i, muted1, muted2, delay,
+               mystream, selected_room, audio1_out, audio2_out, trl_stream, user,
+               video, janus, studyModalOpen} = this.state;
         const autoPlay = true;
         const controls = false;
 
         let adevice1_list_in = audio1.devices.in.map((device,i) => {
             const {label, deviceId} = device;
-            return ({ key: i, text: label, value: deviceId})
+            return ({ value: deviceId, label: label });
         });
 
         let adevice2_list_in = audio2.devices.in.map((device,i) => {
             const {label, deviceId} = device;
-            return ({ key: i, text: label, value: deviceId})
+            return ({ value: deviceId, label: label });
         });
 
         let adevice1_list_out = audio1.devices.out.map((device,i) => {
             const {label, deviceId} = device;
-            return ({ key: i, text: label, value: deviceId})
+            return ({ value: deviceId, label: label });
         });
 
         let adevice2_list_out = audio2.devices.out.map((device,i) => {
             const {label, deviceId} = device;
-            return ({ key: i, text: label, value: deviceId})
+            return ({ value: deviceId, label: label });
         });
+
+        // Format the langs_list for Mantine Select
+        const langs_options = langs_list.map((lang, index) => ({
+            value: index.toString(),
+            label: lang.text
+        }));
 
         const list = Object.values(feeds).map((feed,i) => {
             if(feed) {
-                const {muted, display: {rfid, role, name}} = feed
-                return (<Message key={rfid} className='trl_name'
-                                 attached={i === feeds.length-1 ? 'bottom' : true} warning
-                                 color={!muted ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
+                const {muted, display: {rfid, role, name}} = feed;
+                let color = !muted ? 'green' : role === "user" ? 'red' : 'blue';
+                return (
+                    <Text key={rfid} color={color} weight="bold" size="md">
+                        {name}
+                    </Text>
+                );
             }
-            return true;
-        });
+            return null;
+        }).filter(item => item !== null);
 
         let login = (<LoginPage user={user} checkPermission={this.checkPermission} />);
 
         let content = (
             <div className="vclient" >
-                <Grid centered>
-
-                    {/*<Grid.Row stretched>*/}
-                    {/*    <Grid.Column width={2}>*/}
-
-                    {/*    </Grid.Column>*/}
-                    {/*    <Grid.Column width={10}>*/}
-
-                    {/*    </Grid.Column>*/}
-                    {/*    <Grid.Column width={2}>*/}
-
-                    {/*    </Grid.Column>*/}
-                    {/*</Grid.Row>*/}
-
-                    <Grid.Row stretched>
-                        <Grid.Column width={2}>
-                            <div className="vclient__toolbar">
-                                <Menu icon='labeled' secondary size="massive" floated='right'>
-                                    <Menu.Item disabled={!mystream} onClick={() => this.micMute(1)} className="mute-button">
-                                        <canvas className={muted1 ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="35" height="35" />
-                                        <Icon color={muted1 ? "red" : ""} name={!muted1 ? "microphone" : "microphone slash"} />
-                                        {!muted1 ? "ON" : "OFF"}
-                                    </Menu.Item>
-                                </Menu>
-                                <Popup
-                                    trigger={<Label as='a' basic><Icon name="plug" color={!audio1.device ? 'red' : ''} /> Input</Label>}
-                                    on='click'
-                                    position='bottom left'
-                                >
-                                    <Popup.Content>
-                                        <Select fluid
-                                                disabled={mystream}
-                                                error={!audio1.device}
-                                                placeholder="Select Device:"
-                                                value={audio1.device}
-                                                options={adevice1_list_in}
-                                                onChange={(e, {value}) => this.setDevice(value, 1, "in")}/>
-                                    </Popup.Content>
-                                </Popup>
+                <Container fluid>
+                    <Grid>
+                        <Grid.Col span={2} style={{ position: 'relative' }}>
+                            {/* Large background volume indicator */}
+                            <div style={{ 
+                                position: 'absolute', 
+                                top: 0, 
+                                left: 0, 
+                                width: '100%', 
+                                height: '100%', 
+                                zIndex: 0,
+                                display: 'flex',
+                                justifyContent: 'center',
+                                padding: '0',
+                            }}>
+                                <canvas 
+                                    ref="canvas1" 
+                                    id="canvas1" 
+                                    width="190" 
+                                    height="450" 
+                                    style={{ 
+                                        width: '100%',
+                                        background: '#f0f0f0',
+                                        opacity: 0.8,
+                                        position: 'absolute',
+                                        top: '200px',
+                                        left: 0
+                                    }} 
+                                />
                             </div>
-                            <Grid columns={2} stackable textAlign='center'>
-                                <Grid.Row verticalAlign='middle'>
-                                    <Grid.Column>
-                                        <VolumeSlider orientation='vertical' icon='blogger b' label='1'
-                                                      volume={(value) => this.setStrVolume(value,1)}
-                                                      mute={() => this.muteStream(1)} />
-                                    </Grid.Column>
-                                    <Grid.Column>
-                                        <VolumeSlider orientation='vertical' icon='address card' label='1'
-                                                      volume={(value) => this.setTrlVolume(value,1)}
-                                                      mute={() => this.muteTrl(1)} />
-                                    </Grid.Column>
-                                </Grid.Row>
-                            </Grid>
-                        </Grid.Column>
-                        <Grid.Column width={10}>
-                            <Segment.Group basic>
+                            
+                            {/* Content on top of volume indicator */}
+                            <div style={{ position: 'relative', zIndex: 1 }}>
                                 <div className="vclient__toolbar">
-                                    <Menu icon='labeled' size="mini">
-                                        <Menu.Item disabled >
-                                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
+                                    <Group position="center" style={{ marginTop: '20px', marginBottom: '20px' }}>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            flexDirection: 'column', 
+                                            alignItems: 'center',
+                                            marginBottom: '10px'
+                                        }}>
+                                            <div 
+                                                style={{ 
+                                                    width: '120px', 
+                                                    height: '120px', 
+                                                    borderRadius: '50%', 
+                                                    backgroundColor: muted1 ? '#ffebee' : '#e8f5e9',
+                                                    border: `4px solid ${muted1 ? '#f44336' : '#4caf50'}`,
+                                                    display: 'flex', 
+                                                    flexDirection: 'column',
+                                                    justifyContent: 'center', 
+                                                    alignItems: 'center',
+                                                    cursor: mystream ? 'pointer' : 'not-allowed',
+                                                    opacity: mystream ? 1 : 0.6,
+                                                    transition: 'all 0.3s ease'
+                                                }}
+                                                onClick={mystream ? () => this.micMute(1) : undefined}
+                                            >
+                                                {muted1 ? 
+                                                    <IconMicrophoneOff size={60} color="#f44336" /> : 
+                                                    <IconMicrophone size={60} color="#4caf50" />
+                                                }
+                                                <Text size="md" weight="bold" mt={5} color={muted1 ? '#f44336' : '#4caf50'}>
+                                                    {!muted1 ? "ON" : "OFF"}
+                                                </Text>
+                                            </div>
+                                        </div>
+                                    </Group>
+                                    <SimpleGrid cols={2}>
+                                        <div>
+                                            <VolumeSlider orientation='vertical' label='Source'
+                                                        volume={(value) => this.setStrVolume(value,1)}
+                                                        mute={() => this.muteStream(1)} />
+                                        </div>
+                                        <div>
+                                            <VolumeSlider orientation='vertical' label='Self'
+                                                        volume={(value) => this.setTrlVolume(value,1)}
+                                                        mute={() => this.muteTrl(1)} />
+                                        </div>
+                                    </SimpleGrid>
+                                </div>
+                            </div>
+                        </Grid.Col>
+                        <Grid.Col span={8}>
+                            <Paper shadow="xs" p="md" withBorder>
+                                <div className="vclient__toolbar">
+                                    <Group>
+                                        <Button 
+                                            variant="subtle" 
+                                            disabled
+                                        >
+                                            <IconPower color={mystream ? 'green' : 'red'} size={20} style={{marginRight: '5px'}} />
                                             {!mystream ? "Disconnected" : "Connected"}
-                                        </Menu.Item>
+                                        </Button>
+                                        <Button
+                                            variant="subtle"
+                                            onClick={this.toggleStudyModal}
+                                        >
+                                            <IconBook size={20} style={{marginRight: '5px'}} />
+                                            Study Material
+                                        </Button>
                                         <Modal
-                                            trigger={<Menu.Item icon='book' name='Study Material'/>}
-                                            on='click'
-                                            closeIcon>
+                                            opened={this.state.studyModalOpen}
+                                            onClose={this.toggleStudyModal}
+                                            title="Study Material"
+                                        >
                                             <HomerLimud />
                                         </Modal>
-                                        <Select className='trl_select'
-                                                attached='left'
-                                                compact
-                                                disabled={mystream}
-                                                error={!selected_room}
+                                        <Group style={{alignItems: 'center'}}>
+                                            <Select
                                                 placeholder="Translate to:"
-                                                value={i}
-                                                options={langs_list}
-                                                onChange={(e, {value}) => this.selectRoom(value)} />
-                                        {mystream ?
-                                            <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
-                                        {!mystream ?
-                                            <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !audio2.device} onClick={this.initJanus} />:""}
-                                    </Menu>
+                                                data={langs_options}
+                                                value={i !== undefined && i !== "" ? i.toString() : null}
+                                                disabled={mystream}
+                                                error={!selected_room ? "No language selected" : null}
+                                                onChange={(value) => this.selectRoom(Number(value))}
+                                                style={{width: '200px'}}
+                                            />
+                                            {mystream ?
+                                                <Button color="red" size="lg" onClick={() => this.exitRoom(false)}>
+                                                    Exit <IconLogout size={20} style={{marginLeft: '5px'}} />
+                                                </Button>:""}
+                                            {!mystream ?
+                                                <Button color="green" size="lg" disabled={delay || !selected_room || !audio2.device} onClick={this.initJanus}>
+                                                    Join <IconLogin size={20} style={{marginLeft: '5px'}} />
+                                                </Button>:""}
+                                        </Group>
+                                    </Group>
                                 </div>
                                 {/*<Segment >*/}
                                     <MerkazStream ref={stream => {this.stream = stream;}} trl_stream={trl_stream} video={video} janus={janus} />
                                 {/*</Segment>*/}
-                                <Segment.Group horizontal compact>
-                                    <Segment className='stream_langs'>
-                                        <Select compact
-                                                disabled={!mystream}
-                                                upward
-                                                error={!audios1}
+                                <Paper shadow="xs" p="sm" withBorder mt="sm">
+                                    <Group position="apart">
+                                        <div className='stream_langs'>
+                                            <Select
                                                 placeholder="Audio:"
-                                                value={audios1}
-                                                options={audios_options}
-                                                onChange={(e, {value, options}) => this.setAudio(value, options, 1)}/>
-                                    </Segment>
-                                    <Segment className='stream_langs' textAlign='right'>
-                                        <Select compact
+                                                data={audios_options.map(option => ({
+                                                    value: option.value.toString(),
+                                                    label: option.text
+                                                }))}
+                                                value={audios1 ? audios1.toString() : null}
                                                 disabled={!mystream}
-                                                upward
-                                                error={!audios2}
+                                                error={!audios1 ? "No audio selected" : null}
+                                                onChange={(value) => {
+                                                    const selectedOption = audios_options.find(opt => opt.value.toString() === value);
+                                                    this.setAudio(Number(value), selectedOption ? [selectedOption] : [], 1);
+                                                }}
+                                            />
+                                        </div>
+                                        <div className='stream_langs'>
+                                            <Select
                                                 placeholder="Audio:"
-                                                value={audios2}
-                                                options={audios_options}
-                                                onChange={(e, {value, options}) => this.setAudio(value, options, 2)}/>
-                                    </Segment>
-                                </Segment.Group>
-                                <Segment compact>
-                                    <Message color='grey' header='Online Translators:' list={list} />
-                                </Segment>
-                            </Segment.Group>
+                                                data={audios_options.map(option => ({
+                                                    value: option.value.toString(),
+                                                    label: option.text
+                                                }))}
+                                                value={audios2 ? audios2.toString() : null}
+                                                disabled={!mystream}
+                                                error={!audios2 ? "No audio selected" : null}
+                                                onChange={(value) => {
+                                                    const selectedOption = audios_options.find(opt => opt.value.toString() === value);
+                                                    this.setAudio(Number(value), selectedOption ? [selectedOption] : [], 2);
+                                                }}
+                                            />
+                                        </div>
+                                    </Group>
+                                </Paper>
+                                <Paper shadow="xs" p="sm" withBorder mt="sm">
+                                    <Alert icon={<IconInfoCircle size={16} />} title="Online Translators" color="gray">
+                                        <Stack spacing="xs">
+                                            {list.length > 0 ? list : <Text>No translators online</Text>}
+                                        </Stack>
+                                    </Alert>
+                                </Paper>
+                            </Paper>
                             <MarkazChat {...this.state}
                                         ref={chat => {this.chat = chat;}}
                                         visible={this.state.visible}
@@ -710,93 +858,218 @@ class MqttMerkaz extends Component {
                             <audio ref="remoteAudio1" id="remoteAudio1" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
                             <audio ref="remoteAudio2" id="remoteAudio2" autoPlay={autoPlay} controls={controls} muted={true} playsInline={true}/>
 
-                        </Grid.Column>
-                        <Grid.Column width={2}>
-                            <div className="vclient__toolbar">
-                                <Menu icon='labeled' secondary size="massive" floated='right'>
-                                    <Menu.Item disabled={!mystream} onClick={() => this.micMute(2)} className="mute-button">
-                                        <canvas className={muted2 ? 'hidden' : 'vumeter'} ref="canvas2" id="canvas2" width="15" height="35" />
-                                        <Icon color={muted2 ? "red" : ""} name={!muted2 ? "microphone" : "microphone slash"} />
-                                        {!muted2 ? "ON" : "OFF"}
-                                    </Menu.Item>
-                                </Menu>
-                                <Popup
-                                    trigger={<Label as='a' basic><Icon name="plug" color={!audio2.device ? 'red' : ''} /> Input</Label>}
-                                    on='click'
-                                    position='bottom left'
-                                >
-                                    <Popup.Content>
-                                        <Select fluid
-                                                disabled={mystream}
-                                                error={!audio2.device}
-                                                placeholder="Select Device:"
-                                                value={audio2.device}
-                                                options={adevice2_list_in}
-                                                onChange={(e, {value}) => this.setDevice(value, 2, "in")}/>
-                                    </Popup.Content>
-                                </Popup>
+                        </Grid.Col>
+                        <Grid.Col span={2} style={{ position: 'relative' }}>
+                            {/* Large background volume indicator */}
+                            <div style={{ 
+                                position: 'absolute', 
+                                top: 0, 
+                                left: 0, 
+                                width: '100%', 
+                                height: '100%', 
+                                zIndex: 0,
+                                display: 'flex',
+                                justifyContent: 'center',
+                                padding: '0',
+                            }}>
+                                <canvas 
+                                    ref="canvas2" 
+                                    id="canvas2" 
+                                    width="190" 
+                                    height="450" 
+                                    style={{ 
+                                        width: '100%',
+                                        background: '#f0f0f0',
+                                        opacity: 0.8,
+                                        position: 'absolute',
+                                        top: '200px',
+                                        left: 0
+                                    }} 
+                                />
                             </div>
-                            <Grid columns={2} stackable textAlign='center'>
-                                <Grid.Row verticalAlign='middle'>
-                                    <Grid.Column>
-                                        <VolumeSlider orientation='vertical' icon='blogger b' label='2'
-                                                      volume={(value) => this.setStrVolume(value,2)}
-                                                      mute={() => this.muteStream(2)} />
-                                    </Grid.Column>
-                                    <Grid.Column>
-                                        <VolumeSlider orientation='vertical' icon='address card' label='2'
-                                                      volume={(value) => this.setTrlVolume(value,2)}
-                                                      mute={() => this.muteTrl(2)} />
-                                    </Grid.Column>
-                                </Grid.Row>
-                            </Grid>
-                        </Grid.Column>
-                    </Grid.Row>
+                            
+                            {/* Content on top of volume indicator */}
+                            <div style={{ position: 'relative', zIndex: 1 }}>
+                                <div className="vclient__toolbar">
+                                    <Group position="center" style={{ marginTop: '20px', marginBottom: '20px' }}>
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            flexDirection: 'column', 
+                                            alignItems: 'center',
+                                            marginBottom: '10px'
+                                        }}>
+                                            <div 
+                                                style={{ 
+                                                    width: '120px', 
+                                                    height: '120px', 
+                                                    borderRadius: '50%', 
+                                                    backgroundColor: muted2 ? '#ffebee' : '#e8f5e9',
+                                                    border: `4px solid ${muted2 ? '#f44336' : '#4caf50'}`,
+                                                    display: 'flex', 
+                                                    flexDirection: 'column',
+                                                    justifyContent: 'center', 
+                                                    alignItems: 'center',
+                                                    cursor: mystream ? 'pointer' : 'not-allowed',
+                                                    opacity: mystream ? 1 : 0.6,
+                                                    transition: 'all 0.3s ease'
+                                                }}
+                                                onClick={mystream ? () => this.micMute(2) : undefined}
+                                            >
+                                                {muted2 ? 
+                                                    <IconMicrophoneOff size={60} color="#f44336" /> : 
+                                                    <IconMicrophone size={60} color="#4caf50" />
+                                                }
+                                                <Text size="md" weight="bold" mt={5} color={muted2 ? '#f44336' : '#4caf50'}>
+                                                    {!muted2 ? "ON" : "OFF"}
+                                                </Text>
+                                            </div>
+                                        </div>
+                                    </Group>
+                                    <SimpleGrid cols={2}>
+                                        <div>
+                                            <VolumeSlider orientation='vertical' label='Source'
+                                                        volume={(value) => this.setStrVolume(value,2)}
+                                                        mute={() => this.muteStream(2)} />
+                                        </div>
+                                        <div>
+                                            <VolumeSlider orientation='vertical' label='Self'
+                                                        volume={(value) => this.setTrlVolume(value,2)}
+                                                        mute={() => this.muteTrl(2)} />
+                                        </div>
+                                    </SimpleGrid>
+                                </div>
+                            </div>
+                        </Grid.Col>
+                    </Grid>
 
-                    <Grid.Row stretched>
-                        <Grid.Column width={2}>
-                            <Segment textAlign='center' basic>
-                                <Popup
-                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio1.out ? 'red' : ''} /> Output</Label>}
-                                    on='click'
-                                    position='bottom left'
-                                >
-                                    <Popup.Content>
-                                        <Select fluid
-                                                disabled={!mystream}
-                                                error={!audio1_out}
-                                                placeholder="Select Device:"
-                                                value={audio1_out}
-                                                options={adevice1_list_out}
-                                                onChange={(e, {value}) => this.setDevice(value, 1, "out")}/>
-                                    </Popup.Content>
-                                </Popup>
-                            </Segment>
-                        </Grid.Column>
-                        <Grid.Column width={10}>
-                        </Grid.Column>
-                        <Grid.Column width={2}>
-                            <Segment textAlign='center' basic>
-                                <Popup
-                                    trigger={<Label as='a' basic><Icon name="headphones" color={!audio2.out ? 'red' : ''} /> Output</Label>}
-                                    on='click'
-                                    position='bottom left'
-                                >
-                                    <Popup.Content>
-                                        <Select fluid
-                                                disabled={!mystream}
-                                                error={!audio2_out}
-                                                placeholder="Select Device:"
-                                                value={audio2_out}
-                                                options={adevice2_list_out}
-                                                onChange={(e, {value}) => this.setDevice(value, 2, "out")}/>
-                                    </Popup.Content>
-                                </Popup>
-                            </Segment>
-                        </Grid.Column>
-                    </Grid.Row>
-                </Grid>
-
+                    {/* Add the input/output buttons at the bottom of the page */}
+                    <Grid mt={80}>
+                        <Grid.Col span={1}>
+                            <Popover
+                                width={200}
+                                position="top"
+                                withArrow
+                                shadow="md"
+                            >
+                                <Popover.Target>
+                                    <Button 
+                                        variant="outline" 
+                                        color="blue"
+                                        radius="xl"
+                                        leftIcon={<IconMicrophone color={!audio1.device ? 'red' : 'blue'} size={16} />}
+                                        sx={{ paddingLeft: 12, paddingRight: 12, width: '100%', borderWidth: '1px' }}
+                                    >
+                                        INPUT
+                                    </Button>
+                                </Popover.Target>
+                                <Popover.Dropdown>
+                                    <Select
+                                        placeholder="Select Device:"
+                                        data={adevice1_list_in}
+                                        value={audio1.device}
+                                        disabled={mystream}
+                                        error={!audio1.device ? "No device selected" : null}
+                                        onChange={(value) => this.setDevice(value, 1, "in")}
+                                    />
+                                </Popover.Dropdown>
+                            </Popover>
+                        </Grid.Col>
+                        <Grid.Col span={1}>
+                            <Popover
+                                width={200}
+                                position="top"
+                                withArrow
+                                shadow="md"
+                            >
+                                <Popover.Target>
+                                    <Button 
+                                        variant="outline" 
+                                        color="blue"
+                                        radius="xl"
+                                        rightIcon={<span style={{fontSize: '12px'}}>▼</span>}
+                                        sx={{ paddingLeft: 12, paddingRight: 12, width: '100%', borderWidth: '1px', position: 'relative' }}
+                                    >
+                                        <IconHeadphones color={!audio1_out ? 'red' : 'blue'} size={20} style={{marginRight: '8px'}} />
+                                        OUTPUT
+                                    </Button>
+                                </Popover.Target>
+                                <Popover.Dropdown>
+                                    <Select
+                                        placeholder="Select Device:"
+                                        data={adevice1_list_out}
+                                        value={audio1_out}
+                                        disabled={!mystream}
+                                        error={!audio1_out ? "No output selected" : null}
+                                        onChange={(value) => this.setDevice(value, 1, "out")}
+                                    />
+                                </Popover.Dropdown>
+                            </Popover>
+                        </Grid.Col>
+                        <Grid.Col span={8}>
+                        </Grid.Col>
+                        <Grid.Col span={1}>
+                            <Popover
+                                width={200}
+                                position="top"
+                                withArrow
+                                shadow="md"
+                            >
+                                <Popover.Target>
+                                    <Button 
+                                        variant="outline" 
+                                        color="blue"
+                                        radius="xl"
+                                        leftIcon={<IconMicrophone color={!audio2.device ? 'red' : 'blue'} size={16} />}
+                                        sx={{ paddingLeft: 12, paddingRight: 12, width: '100%', borderWidth: '1px' }}
+                                    >
+                                        INPUT
+                                    </Button>
+                                </Popover.Target>
+                                <Popover.Dropdown>
+                                    <Select
+                                        placeholder="Select Device:"
+                                        data={adevice2_list_in}
+                                        value={audio2.device}
+                                        disabled={mystream}
+                                        error={!audio2.device ? "No device selected" : null}
+                                        onChange={(value) => this.setDevice(value, 2, "in")}
+                                    />
+                                </Popover.Dropdown>
+                            </Popover>
+                        </Grid.Col>
+                        <Grid.Col span={1}>
+                            <Popover
+                                width={200}
+                                position="top"
+                                withArrow
+                                shadow="md"
+                            >
+                                <Popover.Target>
+                                    <Button 
+                                        variant="outline" 
+                                        color="blue"
+                                        radius="xl"
+                                        rightIcon={<span style={{fontSize: '12px'}}>▼</span>}
+                                        sx={{ paddingLeft: 12, paddingRight: 12, width: '100%', borderWidth: '1px', position: 'relative' }}
+                                    >
+                                        <IconHeadphones color={!audio2_out ? 'red' : 'blue'} size={20} style={{marginRight: '8px'}} />
+                                        OUTPUT
+                                    </Button>
+                                </Popover.Target>
+                                <Popover.Dropdown>
+                                    <Select
+                                        placeholder="Select Device:"
+                                        data={adevice2_list_out}
+                                        value={audio2_out}
+                                        disabled={!mystream}
+                                        error={!audio2_out ? "No output selected" : null}
+                                        onChange={(value) => this.setDevice(value, 2, "out")}
+                                    />
+                                </Popover.Dropdown>
+                            </Popover>
+                        </Grid.Col>
+                    </Grid>
+                </Container>
             </div>
         );
 

@@ -81,32 +81,52 @@ export const getDateString = (jsonDate) => {
     return dateString;
 };
 
-export const micVolume = (c,d) => {
+export const micVolume = (c, d) => {
     let cc = c.getContext("2d");
-    let gradient = cc.createLinearGradient(0, 0, 0, 55);
-    gradient.addColorStop(1, "green");
-    gradient.addColorStop(0.35, "#80ff00");
-    gradient.addColorStop(0.10, "orange");
-    gradient.addColorStop(0, "red");
+    let gradient = cc.createLinearGradient(0, c.height, 0, 0);
+    gradient.addColorStop(0, "green");
+    gradient.addColorStop(0.65, "#80ff00");
+    gradient.addColorStop(0.90, "orange");
+    gradient.addColorStop(1, "red");
+    
+    // Define the threshold for auto-muting
+    const MUTE_THRESHOLD = 0.000006;
+    
     if(d === 1) {
         device1.micLevel = (volume) => {
-            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
+            // Scale the volume value to fill more of the large indicator
+            const scaledHeight = Math.min(c.height, volume * 5000);
+            // Fill the entire width of the canvas
+            cc.fillRect(0, c.height - scaledHeight, c.width, scaledHeight);
+            
+            // Make sure we call onMute with the right parameters
+            if (typeof device1.onMute === 'function') {
+                const isMuted = volume < MUTE_THRESHOLD;
+                device1.onMute(isMuted, volume);
+            }
         }
     } else if(d === 2) {
         device2.micLevel = (volume) => {
-            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
-            cc.fillRect(0, c.height - volume * 150, c.width, c.height);
+            // Scale the volume value to fill more of the large indicator
+            const scaledHeight = Math.min(c.height, volume * 5000);
+            // Fill the entire width of the canvas
+            cc.fillRect(0, c.height - scaledHeight, c.width, scaledHeight);
+            
+            // Make sure we call onMute with the right parameters
+            if (typeof device2.onMute === 'function') {
+                const isMuted = volume < MUTE_THRESHOLD;
+                device2.onMute(isMuted, volume);
+            }
         }
     } else {
         devices.micLevel = (volume) => {
-            // console.log("[client] volume: ", volume, (c.height - volume * 3000))
             cc.clearRect(0, 0, c.width, c.height);
             cc.fillStyle = gradient;
+            // Fill the entire width of the canvas
             cc.fillRect(0, c.height - volume * 3000, c.width, c.height);
         }
     }
@@ -351,4 +371,60 @@ const stereoVisualizer = (analyser1, analyser2, canvas, width, n) => {
     };
 
     p[n] = setInterval(sampleAudioStream, 50);
+};
+
+export const setupLogCapture = () => {
+  const logs = [];
+  const originalConsole = {
+    log: console.log,
+    error: console.error,
+    warn: console.warn,
+    info: console.info,
+  };
+
+  // Override console methods to capture logs
+  console.log = function() {
+    logs.push({type: 'log', args: Array.from(arguments), timestamp: new Date()});
+    originalConsole.log.apply(console, arguments);
+  };
+  
+  console.error = function() {
+    logs.push({type: 'error', args: Array.from(arguments), timestamp: new Date()});
+    originalConsole.error.apply(console, arguments);
+  };
+  
+  console.warn = function() {
+    logs.push({type: 'warn', args: Array.from(arguments), timestamp: new Date()});
+    originalConsole.warn.apply(console, arguments);
+  };
+  
+  console.info = function() {
+    logs.push({type: 'info', args: Array.from(arguments), timestamp: new Date()});
+    originalConsole.info.apply(console, arguments);
+  };
+
+  // Function to get all captured logs
+  window.getLogs = () => logs;
+  
+  // Function to save logs to localStorage
+  window.saveLogs = () => {
+    localStorage.setItem('appLogs', JSON.stringify(logs));
+    return "Logs saved to localStorage";
+  };
+  
+  // Function to send logs to a server
+  window.sendLogs = (url = '/api/logs') => {
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(logs)
+    })
+    .then(response => response.json())
+    .then(data => console.log('Logs sent successfully'))
+    .catch(error => console.error('Error sending logs:', error));
+  };
+  
+  return "Log capture initialized. Use window.getLogs(), window.saveLogs(), or window.sendLogs() to access logs.";
 };

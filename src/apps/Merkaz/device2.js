@@ -23,12 +23,32 @@ class LocalDevice2 {
 
     // Check saved devices in local storage
     let storage_audio = localStorage.getItem("audio_device2");
-    this.audio.device = !!storage_audio ? storage_audio : null;
-    [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
+    
+    // Get available devices first
     devices = await navigator.mediaDevices.enumerateDevices();
-    console.log(devices)
+    console.log(devices);
     this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
     this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
+    
+    // Check if the saved device exists in the available devices
+    const deviceExists = !!storage_audio && this.audio.devices.in.some(d => d.deviceId === storage_audio);
+    
+    // Use the saved device only if it exists, otherwise use the first available device
+    if (deviceExists) {
+      this.audio.device = storage_audio;
+    } else if (this.audio.devices.in.length > 0) {
+      // If saved device doesn't exist but we have other devices, use the first one
+      this.audio.device = this.audio.devices.in[0].deviceId;
+      // Update localStorage with the new device
+      if (this.audio.device) {
+        localStorage.setItem("audio_device2", this.audio.device);
+      }
+    } else {
+      // No devices available
+      this.audio.device = null;
+    }
+    
+    [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
 
     if (this.audio.stream) {
       this.audio_stream = this.audio.stream.clone()
@@ -45,11 +65,17 @@ class LocalDevice2 {
       log.debug("[devices] devices list refreshed: ", devices);
       this.audio.devices.in = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
       this.audio.devices.out = devices.filter((a) => !!a.deviceId && a.kind === "audiooutput");
+      
       // Refresh audio devices list
       let storage_audio = localStorage.getItem("audio_device2");
-      let isSavedAudio = this.audio.devices.find(d => d.deviceId === storage_audio)
-      let default_audio = this.audio.devices.length > 0 ? this.audio.devices[0].deviceId : null;
+      let isSavedAudio = this.audio.devices.in.find(d => d.deviceId === storage_audio);
+      let default_audio = this.audio.devices.in.length > 0 ? this.audio.devices.in[0].deviceId : null;
       this.audio.device = isSavedAudio ? storage_audio : default_audio;
+      
+      // If we have a new default device but no saved device works, update localStorage
+      if (!isSavedAudio && default_audio) {
+        localStorage.setItem("audio_device2", default_audio);
+      }
 
       if(typeof this.onChange === "function") this.onChange(this.audio)
     }
@@ -70,34 +96,62 @@ class LocalDevice2 {
   initMicLevel = async() => {
     if(!this.audio_stream) return
 
-    this.audio.context = new AudioContext()
-    log.debug("[devices] AudioContext: ", this.audio.context)
-    await this.audio.context.audioWorklet.addModule(workerUrl)
-    let microphone = this.audio.context.createMediaStreamSource(this.audio_stream)
-    const node = new AudioWorkletNode(this.audio.context, 'volume_meter')
-
-    node.port.onmessage = event => {
-      let _volume = 0
-      let _rms = 0
-      let _dB = 0
-      let _muted = false
-
-      //log.debug('[devices] mic level: ', event.data)
-
-      if (event.data.volume) {
-        _volume = event.data.volume
-        _rms = event.data.rms
-        _dB = event.data.dB
-        _muted = event.data.rms < 0.000006
-
-        if(typeof this.micLevel === "function")
-          this.micLevel(_volume)
-        if(typeof this.onMute === "function")
-          this.onMute(_muted, event.data.rms)
+    try {
+      // Create new AudioContext
+      this.audio.context = new AudioContext()
+      log.debug("[devices] AudioContext: ", this.audio.context)
+      
+      // Check if processor is already registered
+      const isRegistered = await this.isProcessorRegistered(this.audio.context, 'volume_meter').catch(() => false)
+      
+      // Only load the module if the processor isn't registered yet
+      if (!isRegistered) {
+        try {
+          log.debug("[devices] Loading audio worklet module")
+          await this.audio.context.audioWorklet.addModule(workerUrl)
+          log.debug("[devices] Audio worklet module loaded successfully")
+        } catch (error) {
+          log.error("[devices] Failed to load audio worklet module:", error)
+          return
+        }
       }
-    }
+      
+      // Create source from the stream
+      let microphone = this.audio.context.createMediaStreamSource(this.audio_stream)
+      
+      try {
+        // Create the worklet node
+        const node = new AudioWorkletNode(this.audio.context, 'volume_meter')
+        
+        node.port.onmessage = event => {
+          let _volume = 0
+          let _rms = 0
+          let _dB = 0
+          let _muted = false
 
-    microphone.connect(node)
+          //log.debug('[devices] mic level: ', event.data)
+
+          if (event.data.volume) {
+            _volume = event.data.volume
+            _rms = event.data.rms
+            _dB = event.data.dB
+            _muted = event.data.rms < 0.000006
+
+            if(typeof this.micLevel === "function")
+              this.micLevel(_volume)
+            if(typeof this.onMute === "function")
+              this.onMute(_muted, event.data.rms)
+          }
+        }
+
+        microphone.connect(node)
+        log.debug("[devices] Audio level monitoring initialized successfully")
+      } catch (error) {
+        log.error("[devices] Failed to create AudioWorkletNode:", error)
+      }
+    } catch (error) {
+      log.error("[devices] Error initializing audio level monitoring:", error)
+    }
   };
 
   setAudioDevice = (device, cam_mute) => {
@@ -125,7 +179,17 @@ class LocalDevice2 {
       });
   };
 
-
+  // Helper method to check if a processor is registered
+  isProcessorRegistered = async (context, processorName) => {
+    try {
+      // Create a test node - if this succeeds, the processor is registered
+      new AudioWorkletNode(context, processorName);
+      return true;
+    } catch (error) {
+      // If error indicates the processor isn't registered, return false
+      return false;
+    }
+  }
 }
 
 const defaultDevices = new LocalDevice2();

@@ -1,0 +1,75 @@
+/* VolumeSlider basic styles */
+.volume-slider-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 60px;
+  margin: 0 auto;
+}
+
+/* Mantine overrides for vertical slider */
+.mantine-Slider-root[data-orientation="vertical"] {
+  height: 150px !important;
+}
+
+.mantine-Slider-track[data-orientation="vertical"] {
+  width: 10px !important;
+  background-color: #e6e6e6 !important;
+}
+
+.mantine-Slider-bar[data-orientation="vertical"] {
+  width: 10px !important;
+  background-color: #7cb342 !important;
+}
+
+.volume-slider-label {
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.slider-container {
+  position: relative;
+  height: 150px;
+  width: 40px;
+  margin: 10px auto;
+  transform: rotate(180deg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.vertical-slider {
+  height: 100% !important;
+  width: 15px !important;
+}
+
+/* Style the thumb */
+.vertical-slider .mantine-Slider-thumb {
+  border-radius: 4px;
+}
+
+.mute-button {
+  margin-top: 10px;
+  max-width: 60px;
+}
+
+/* Make vumeter visible in the UI */
+.vumeter {
+  width: 15px;
+  height: 35px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Additional responsive styles for mobile */
+@media (max-width: 768px) {
+  .volume-slider-vertical {
+    width: 40px;
+  }
+  
+  .slider-container {
+    width: 25px;
+    height: 120px;
+  }
+} 

@@ -1,5 +1,7 @@
 import React, { Component, Fragment } from 'react';
 import 'semantic-ui-css/semantic.min.css';
+import '@mantine/core/styles.css';
+import { MantineProvider } from '@mantine/core';
 import Main from "./apps/Main";
 import MqttClient from "./apps/Client/MqttClient";
 import HttpClient from "./apps/Client/HttpClient";
@@ -19,18 +21,20 @@ class App extends Component {
         const appName = process.env.REACT_APP_TARGET || 'MqttMerkaz'; // Default to MqttMerkaz
         
         return (
-            <Fragment>
-                {appName === 'Main' && <Main />}
-                {appName === 'MqttMerkaz' && <MqttMerkaz />}
-                {appName === 'MqttClient' && <MqttClient />}
-                {appName === 'HttpClient' && <HttpClient />}
-                {appName === 'MqttAdmin' && <MqttAdmin />}
-                {appName === 'HttpAdmin' && <HttpAdmin />}
-                {appName === 'TrlChat' && <TrlChat />}
-                {appName === 'WeMain' && <WeMain />}
-                {appName === 'WeClient' && <WeClient />}
-                {appName === 'WeHttpStream' && <WeHttpStream />}
-            </Fragment>
+            <MantineProvider theme={{ colorScheme: 'light' }}>
+                <Fragment>
+                    {appName === 'Main' && <Main />}
+                    {appName === 'MqttMerkaz' && <MqttMerkaz />}
+                    {appName === 'MqttClient' && <MqttClient />}
+                    {appName === 'HttpClient' && <HttpClient />}
+                    {appName === 'MqttAdmin' && <MqttAdmin />}
+                    {appName === 'HttpAdmin' && <HttpAdmin />}
+                    {appName === 'TrlChat' && <TrlChat />}
+                    {appName === 'WeMain' && <WeMain />}
+                    {appName === 'WeClient' && <WeClient />}
+                    {appName === 'WeHttpStream' && <WeHttpStream />}
+                </Fragment>
+            </MantineProvider>
         );
     }
 }

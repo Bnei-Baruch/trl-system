@@ -1,105 +1,107 @@
-import React, {Component} from 'react';
-import {Message, Icon, Button, Table} from 'semantic-ui-react';
-import Slider from 'react-rangeslider'
-import './VolumeSlider.css';
+import React, { useState, useEffect } from 'react';
+import { Button, Text } from '@mantine/core';
+import { IconVolume, IconVolumeOff } from '@tabler/icons-react';
 
-class VolumeSlider extends Component {
+// Simple HTML+CSS based volume slider that doesn't depend on Mantine's Slider
+const VolumeSlider = (props) => {
+    const [value, setValue] = useState(1);
+    const [muted, setMuted] = useState(true);
 
-    state = {
-        value: 1,
-        muted: true
+    const handleVolumeChange = (e) => {
+        const newValue = parseFloat(e.target.value);
+        setValue(newValue);
+        if (typeof props.volume === 'function') {
+            try {
+                props.volume(newValue);
+            } catch (error) {
+                console.error("Error setting volume:", error);
+            }
+        }
     };
 
-    handleOnChange = (value) => {
-        this.setState({value});
-        this.props.volume(value);
+    const handleMuteToggle = () => {
+        const newMutedState = !muted;
+        setMuted(newMutedState);
+        if (typeof props.mute === 'function') {
+            try {
+                props.mute(newMutedState);
+            } catch (error) {
+                console.error("Error setting mute state:", error);
+            }
+        }
     };
 
-    audioMute = () => {
-        this.setState({muted: !this.state.muted})
-        this.props.mute(!this.state.muted);
+    useEffect(() => {
+        if (props.initialValue !== undefined) {
+            setValue(props.initialValue);
+        }
+        if (props.initialMuted !== undefined) {
+            setMuted(props.initialMuted);
+        }
+    }, [props.initialValue, props.initialMuted]);
+
+    const { label, orientation = 'vertical', icon } = props;
+    
+    const verticalSliderStyle = {
+        container: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            width: '100%',
+            padding: '5px',
+        },
+        sliderContainer: {
+            height: '270px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            margin: '10px 0',
+            position: 'relative',
+        },
+        input: {
+            WebkitAppearance: 'slider-vertical',
+            width: '16px',
+            height: '270px',
+            background: '#e6e6e6',
+            outline: 'none',
+            opacity: '0.7',
+            transition: 'opacity .2s',
+        },
+        label: {
+            textAlign: 'center',
+            marginBottom: '5px',
+            fontWeight: 'bold',
+        },
+        button: {
+            marginTop: '5px',
+        }
     };
 
-    render() {
-
-        const {label,icon,orientation} = this.props;
-        const {value,muted} = this.state;
-
-        return (
-
-              <div>
-                    {orientation === "vertical" ?
-                        <Table basic='very' compact='very'>
-                        <Table.Row textAlign='center' >
-                            <Table.Cell width={3}>
-                                <Icon size='big' name={icon} />
-                                {label}<br />
-                            </Table.Cell>
-                        </Table.Row>
-                        <Table.Row textAlign='center'>
-                            <Table.Cell width={3}>
-                                <br />
-                                <Message compact>
-                                    <Slider
-                                        type='range'
-                                        min={0.01}
-                                        max={1}
-                                        step={0.01}
-                                        value={value}
-                                        tooltip={false}
-                                        orientation={orientation}
-                                        onChange={this.handleOnChange}>
-                                    </Slider>
-                                </Message>
-                                <br />
-                            </Table.Cell>
-                        </Table.Row>
-                            <Table.Row textAlign='center'>
-                                <Table.Cell width={2}><br />
-                                    <Button
-                                        positive={!muted}
-                                        negative={muted}
-                                        icon={muted ? "volume off" : "volume up"}
-                                        onClick={this.audioMute}/>
-                                </Table.Cell>
-                            </Table.Row>
-                        </Table>
-
-                        :
-                        <Table basic='very' compact='very'>
-                        <Table.Row>
-                            <Table.Cell width={3}>
-                                <Icon size='big' name={icon} />
-                                {label}
-                            </Table.Cell>
-                            <Table.Cell width={9}>
-                                <Message>
-                                    <Slider
-                                        type='range'
-                                        min={0.01}
-                                        max={1}
-                                        step={0.01}
-                                        value={value}
-                                        tooltip={false}
-                                        orientation={orientation}
-                                        onChange={this.handleOnChange}>
-                                    </Slider>
-                                </Message>
-                            </Table.Cell>
-                            <Table.Cell width={2}>
-                                <Button
-                                    positive={!muted}
-                                    negative={muted}
-                                    icon={muted ? "volume off" : "volume up"}
-                                    onClick={this.audioMute}/>
-                            </Table.Cell>
-                        </Table.Row>
-                        </Table>
-                    }
-              </div>
-
-        );
-    }
-}
+    return (
+        <div style={verticalSliderStyle.container}>
+            <Text style={verticalSliderStyle.label}>{label}</Text>
+            <div style={verticalSliderStyle.sliderContainer}>
+                <input
+                    type="range"
+                    min="0.01"
+                    max="1"
+                    step="0.01"
+                    value={value}
+                    onChange={handleVolumeChange}
+                    style={verticalSliderStyle.input}
+                    orient="vertical" // For Firefox
+                />
+            </div>
+            <Button
+                variant={muted ? 'filled' : 'outline'}
+                color={muted ? 'red' : 'green'}
+                onClick={handleMuteToggle}
+                style={verticalSliderStyle.button}
+            >
+                {muted ? <IconVolumeOff size={16} /> : <IconVolume size={16} />}
+            </Button>
+        </div>
+    );
+};
 
 export default VolumeSlider;

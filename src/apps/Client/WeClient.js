@@ -1,7 +1,9 @@
 import React, { Component } from 'react';
-import {Menu, Select, Button, Icon, Popup, Segment, Message, Table, Divider} from "semantic-ui-react";
+import { Box, Text, Button, Group, ActionIcon, Popover, Select as MantineSelect, Indicator, Divider, Paper, Alert, MantineProvider, ColorSchemeProvider, useMantineColorScheme, Transition, Skeleton, Center } from "@mantine/core";
+import { IconPower, IconSettings, IconMicrophone, IconMicrophoneOff, IconVolume, IconLogin, IconLogout, IconDeviceSpeaker, IconAlertCircle, IconVolumeOff, IconSun, IconMoon } from '@tabler/icons-react';
 import {geoInfo, checkNotification, testMic, micVolume} from "../../shared/tools";
 import './Client.scss'
+import './WeClient.scss'
 import {lnglist, GEO_IP_INFO, langs_list} from "../../shared/consts";
 import {kc} from "../../components/UserManager";
 import VolumeSlider from "../../components/VolumeSlider";
@@ -10,8 +12,25 @@ import log from "loglevel";
 import {JanusMqtt} from "../../lib/janus-mqtt";
 import {AudiobridgePlugin} from "../../lib/audiobridge-plugin";
 import devices from "../../lib/devices";
-import LoginPage from "../../components/LoginPage";
+import LoginPageMantine from "../../components/LoginPageMantine";
 
+// Theme toggle component
+const ThemeToggle = () => {
+    const { colorScheme, toggleColorScheme } = useMantineColorScheme();
+    const dark = colorScheme === 'dark';
+    
+    return (
+        <ActionIcon
+            variant="outline"
+            color={dark ? 'yellow' : 'blue'}
+            onClick={() => toggleColorScheme()}
+            title="Toggle color scheme"
+            size="lg"
+        >
+            {dark ? <IconSun size={18} /> : <IconMoon size={18} />}
+        </ActionIcon>
+    );
+};
 
 class WeClient extends Component {
 
@@ -48,7 +67,9 @@ class WeClient extends Component {
         selftest: "Mic Test",
         tested: false,
         video: true,
-        init_devices: false
+        init_devices: false,
+        colorScheme: localStorage.getItem('mantine-color-scheme') || 'light',
+        deviceLoading: false
     };
 
     checkPermission = (user) => {
@@ -138,6 +159,7 @@ class WeClient extends Component {
 
     initDevices = () => {
         if(this.state.init_devices) return
+        this.setState({ deviceLoading: true });
         devices.init().then(audio => {
             log.info("[client] init devices: ", audio);
             if (audio.error) {
@@ -147,7 +169,7 @@ class WeClient extends Component {
                 let myaudio = this.refs.localVideo;
                 if (myaudio) myaudio.srcObject = audio.stream;
                 if(this.refs?.canvas1) micVolume(this.refs.canvas1)
-                this.setState({audio, init_devices: true, delay: false})
+                this.setState({audio, init_devices: true, delay: false, deviceLoading: false})
             }
         })
         devices.onChange = (audio) => {
@@ -306,13 +328,15 @@ class WeClient extends Component {
     };
 
     selectRoom = (i) => {
-        localStorage.setItem("we_room", i);
-        let selected_room = langs_list[i].key;
-        let name = langs_list[i].text;
+        // Convert string to number since Mantine Select returns string values
+        const numericI = parseInt(i, 10);
+        localStorage.setItem("we_room", numericI);
+        let selected_room = langs_list[numericI].key;
+        let name = langs_list[numericI].text;
         if (this.state.room === selected_room)
             return;
         let trl_stream = lnglist[name].streamid;
-        this.setState({selected_room,name,i,trl_stream});
+        this.setState({selected_room, name, i: numericI, trl_stream});
     };
 
     micMute = () => {
@@ -354,80 +378,172 @@ class WeClient extends Component {
         this.refs.remoteAudio.volume = value;
     };
 
+    toggleColorScheme = () => {
+        const newColorScheme = this.state.colorScheme === 'dark' ? 'light' : 'dark';
+        this.setState({ colorScheme: newColorScheme });
+        localStorage.setItem('mantine-color-scheme', newColorScheme);
+    };
 
     render() {
-        const {feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
+        const {feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus,colorScheme,deviceLoading} = this.state;
         const autoPlay = true;
         const controls = false;
 
-        let adevices_list = devices.map((device,i) => {
+        // Format device list for Mantine Select
+        const adevices_list = devices.map((device) => {
             const {label, deviceId} = device;
-            return ({ key: i, text: label, value: deviceId})
+            return { value: deviceId, label: label };
         });
+
+        // Format language list for Mantine Select
+        const langOptions = langs_list.map(lang => ({
+            value: lang.value.toString(),
+            label: lang.text
+        }));
 
         const list = Object.values(feeds).map((feed,i) => {
             if(feed) {
                 const {muted, display: {rfid, role, name}} = feed
-                return (<Message key={rfid} className='trl_name'
-                                 attached={i === feeds.length-1 ? 'bottom' : true} warning
-                                 color={!muted ? 'green' : role === "user" ? 'red' : 'blue'} >{name}</Message>);
+                return (
+                    <Alert 
+                        key={rfid}
+                        color={!muted ? 'green' : role === "user" ? 'red' : 'blue'}
+                        mb={5}
+                        radius="sm"
+                        title={name}
+                        icon={<IconAlertCircle size={16} />}
+                    />
+                );
             }
-            return true;
-        });
+            return null;
+        }).filter(Boolean);
 
-        let login = (<LoginPage user={user} checkPermission={this.checkPermission} />);
+        let login = (<LoginPageMantine user={user} checkPermission={this.checkPermission} />);
 
         let content = (
             <div className="vclient" >
                 <div className="vclient__toolbar">
-                    <Menu icon='labeled' size="mini">
-                        <Menu.Item disabled >
-                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
-                            {!mystream ? "Disconnected" : "Connected"}
-                        </Menu.Item>
-                        <Popup
-                            trigger={<Menu.Item><Icon name="settings" color={!device ? 'red' : ''} />Input Device</Menu.Item>}
-                            on='click'
-                            position='bottom left'
+                    <Group position="apart" align="center" mb="sm" spacing="xs" style={{ width: '100%' }} className="mobile-only-header">
+                        <Text weight={600} size="lg">TRL System</Text>
+                        <ActionIcon
+                            variant="outline"
+                            color={colorScheme === 'dark' ? 'yellow' : 'blue'}
+                            onClick={this.toggleColorScheme}
+                            title="Toggle color scheme"
+                            size="lg"
                         >
-                            <Popup.Content>
-                                <Select fluid
-                                        disabled={mystream}
-                                        error={!device}
-                                        placeholder="Select Device:"
-                                        value={device}
-                                        options={adevices_list}
-                                        onChange={(e, {value}) => this.setDevice(value)}/>
-                            </Popup.Content>
-                        </Popup>
-                    </Menu>
-                    <Menu icon='labeled' secondary size="mini">
-                        <Select className='trl_select'
-                                attached='left'
-                                compact
+                            {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+                        </ActionIcon>
+                    </Group>
+
+                    <Group position="apart" align="center" spacing="md" p="xs" style={{ width: '100%' }}>
+                        <Group spacing="xs">
+                            <Box p="xs" sx={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <Indicator color={mystream ? 'green' : 'red'} size={14}>
+                                    <ActionIcon size="lg" variant="light" color={mystream ? 'green' : 'red'}>
+                                        <IconPower size={20} />
+                                    </ActionIcon>
+                                </Indicator>
+                                <Text size="sm">{!mystream ? "Disconnected" : "Connected"}</Text>
+                            </Box>
+
+                            <Popover width={200} position="bottom" withArrow shadow="md">
+                                <Popover.Target>
+                                    <ActionIcon size="lg" variant="light" color={!device ? 'red' : 'blue'}>
+                                        <IconSettings size={20} />
+                                    </ActionIcon>
+                                </Popover.Target>
+                                <Popover.Dropdown>
+                                    {deviceLoading ? (
+                                        <Box py="xs">
+                                            <Skeleton height={8} radius="xl" mb="xs" />
+                                            <Skeleton height={8} radius="xl" mb="xs" width="70%" />
+                                            <Skeleton height={8} radius="xl" width="40%" />
+                                        </Box>
+                                    ) : (
+                                        <MantineSelect
+                                            data={adevices_list}
+                                            disabled={mystream}
+                                            placeholder="Select Device:"
+                                            value={device}
+                                            onChange={(value) => this.setDevice(value)}
+                                            error={!device}
+                                        />
+                                    )}
+                                </Popover.Dropdown>
+                            </Popover>
+                            
+                            <ActionIcon
+                                variant="outline"
+                                color={colorScheme === 'dark' ? 'yellow' : 'blue'}
+                                onClick={this.toggleColorScheme}
+                                title="Toggle color scheme"
+                                size="lg"
+                                className="desktop-only-button"
+                            >
+                                {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+                            </ActionIcon>
+                        </Group>
+                        
+                        <Group spacing="xs">
+                            <MantineSelect
+                                className='trl_select'
+                                data={langOptions}
                                 disabled={mystream}
-                                error={!selected_room}
                                 placeholder="Translate to:"
                                 value={i}
-                                options={langs_list}
-                                onChange={(e, {value}) => this.selectRoom(value)} />
-                        {mystream ?
-                            <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
-                        {!mystream ?
-                            <Button attached='right' size='huge' positive loading={delay} icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.initJanus} />:""}
-                    </Menu>
-                    <Menu icon='labeled' secondary size="mini" floated='right'>
-                        {!mystream ?
-                            <Menu.Item position='right' disabled={selftest !== "Mic Test" || mystream} onClick={this.selfTest}>
-                                <Icon color={tested ? 'green' : 'red'} name="sound" />
-                                {selftest}
-                            </Menu.Item> : ""}
-                        <Menu.Item disabled={!mystream} onClick={this.micMute} className="mute-button">
-                            <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
-                            <Icon color={muted ? "red" : ""} name={!muted ? "microphone" : "microphone slash"} />
-                            {!muted ? "ON" : "OFF"}
-                        </Menu.Item>
-                    </Menu>
+                                onChange={(value) => this.selectRoom(value)}
+                                error={!selected_room}
+                                width={150}
+                            />
+                            
+                            {mystream ? (
+                                <Button 
+                                    color="red" 
+                                    onClick={() => this.exitRoom(false)}
+                                    leftIcon={<IconLogout size={20} />}
+                                >
+                                    Exit
+                                </Button>
+                            ) : (
+                                <Button 
+                                    color="green" 
+                                    loading={delay}
+                                    disabled={delay || !selected_room || !device}
+                                    onClick={this.initJanus}
+                                    leftIcon={<IconLogin size={20} />}
+                                >
+                                    Join
+                                </Button>
+                            )}
+                        </Group>
+                        
+                        <Group spacing="xs">
+                            {!mystream ? (
+                                <Button 
+                                    variant="outline"
+                                    color={tested ? 'green' : 'red'}
+                                    disabled={selftest !== "Mic Test" || mystream}
+                                    onClick={this.selfTest}
+                                    leftIcon={<IconVolume size={20} />}
+                                >
+                                    {selftest}
+                                </Button>
+                            ) : null}
+                            
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <canvas className={muted ? 'hidden' : 'vumeter'} ref="canvas1" id="canvas1" width="15" height="35" />
+                                <Button
+                                    disabled={!mystream}
+                                    color={muted ? "red" : "blue"}
+                                    onClick={this.micMute}
+                                    leftIcon={muted ? <IconMicrophoneOff size={20} /> : <IconMicrophone size={20} />}
+                                >
+                                    {!muted ? "ON" : "OFF"}
+                                </Button>
+                            </Box>
+                        </Group>
+                    </Group>
                 </div>
 
                 <audio
@@ -446,29 +562,65 @@ class WeClient extends Component {
                     muted={trl_muted}
                     playsInline={true} />
 
-                {mystream ? '' : <Divider fitted />}
+                {mystream ? '' : <Divider my="md" />}
 
-                <Segment basic color='blue' className={mystream ? '' : 'hidden'}>
-                    <Table basic='very' fixed>
-                        <Table.Row>
-                            <Table.Cell width={8}>
-                                <Segment padded color='green'>
-                                    <VolumeSlider icon='address card' label='Translators' volume={this.setTrlVolume} mute={this.muteTrl} />
-                                </Segment>
-                                <Message color='grey' header='Online Translators:' list={list} />
-                            </Table.Cell>
-                        </Table.Row>
-                    </Table>
-                </Segment>
+                <Transition mounted={!!mystream} transition="fade" duration={400} timingFunction="ease">
+                    {(styles) => (
+                        <Paper shadow="xs" p="md" mt="md" radius="md" style={styles}>
+                            <Paper shadow="xs" p="md" radius="md" withBorder mb="md" sx={{ borderColor: '#21ba45' }}>
+                                <Group position="apart" mb="md">
+                                    <Text weight={700} size="lg"><IconDeviceSpeaker size={20} style={{verticalAlign: 'middle', marginRight: '8px'}}/>Translator Audio</Text>
+                                    <Button 
+                                        size="xs"
+                                        color={trl_muted ? "red" : "blue"}
+                                        variant={trl_muted ? "filled" : "outline"}
+                                        onClick={this.muteTrl}
+                                        leftIcon={trl_muted ? <IconVolumeOff size={16} /> : <IconVolume size={16} />}
+                                    >
+                                        {trl_muted ? "Muted" : "Playing"}
+                                    </Button>
+                                </Group>
+                                <Center py="lg">
+                                    <VolumeSlider label='Volume' orientation='vertical' volume={this.setTrlVolume} mute={this.muteTrl} />
+                                </Center>
+                            </Paper>
+                            <Paper shadow="xs" p="md" radius="md" withBorder>
+                                <Text weight={700} size="lg" mb="md">Online Translators</Text>
+                                {list.length > 0 ? (
+                                    <Box className="translator-list">
+                                        {list.map((item, index) => (
+                                            <Transition mounted={true} transition="slide-up" duration={300} timingFunction="ease" key={index}>
+                                                {(styles) => (
+                                                    <div style={{...styles, transitionDelay: `${index * 50}ms`}}>
+                                                        {item}
+                                                    </div>
+                                                )}
+                                            </Transition>
+                                        ))}
+                                    </Box>
+                                ) : (
+                                    <Alert 
+                                        color="gray"
+                                        icon={<IconAlertCircle size={16} />}
+                                        title="No translators online"
+                                        radius="md"
+                                    >
+                                        Please wait for translators to connect.
+                                    </Alert>
+                                )}
+                            </Paper>
+                        </Paper>
+                    )}
+                </Transition>
             </div>
         );
 
         return (
-
-            <div>
-                {user ? content : login}
-            </div>
-
+            <MantineProvider theme={{ colorScheme: colorScheme }}>
+                <div>
+                    {user ? content : login}
+                </div>
+            </MantineProvider>
         );
     }
 }

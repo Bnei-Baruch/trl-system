@@ -110,29 +110,43 @@ class MerkazStream extends Component {
         }
     };
 
-    setAudioOut = (d,t) => {
-        if(t === 1) {
-            window["out"+t].setSinkId(d)
-        }
-        if(t === 2) {
-            window["out"+t].setSinkId(d)
+    setAudioOut = (d, t) => {
+        if (window["out" + t]) {
+            try {
+                window["out" + t].setSinkId(d)
+                    .then(() => console.log(`Audio output device ${d} set for translator ${t}`))
+                    .catch(err => console.warn(`Error setting audio output device: ${err.message}`));
+            } catch (error) {
+                console.warn(`Error setting audio output device: ${error.message}`);
+            }
+        } else {
+            console.warn(`Audio element for translator ${t} not found or not ready.`);
         }
     }
 
-    setVolume = (value,trl) => {
-        window["out"+trl].volume = value;
+    setVolume = (value, trl) => {
+        // Make sure the audio element exists before setting volume
+        if (window["out" + trl] && window["out" + trl].volume !== undefined) {
+            window["out" + trl].volume = value;
+        } else {
+            console.warn(`Audio element for translator ${trl} not found or not ready.`);
+        }
     };
 
     audioMute = (trl) => {
         if(trl === 1) {
             const {audio_stream1,str1_muted} = this.state;
             this.setState({str1_muted: !str1_muted});
-            window["out"+trl].muted = !str1_muted;
+            if (window["out" + trl]) {
+                window["out" + trl].muted = !str1_muted;
+            }
         }
         if(trl === 2) {
             const {audio_stream2,str2_muted} = this.state;
             this.setState({str2_muted: !str2_muted});
-            window["out"+trl].muted = !str2_muted;
+            if (window["out" + trl]) {
+                window["out" + trl].muted = !str2_muted;
+            }
         }
     };
 

@@ -1,0 +1,120 @@
+// WeClient Mantine Styles
+.vclient {
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  padding: 0 2em;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem 0.5rem;
+    flex-wrap: wrap;
+    width: 100%;
+    border-bottom: 1px solid var(--mantine-color-gray-3);
+    margin-bottom: 1rem;
+  }
+
+  &__main {
+    flex: 1 0 auto;
+    display: flex;
+    position: relative;
+  }
+}
+
+// Responsive utilities
+.mobile-only-header {
+  display: none;
+}
+
+.desktop-only-button {
+  display: flex;
+}
+
+// Dark mode specific styles
+[data-mantine-color-scheme="dark"] {
+  .vclient {
+    &__toolbar {
+      border-color: var(--mantine-color-dark-4);
+    }
+  }
+  
+  // Adjust colors for dark mode
+  .mantine-Paper-root {
+    &.withBorder {
+      border-color: var(--mantine-color-dark-4);
+    }
+  }
+  
+  canvas.vumeter {
+    filter: invert(0.8);
+  }
+}
+
+.trl_select {
+  min-width: 150px;
+}
+
+// Keep the vumeter display
+.vumeter {
+  width: 15px;
+  height: 35px;
+  position: relative;
+  z-index: 1;
+}
+
+.hidden {
+  display: none;
+}
+
+// Audio element styles
+audio {
+  width: 100%;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+// Translator list styles
+.translator-list {
+  margin-top: 10px;
+}
+
+.translator-item {
+  margin-bottom: 5px;
+}
+
+// Add styles for alerts
+.mantine-Alert-root {
+  margin-bottom: 8px;
+}
+
+// Make the UI more responsive on mobile
+@media (max-width: 768px) {
+  .vclient {
+    padding: 0 1em;
+    
+    &__toolbar {
+      flex-direction: column;
+      align-items: flex-start;
+      
+      .mantine-Group-root {
+        margin-bottom: 0.5rem;
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+  }
+  
+  .trl_select {
+    min-width: 100%;
+  }
+  
+  // Show/hide elements based on screen size
+  .mobile-only-header {
+    display: flex;
+  }
+  
+  .desktop-only-button {
+    display: none;
+  }
+} 

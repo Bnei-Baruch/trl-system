@@ -223,7 +223,7 @@ class ClientChat extends Component {
         return (
             <div className="chat-panell" >
                 <Tab panes={panes} onTabChange={this.tabChange} />
-                <Input attached fluid type='text' placeholder='Type your message' action value={this.state.input_value}
+                <Input attached="true" fluid type='text' placeholder='Type your message' action value={this.state.input_value}
                        onChange={(v,{value}) => this.setState({input_value: value})}>
                     <input />
                     <Button positive onClick={this.sendMessage}>Send</Button>

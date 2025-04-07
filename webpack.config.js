@@ -35,10 +35,12 @@ module.exports = {
     modules: [path.join(__dirname, 'src'), 'node_modules'],
     alias: {
       react: path.join(__dirname, 'node_modules', 'react'),
+      'process/browser': 'process/browser',
     },
     extensions: [ '.ts', '.js' ],
     fallback: {
-      "buffer": require.resolve("buffer")
+      "buffer": require.resolve("buffer"),
+      "process": require.resolve("process/browser")
     }
   },
   module: {
@@ -115,8 +117,14 @@ module.exports = {
       Buffer: ['buffer', 'Buffer'],
     }),
     new webpack.ProvidePlugin({
-      process: 'process/browser',
+      process: require.resolve('process/browser'),
     }),
+    new webpack.NormalModuleReplacementPlugin(
+      /node_modules\/@mantine\/core\/esm\/core\/utils\/get-env\/get-env\.mjs/,
+      resource => {
+        resource.request = resource.request.replace('process/browser', 'process');
+      }
+    ),
   ],
   optimization: {
     splitChunks: {
