@@ -20,6 +20,7 @@ class LocalDevices {
   init = async () => {
     let devices = [], ts = 0;
 
+    [this.audio.stream, this.audio.error] = await this.getMediaStream();
     //TODO: Translate exceptions - https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions
 
     devices = await navigator.mediaDevices.enumerateDevices();
