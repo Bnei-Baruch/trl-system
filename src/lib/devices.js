@@ -1,5 +1,6 @@
 import workerUrl from 'worker-plugin/loader!./volmeter-processor';
 import log from "loglevel";
+import {STUN_SRV1} from "../shared/consts";
 
 class LocalDevices {
   constructor() {
@@ -21,13 +22,22 @@ class LocalDevices {
 
     //TODO: Translate exceptions - https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions
 
-    // Check saved devices in local storage
-    let storage_audio = localStorage.getItem("audio_device");
-    this.audio.device = !!storage_audio ? storage_audio : null;
-    [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
     devices = await navigator.mediaDevices.enumerateDevices();
     console.log(devices)
     this.audio.devices = devices.filter((a) => !!a.deviceId && a.kind === "audioinput");
+    // Check saved devices in local storage
+    let storage_audio = localStorage.getItem("audio_device");
+    this.audio.device = !!storage_audio ? storage_audio : null;
+    if(this.audio.device) {
+      let device_exist = this.audio.devices.find((device) => device.deviceId === storage_audio);
+      if(device_exist) {
+        [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.device);
+      } else if(this.audio.devices.length > 0) {
+        [this.audio.stream, this.audio.error] = await this.getMediaStream(this.audio.devices[0].deviceId);
+      } else {
+        //No device detected
+      }
+    }
 
     if (this.audio.stream) {
       this.audio_stream = this.audio.stream.clone()
