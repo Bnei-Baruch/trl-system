@@ -97,8 +97,8 @@ class MqttClient extends Component {
                 log.info("[client] MQTT reconnected");
             } else {
                 this.setState({mqttOn: true});
-                mqtt.join("trl1/users/broadcast");
-                mqtt.join("trl1/users/" + user.id);
+                mqtt.join("trl/users/broadcast");
+                mqtt.join("trl/users/" + user.id);
                 this.initDevices();
                 mqtt.watch((message) => {
                     this.handleCmdData(message);
