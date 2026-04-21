@@ -53,7 +53,8 @@ class MqttClient extends Component {
         tested: false,
         video: true,
         init_devices: false,
-        trl_switch: true
+        trl_switch: true,
+        rec_override: false,
     };
 
     checkPermission = (user) => {
@@ -261,6 +262,8 @@ class MqttClient extends Component {
             user.sound_test = true;
             localStorage.setItem("sound_test", true);
             this.setState({user});
+        } else if (type === "rec-override") {
+            this.setState({rec_override: ondata.status});
         }
     };
 
@@ -286,6 +289,7 @@ class MqttClient extends Component {
 
             mqtt.join("trl/room/" + selected_room);
             mqtt.join("trl/room/" + selected_room + "/chat", true);
+            mqtt.join("trl/room/" + selected_room + "/rec");
 
             this.chat.initChatEvents();
 
@@ -319,7 +323,8 @@ class MqttClient extends Component {
             janus.destroy().then(() => {
                 mqtt.exit("trl/room/" + room);
                 mqtt.exit("trl/room/" + room + "/chat");
-                this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
+                mqtt.exit("trl/room/" + room + "/rec");
+                this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false, rec_override: false});
                 if(reconnect) this.initJanus(reconnect)
                 if(!reconnect) devices.audio.context.resume()
             })
@@ -377,6 +382,14 @@ class MqttClient extends Component {
         this.refs.remoteAudio.volume = value;
     };
 
+    sendRecOverride = () => {
+        const {room, user, rec_override} = this.state;
+        const newState = !rec_override;
+        const msg = {type: "rec-override", status: newState, room, user};
+        mqtt.send(JSON.stringify(msg), true, `trl/room/${room}/rec`);
+        this.setState({rec_override: newState});
+    };
+
     switchTrl = () => {
         const {trl_switch} = this.state;
         const audios = trl_switch ? 61 : Number(localStorage.getItem("lang"));
@@ -386,7 +399,7 @@ class MqttClient extends Component {
 
     render() {
 
-        const {trl_switch, feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus} = this.state;
+        const {trl_switch, feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus,rec_override} = this.state;
         const autoPlay = true;
         const controls = false;
 
@@ -451,6 +464,18 @@ class MqttClient extends Component {
                             <Button attached='right' size='huge' warning icon='sign-out' onClick={() => this.exitRoom(false)} />:""}
                         {!mystream ?
                             <Button attached='right' size='huge' positive icon='sign-in' disabled={delay || !selected_room || !device} onClick={this.initJanus} />:""}
+                    </Menu>
+                    <Menu secondary size="mini" style={{flex: 1, justifyContent: 'center'}}>
+                        <Menu.Item>
+                            <Button
+                                color={rec_override ? 'red' : 'grey'}
+                                disabled={!mystream}
+                                onClick={this.sendRecOverride}
+                            >
+                                <Icon name='dot circle' />
+                                {rec_override ? 'OVERRIDE REC: ON' : 'OVERRIDE REC: OFF'}
+                            </Button>
+                        </Menu.Item>
                     </Menu>
                     <Menu icon='labeled' secondary size="mini" floated='right'>
                         {!mystream ?
