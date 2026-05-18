@@ -118,7 +118,7 @@ class MqttMerkaz extends Component {
     };
 
     initMQTT = (user) => {
-        mqtt.init("trl1", user, (reconnected, error) => {
+        mqtt.init("trl", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
                 this.setState({mqttOn: false});
@@ -142,7 +142,7 @@ class MqttMerkaz extends Component {
     initJanus = (reconnect = false) => {
         this.setState({delay: true});
         const {user} = this.state;
-        let janus = new JanusMqtt(user, "trl1")
+        let janus = new JanusMqtt(user, "mkz")
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
                 alert("Janus Server - " + srv + " - Offline")
@@ -675,7 +675,7 @@ class MqttMerkaz extends Component {
                                 <Segment.Group horizontal compact>
                                     <Segment className='stream_langs'>
                                         <Select compact
-                                                disabled={!mystream}
+                                                disabled
                                                 upward
                                                 error={!audios1}
                                                 placeholder="Audio:"
@@ -685,7 +685,7 @@ class MqttMerkaz extends Component {
                                     </Segment>
                                     <Segment className='stream_langs' textAlign='right'>
                                         <Select compact
-                                                disabled={!mystream}
+                                                disabled
                                                 upward
                                                 error={!audios2}
                                                 placeholder="Audio:"
