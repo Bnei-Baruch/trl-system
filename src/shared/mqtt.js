@@ -119,6 +119,8 @@ class MqttMsg {
                         this.mq.emit("MqttChatEvent", data);
                     else if (service === "room" && target !== "chat" || service === "service" && id !== "user")
                         callback(JSON.parse(data.toString()), topic);
+                    else if (service === "proxy")
+                        callback(data.toString(), topic);
                     else if (service === "users" && id === "broadcast")
                         this.mq.emit("MqttBroadcastMessage", data);
                     else

@@ -47,6 +47,9 @@ class MqttAdmin extends Component {
         support_chat: {},
         active_tab: null,
         trl_muted: true,
+        proxy_role: {1: null, 2: null},
+        active_srv: null,
+        current_srv: null,
     };
 
     componentDidMount() {
@@ -89,15 +92,23 @@ class MqttAdmin extends Component {
                 this.setState({mqttOn: true});
                 log.info("[client] MQTT reconnected");
             } else {
-                this.setState({mqttOn: true});
+                this.setState({mqttOn: true, user});
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/support");
                 mqtt.join("trl/users/" + user.id);
+                mqtt.join("trl/proxy/1/role/command");
+                mqtt.join("trl/proxy/2/role/command");
                 this.initChatEvents();
-                this.initJanus(user, false)
-                mqtt.watch((message) => {
-                    this.onProtocolData(message);
+                mqtt.watch((message, topic) => {
+                    this.onProtocolData(message, topic);
                 });
+                // Fallback: if no proxy role arrives within timeout, init with default
+                this._init_janus_timer = setTimeout(() => {
+                    if (!this.state.janus && !this.state.active_srv) {
+                        log.warn("[admin] No proxy role received, initializing janus with fallback srv");
+                        this.initJanus(user, false);
+                    }
+                }, 3000);
             }
         });
         setInterval(() => {
@@ -107,8 +118,76 @@ class MqttAdmin extends Component {
         }, 5000 );
     };
 
-    initJanus = (user, reconnect) => {
-        let janus = new JanusMqtt(user, "trl1")
+    onProtocolData = (message, topic) => {
+        if (typeof topic === "string" && topic.startsWith("trl/proxy/")) {
+            this.handleProxyRole(message, topic);
+        }
+    };
+
+    handleProxyRole = (role, topic) => {
+        const parts = topic.split("/");
+        const idx = Number(parts[2]);
+        if (idx !== 1 && idx !== 2) return;
+        const value = typeof role === "string" ? role.trim() : role;
+        if (this.state.proxy_role[idx] === value) return;
+        log.info("[admin] Proxy role update: proxy" + idx + " -> " + value);
+
+        const proxy_role = {...this.state.proxy_role, [idx]: value};
+        const active_idx = Object.keys(proxy_role).find(k => proxy_role[k] === "active");
+        const active_srv = active_idx ? "trl" + active_idx : null;
+        const prev_active = this.state.active_srv;
+        const {current_srv, janus, user} = this.state;
+
+        this.setState({proxy_role, active_srv});
+
+        if (active_srv && active_srv !== prev_active) {
+            log.info("[admin] Active TRL server: " + active_srv + " (was: " + prev_active + ")");
+        }
+
+        if (active_srv && !janus && user) {
+            if (this._init_janus_timer) {
+                clearTimeout(this._init_janus_timer);
+                this._init_janus_timer = null;
+            }
+            this.initJanus(user, false);
+        } else if (active_srv && current_srv && active_srv !== current_srv && janus) {
+            log.warn("[admin] Failover: switching from " + current_srv + " to " + active_srv);
+            this.failover();
+        }
+    };
+
+    failover = () => {
+        const {janus, audiobridge, user, current_room} = this.state;
+        const rejoin = current_room || null;
+        const cleanup = () => {
+            this.setState({janus: null, audiobridge: null, feeds: {}, current_room: "", current_srv: null}, () => {
+                if (rejoin) {
+                    mqtt.exit("trl/room/" + rejoin);
+                    mqtt.exit("trl/room/" + rejoin + "/chat");
+                }
+                this.initJanus(user, false, rejoin);
+            });
+        };
+        const destroy = () => {
+            janus.destroy().then(cleanup).catch(cleanup);
+        };
+        if (audiobridge && current_room) {
+            audiobridge.leave(current_room).then(destroy).catch(destroy);
+        } else if (janus) {
+            destroy();
+        } else {
+            cleanup();
+        }
+    };
+
+    initJanus = (user, reconnect, rejoin_room_id) => {
+        const {active_srv} = this.state;
+        const srv = active_srv || "trl1";
+        if (!active_srv) {
+            log.warn("[admin] No active TRL server reported yet, falling back to: " + srv);
+        }
+        this.setState({current_srv: srv});
+        let janus = new JanusMqtt(user, srv)
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
                 alert("Janus Server - " + srv + " - Offline")
@@ -132,6 +211,16 @@ class MqttAdmin extends Component {
                 this.setState({janus, audiobridge, user, delay: false});
                 log.info('[client] Publisher Handle: ', data);
                 this.getRoomList(audiobridge);
+                if (rejoin_room_id) {
+                    log.info("[admin] Re-joining room after failover: " + rejoin_room_id);
+                    audiobridge.join(rejoin_room_id, user).then(joinData => {
+                        this.setState({current_room: rejoin_room_id, feeds: {}, feed_user: null, feed_id: null});
+                        audiobridge.listen();
+                        this.onFeedEvent(joinData.participants);
+                        mqtt.join("trl/room/" + rejoin_room_id);
+                        mqtt.join("trl/room/" + rejoin_room_id + "/chat", true);
+                    }).catch(err => log.error("[admin] Re-join error: ", err));
+                }
             })
         }).catch(err => {
             log.error("[client] Janus init", err);

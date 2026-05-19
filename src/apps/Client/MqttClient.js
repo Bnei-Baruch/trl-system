@@ -53,7 +53,10 @@ class MqttClient extends Component {
         tested: false,
         video: true,
         init_devices: false,
-        trl_switch: true
+        trl_switch: true,
+        proxy_role: {1: null, 2: null},
+        active_srv: null,
+        current_srv: null,
     };
 
     checkPermission = (user) => {
@@ -99,18 +102,50 @@ class MqttClient extends Component {
                 this.setState({mqttOn: true});
                 mqtt.join("trl/users/broadcast");
                 mqtt.join("trl/users/" + user.id);
+                mqtt.join("trl/proxy/1/role/command");
+                mqtt.join("trl/proxy/2/role/command");
                 this.initDevices();
-                mqtt.watch((message) => {
-                    this.handleCmdData(message);
+                mqtt.watch((message, topic) => {
+                    this.handleCmdData(message, topic);
                 });
             }
         });
     };
 
+    handleProxyRole = (role, topic) => {
+        const parts = topic.split("/");
+        const idx = Number(parts[2]);
+        if (idx !== 1 && idx !== 2) return;
+        const value = typeof role === "string" ? role.trim() : role;
+        if (this.state.proxy_role[idx] === value) return;
+        log.info("[client] Proxy role update: proxy" + idx + " -> " + value);
+
+        const proxy_role = {...this.state.proxy_role, [idx]: value};
+        const active_idx = Object.keys(proxy_role).find(k => proxy_role[k] === "active");
+        const active_srv = active_idx ? "trl" + active_idx : null;
+        const prev_active = this.state.active_srv;
+        const {current_srv, mystream, exit_room} = this.state;
+
+        this.setState({proxy_role, active_srv});
+
+        if (active_srv && active_srv !== prev_active) {
+            log.info("[client] Active TRL server: " + active_srv + " (was: " + prev_active + ")");
+        }
+
+        if (active_srv && current_srv && active_srv !== current_srv && mystream && !exit_room) {
+            log.warn("[client] Failover: switching from " + current_srv + " to " + active_srv);
+            this.exitRoom(true);
+        }
+    };
+
     initJanus = (reconnect = false) => {
-        this.setState({delay: true});
-        const {user} = this.state;
-        let janus = new JanusMqtt(user, "trl1")
+        const {user, active_srv} = this.state;
+        const srv = active_srv || "trl1";
+        if (!active_srv) {
+            log.warn("[client] No active TRL server reported yet, falling back to: " + srv);
+        }
+        this.setState({delay: true, current_srv: srv});
+        let janus = new JanusMqtt(user, srv)
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
                 alert("Janus Server - " + srv + " - Offline")
@@ -237,7 +272,11 @@ class MqttClient extends Component {
         },1000);
     };
 
-    handleCmdData = (ondata) => {
+    handleCmdData = (ondata, topic) => {
+        if (typeof topic === "string" && topic.startsWith("trl/proxy/")) {
+            this.handleProxyRole(ondata, topic);
+            return;
+        }
         log.debug("-- :: It's protocol public message: ", ondata);
         const {user} = this.state;
         const {type, id, to} = ondata;
@@ -319,7 +358,7 @@ class MqttClient extends Component {
             janus.destroy().then(() => {
                 mqtt.exit("trl/room/" + room);
                 mqtt.exit("trl/room/" + room + "/chat");
-                this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
+                this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false, current_srv: null});
                 if(reconnect) this.initJanus(reconnect)
                 if(!reconnect) devices.audio.context.resume()
             })
