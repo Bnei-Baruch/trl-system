@@ -16,6 +16,7 @@ class MqttAdmin extends Component {
 
     _proxy_role = {1: null, 2: null};
     _active_srv = null;
+    _current_srv = null;
     _initializing_janus = false;
 
     state = {
@@ -51,9 +52,6 @@ class MqttAdmin extends Component {
         support_chat: {},
         active_tab: null,
         trl_muted: true,
-        proxy_role: {1: null, 2: null},
-        active_srv: null,
-        current_srv: null,
     };
 
     componentDidMount() {
@@ -109,7 +107,7 @@ class MqttAdmin extends Component {
                 // Fallback: if no proxy role arrives within timeout, init with default
                 this._init_janus_timer = setTimeout(() => {
                     if (!this.state.janus && !this._active_srv && !this._initializing_janus) {
-                        log.warn("[admin] No proxy role received, initializing janus with fallback srv");
+                        log.warn("[admin] No proxy role received within timeout, initializing janus with fallback srv");
                         this.initJanus(user, false);
                     }
                 }, 3000);
@@ -142,13 +140,11 @@ class MqttAdmin extends Component {
         const prev_active = this._active_srv;
         this._active_srv = new_active;
 
-        this.setState({proxy_role: this._proxy_role, active_srv: new_active});
-
         if (new_active && new_active !== prev_active) {
             log.info("[admin] Active TRL server: " + new_active + " (was: " + prev_active + ")");
         }
 
-        const {janus, user, current_srv} = this.state;
+        const {janus, user} = this.state;
 
         if (new_active && !janus && user && !this._initializing_janus) {
             if (this._init_janus_timer) {
@@ -156,8 +152,8 @@ class MqttAdmin extends Component {
                 this._init_janus_timer = null;
             }
             this.initJanus(user, false);
-        } else if (new_active && current_srv && new_active !== current_srv && janus && !this._initializing_janus) {
-            log.warn("[admin] Failover: switching from " + current_srv + " to " + new_active);
+        } else if (new_active && this._current_srv && new_active !== this._current_srv && janus && !this._initializing_janus) {
+            log.warn("[admin] Failover: switching from " + this._current_srv + " to " + new_active);
             this.failover();
         }
     };
@@ -166,7 +162,8 @@ class MqttAdmin extends Component {
         const {janus, audiobridge, user, current_room} = this.state;
         const rejoin = current_room || null;
         const cleanup = () => {
-            this.setState({janus: null, audiobridge: null, feeds: {}, current_room: "", current_srv: null}, () => {
+            this._current_srv = null;
+            this.setState({janus: null, audiobridge: null, feeds: {}, current_room: ""}, () => {
                 if (rejoin) {
                     mqtt.exit("trl/room/" + rejoin);
                     mqtt.exit("trl/room/" + rejoin + "/chat");
@@ -192,7 +189,7 @@ class MqttAdmin extends Component {
             log.warn("[admin] No active TRL server reported yet, falling back to: " + srv);
         }
         this._initializing_janus = true;
-        this.setState({current_srv: srv});
+        this._current_srv = srv;
         let janus = new JanusMqtt(user, srv)
         janus.onStatus = (srv, status) => {
             if(status === "offline") {

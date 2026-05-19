@@ -20,6 +20,7 @@ class MqttClient extends Component {
 
     _proxy_role = {1: null, 2: null};
     _active_srv = null;
+    _current_srv = null;
     _failover_pending = false;
 
     state = {
@@ -58,9 +59,6 @@ class MqttClient extends Component {
         video: true,
         init_devices: false,
         trl_switch: true,
-        proxy_role: {1: null, 2: null},
-        active_srv: null,
-        current_srv: null,
     };
 
     checkPermission = (user) => {
@@ -130,16 +128,14 @@ class MqttClient extends Component {
         const prev_active = this._active_srv;
         this._active_srv = new_active;
 
-        this.setState({proxy_role: this._proxy_role, active_srv: new_active});
-
         if (new_active && new_active !== prev_active) {
             log.info("[client] Active TRL server: " + new_active + " (was: " + prev_active + ")");
         }
 
-        const {current_srv, mystream, exit_room} = this.state;
+        const {mystream, exit_room} = this.state;
 
-        if (new_active && current_srv && new_active !== current_srv && mystream && !exit_room && !this._failover_pending) {
-            log.warn("[client] Failover: switching from " + current_srv + " to " + new_active);
+        if (new_active && this._current_srv && new_active !== this._current_srv && mystream && !exit_room && !this._failover_pending) {
+            log.warn("[client] Failover: switching from " + this._current_srv + " to " + new_active);
             this._failover_pending = true;
             this.exitRoom(true);
         }
@@ -152,7 +148,8 @@ class MqttClient extends Component {
             log.warn("[client] No active TRL server reported yet, falling back to: " + srv);
         }
         this._failover_pending = false;
-        this.setState({delay: true, current_srv: srv});
+        this._current_srv = srv;
+        this.setState({delay: true});
         let janus = new JanusMqtt(user, srv)
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
@@ -366,7 +363,8 @@ class MqttClient extends Component {
             janus.destroy().then(() => {
                 mqtt.exit("trl/room/" + room);
                 mqtt.exit("trl/room/" + room + "/chat");
-                this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false, current_srv: null});
+                this._current_srv = null;
+                this.setState({muted: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
                 if(reconnect) this.initJanus(reconnect)
                 if(!reconnect) devices.audio.context.resume()
             })
