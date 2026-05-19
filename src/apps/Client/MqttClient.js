@@ -18,6 +18,10 @@ import version from './version.js';
 
 class MqttClient extends Component {
 
+    _proxy_role = {1: null, 2: null};
+    _active_srv = null;
+    _failover_pending = false;
+
     state = {
         delay: true,
         exit_room: true,
@@ -117,33 +121,37 @@ class MqttClient extends Component {
         const idx = Number(parts[2]);
         if (idx !== 1 && idx !== 2) return;
         const value = typeof role === "string" ? role.trim() : role;
-        if (this.state.proxy_role[idx] === value) return;
+        if (this._proxy_role[idx] === value) return;
         log.info("[client] Proxy role update: proxy" + idx + " -> " + value);
 
-        const proxy_role = {...this.state.proxy_role, [idx]: value};
-        const active_idx = Object.keys(proxy_role).find(k => proxy_role[k] === "active");
-        const active_srv = active_idx ? "trl" + active_idx : null;
-        const prev_active = this.state.active_srv;
-        const {current_srv, mystream, exit_room} = this.state;
+        this._proxy_role = {...this._proxy_role, [idx]: value};
+        const active_idx = Object.keys(this._proxy_role).find(k => this._proxy_role[k] === "active");
+        const new_active = active_idx ? "trl" + active_idx : null;
+        const prev_active = this._active_srv;
+        this._active_srv = new_active;
 
-        this.setState({proxy_role, active_srv});
+        this.setState({proxy_role: this._proxy_role, active_srv: new_active});
 
-        if (active_srv && active_srv !== prev_active) {
-            log.info("[client] Active TRL server: " + active_srv + " (was: " + prev_active + ")");
+        if (new_active && new_active !== prev_active) {
+            log.info("[client] Active TRL server: " + new_active + " (was: " + prev_active + ")");
         }
 
-        if (active_srv && current_srv && active_srv !== current_srv && mystream && !exit_room) {
-            log.warn("[client] Failover: switching from " + current_srv + " to " + active_srv);
+        const {current_srv, mystream, exit_room} = this.state;
+
+        if (new_active && current_srv && new_active !== current_srv && mystream && !exit_room && !this._failover_pending) {
+            log.warn("[client] Failover: switching from " + current_srv + " to " + new_active);
+            this._failover_pending = true;
             this.exitRoom(true);
         }
     };
 
     initJanus = (reconnect = false) => {
-        const {user, active_srv} = this.state;
-        const srv = active_srv || "trl1";
-        if (!active_srv) {
+        const {user} = this.state;
+        const srv = this._active_srv || "trl1";
+        if (!this._active_srv) {
             log.warn("[client] No active TRL server reported yet, falling back to: " + srv);
         }
+        this._failover_pending = false;
         this.setState({delay: true, current_srv: srv});
         let janus = new JanusMqtt(user, srv)
         janus.onStatus = (srv, status) => {
