@@ -52,6 +52,8 @@ class MqttAdmin extends Component {
         support_chat: {},
         active_tab: null,
         trl_muted: true,
+        active_srv: null,
+        current_srv: null,
     };
 
     componentDidMount() {
@@ -139,6 +141,7 @@ class MqttAdmin extends Component {
         const new_active = active_idx ? "trl" + active_idx : null;
         const prev_active = this._active_srv;
         this._active_srv = new_active;
+        this.setState({active_srv: new_active});
 
         if (new_active && new_active !== prev_active) {
             log.info("[admin] Active TRL server: " + new_active + " (was: " + prev_active + ")");
@@ -163,7 +166,7 @@ class MqttAdmin extends Component {
         const rejoin = current_room || null;
         const cleanup = () => {
             this._current_srv = null;
-            this.setState({janus: null, audiobridge: null, feeds: {}, current_room: ""}, () => {
+            this.setState({janus: null, audiobridge: null, feeds: {}, current_room: "", current_srv: null}, () => {
                 if (rejoin) {
                     mqtt.exit("trl/room/" + rejoin);
                     mqtt.exit("trl/room/" + rejoin + "/chat");
@@ -190,6 +193,7 @@ class MqttAdmin extends Component {
         }
         this._initializing_janus = true;
         this._current_srv = srv;
+        this.setState({current_srv: srv});
         let janus = new JanusMqtt(user, srv)
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
@@ -611,7 +615,8 @@ class MqttAdmin extends Component {
 
   render() {
 
-      const { bitrate,rooms,current_room,user,feeds,feed_id,feed_info,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,showConfirmReloadAll} = this.state;
+      const { bitrate,rooms,current_room,user,feeds,feed_id,feed_info,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,showConfirmReloadAll,active_srv,current_srv} = this.state;
+      const srv_healthy = current_srv && active_srv && current_srv === active_srv;
 
       const f = (<Icon name='volume up' />);
       const q = (<Icon color='red' name='help' />);
@@ -724,6 +729,23 @@ class MqttAdmin extends Component {
                       hideOnScroll
                   />
                   <Menu icon='labeled' secondary size="mini" floated='right'>
+                      <Popup
+                          trigger={
+                              <Menu.Item disabled={!current_srv}>
+                                  <Icon name='server' color={!current_srv ? 'grey' : srv_healthy ? 'green' : 'yellow'} />
+                                  {current_srv ? current_srv.toUpperCase() : '—'}
+                              </Menu.Item>
+                          }
+                          position='bottom right'
+                          content={
+                              <div style={{fontSize: '0.85em'}}>
+                                  <div>Connected: <b>{current_srv || '—'}</b></div>
+                                  <div>Active: <b>{active_srv || '—'}</b></div>
+                                  <div>proxy1: {this._proxy_role[1] || '—'}</div>
+                                  <div>proxy2: {this._proxy_role[2] || '—'}</div>
+                              </div>
+                          }
+                      />
                       <Menu.Item position='right'  onClick={this.selfTest}>
                           <VolumeSlider icon='microphone' label='WebRTC' volume={this.setTrlVolume} mute={this.muteTrl} />
                       </Menu.Item>

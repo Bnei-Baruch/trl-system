@@ -72,6 +72,8 @@ class MqttMerkaz extends Component {
         tested: false,
         video: false,
         init_devices: false,
+        active_srv: null,
+        current_srv: null,
     };
 
     checkPermission = (user) => {
@@ -159,6 +161,7 @@ class MqttMerkaz extends Component {
         const new_active = active_idx ? "trl" + active_idx : null;
         const prev_active = this._active_srv;
         this._active_srv = new_active;
+        this.setState({active_srv: new_active});
 
         if (new_active && new_active !== prev_active) {
             log.info("[merkaz] Active TRL server: " + new_active + " (was: " + prev_active + ")");
@@ -181,7 +184,7 @@ class MqttMerkaz extends Component {
         }
         this._failover_pending = false;
         this._current_srv = srv;
-        this.setState({delay: true});
+        this.setState({delay: true, current_srv: srv});
         let janus = new JanusMqtt(user, srv)
         janus.onStatus = (srv, status) => {
             if(status === "offline") {
@@ -497,7 +500,7 @@ class MqttMerkaz extends Component {
                 mqtt.exit("trl/room/" + room);
                 mqtt.exit("trl/room/" + room + "/chat");
                 this._current_srv = null;
-                this.setState({muted1: false, muted2: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false});
+                this.setState({muted1: false, muted2: false, mystream: null, room: "", selected_room: (reconnect ? room : ""), i: "", feeds: {}, trl_room: null, delay: false, current_srv: null});
                 if(reconnect) this.initJanus(reconnect)
                 if(!reconnect) {
                     window.location.reload()
@@ -592,7 +595,8 @@ class MqttMerkaz extends Component {
 
     render() {
 
-        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,user,video,janus} = this.state;
+        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,user,video,janus,active_srv,current_srv} = this.state;
+        const srv_healthy = current_srv && active_srv && current_srv === active_srv;
         const autoPlay = true;
         const controls = false;
 
@@ -693,6 +697,23 @@ class MqttMerkaz extends Component {
                                             <Icon color={mystream ? 'green' : 'red'} name='power off'/>
                                             {!mystream ? "Disconnected" : "Connected"}
                                         </Menu.Item>
+                                        <Popup
+                                            trigger={
+                                                <Menu.Item disabled={!current_srv}>
+                                                    <Icon name='server' color={!current_srv ? 'grey' : srv_healthy ? 'green' : 'yellow'} />
+                                                    {current_srv ? current_srv.toUpperCase() : '—'}
+                                                </Menu.Item>
+                                            }
+                                            position='bottom left'
+                                            content={
+                                                <div style={{fontSize: '0.85em'}}>
+                                                    <div>Connected: <b>{current_srv || '—'}</b></div>
+                                                    <div>Active: <b>{active_srv || '—'}</b></div>
+                                                    <div>proxy1: {this._proxy_role[1] || '—'}</div>
+                                                    <div>proxy2: {this._proxy_role[2] || '—'}</div>
+                                                </div>
+                                            }
+                                        />
                                         <Modal
                                             trigger={<Menu.Item icon='book' name='Study Material'/>}
                                             on='click'
