@@ -138,22 +138,22 @@ class MqttAdmin extends Component {
         const prev_active = this.state.active_srv;
         const {current_srv, janus, user} = this.state;
 
-        this.setState({proxy_role, active_srv});
-
-        if (active_srv && active_srv !== prev_active) {
-            log.info("[admin] Active TRL server: " + active_srv + " (was: " + prev_active + ")");
-        }
-
-        if (active_srv && !janus && user) {
-            if (this._init_janus_timer) {
-                clearTimeout(this._init_janus_timer);
-                this._init_janus_timer = null;
+        this.setState({proxy_role, active_srv}, () => {
+            if (active_srv && active_srv !== prev_active) {
+                log.info("[admin] Active TRL server: " + active_srv + " (was: " + prev_active + ")");
             }
-            this.initJanus(user, false);
-        } else if (active_srv && current_srv && active_srv !== current_srv && janus) {
-            log.warn("[admin] Failover: switching from " + current_srv + " to " + active_srv);
-            this.failover();
-        }
+
+            if (active_srv && !janus && user) {
+                if (this._init_janus_timer) {
+                    clearTimeout(this._init_janus_timer);
+                    this._init_janus_timer = null;
+                }
+                this.initJanus(user, false);
+            } else if (active_srv && current_srv && active_srv !== current_srv && janus) {
+                log.warn("[admin] Failover: switching from " + current_srv + " to " + active_srv);
+                this.failover();
+            }
+        });
     };
 
     failover = () => {
