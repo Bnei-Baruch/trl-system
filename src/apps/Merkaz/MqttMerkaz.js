@@ -125,6 +125,9 @@ class MqttMerkaz extends Component {
     };
 
     initMQTT = (user) => {
+        mqtt.onStatus = (online) => {
+            this.setState({mqttOn: online});
+        };
         mqtt.init("trl1", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
@@ -595,7 +598,7 @@ class MqttMerkaz extends Component {
 
     render() {
 
-        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,user,video,janus,active_srv,current_srv} = this.state;
+        const {feeds,room,audio1,audio2,audios1,audios2,i,muted1,muted2,delay,mystream,selected_room,audio1_out,audio2_out,trl_stream,user,video,janus,active_srv,current_srv,mqttOn} = this.state;
         const srv_healthy = current_srv && active_srv && current_srv === active_srv;
         const autoPlay = true;
         const controls = false;
@@ -693,10 +696,15 @@ class MqttMerkaz extends Component {
                             <Segment.Group basic>
                                 <div className="vclient__toolbar">
                                     <Menu icon='labeled' size="mini">
-                                        <Menu.Item disabled >
-                                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
-                                            {!mystream ? "Disconnected" : "Connected"}
-                                        </Menu.Item>
+                                        <Popup
+                                            trigger={
+                                                <Menu.Item>
+                                                    <Icon color={mqttOn ? 'green' : 'red'} name='power off'/>
+                                                </Menu.Item>
+                                            }
+                                            position='bottom left'
+                                            content={mqttOn ? 'MQTT connected' : 'MQTT disconnected'}
+                                        />
                                         <Popup
                                             trigger={
                                                 <Menu.Item disabled={!current_srv}>

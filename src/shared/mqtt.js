@@ -3,7 +3,7 @@ import {MKZ_MQTT_URL, TRL_MQTT_URL, WE_MQTT_URL} from "./consts";
 import {randomString} from "./tools";
 import log from "loglevel";
 
-const mqttTimeout = 5 // Seconds
+const mqttMaxAttempts = 30 // Max reconnect attempts before "disconnected" callback fires
 const mqttKeepalive = 2 // Seconds
 
 class MqttMsg {
@@ -14,11 +14,13 @@ class MqttMsg {
         this.room = null;
         this.token = null;
         this.reconnect_count = 0;
+        this.onStatus = null;
     }
 
     init = (app, user, callback) => {
         this.user = user;
-        const RC = mqttTimeout;
+        const RC = mqttMaxAttempts;
+        let disconnectedFired = false;
 
         const transformUrl = (url, options, client) => {
             client.options.password = this.token;
@@ -27,6 +29,8 @@ class MqttMsg {
 
         let options = {
             keepalive: mqttKeepalive,
+            connectTimeout: 1000,
+            reconnectPeriod: 100,
             clientId: user.id + "-" + randomString(3),
             protocolId: "MQTT",
             protocolVersion: 5,
@@ -47,32 +51,49 @@ class MqttMsg {
         this.mq.setMaxListeners(50)
 
         this.mq.on("connect", (data) => {
-            if (data && !this.isConnected) {
+            const wasReconnecting = this.reconnect_count > 0;
+            const prevCount = this.reconnect_count;
+            this.isConnected = true;
+            this.reconnect_count = 0;
+            disconnectedFired = false;
+            if (typeof this.onStatus === "function") this.onStatus(true);
+            if (!wasReconnecting) {
                 log.info('[mqtt] Connected to server: ', data);
-                this.isConnected = true;
-                if(typeof callback === "function") callback(false, false);
+                if (typeof callback === "function") callback(false, false);
             } else {
-                log.info("[mqtt] Connected: ", data);
-                this.isConnected = true;
-                if(this.reconnect_count > RC) {
-                    if(typeof callback === "function") callback(true, false);
+                log.info("[mqtt] Reconnected after " + prevCount + " attempts: ", data);
+                if (prevCount > RC) {
+                    if (typeof callback === "function") callback(true, false);
                 }
-                this.reconnect_count = 0;
             }
         });
 
         this.mq.on("close", () => {
-            if(this.reconnect_count < RC + 2) {
-                this.reconnect_count++;
-                log.debug("[mqtt] reconnecting counter: " + this.reconnect_count)
-            }
-            if(this.reconnect_count === RC) {
-                this.reconnect_count++;
-                log.warn("[mqtt] - disconnected - after: " + this.reconnect_count + " seconds")
-                if(typeof callback === "function") callback(false, true);
+            const wasConnected = this.isConnected;
+            this.isConnected = false;
+            if (wasConnected) {
+                log.debug("[mqtt] Connection lost");
+                if (typeof this.onStatus === "function") this.onStatus(false);
             }
         });
 
+        this.mq.on("reconnect", () => {
+            this.reconnect_count++;
+            log.debug("[mqtt] reconnect attempt: " + this.reconnect_count);
+            if (this.reconnect_count === RC && !disconnectedFired) {
+                disconnectedFired = true;
+                log.warn("[mqtt] - disconnected - after: " + this.reconnect_count + " attempts");
+                if (typeof callback === "function") callback(false, true);
+            }
+        });
+
+        this.mq.on("offline", () => {
+            log.debug("[mqtt] offline");
+        });
+
+        this.mq.on("error", (err) => {
+            log.debug("[mqtt] error: " + (err && err.message ? err.message : err));
+        });
     };
 
     join = (topic, chat) => {

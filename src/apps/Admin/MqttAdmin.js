@@ -86,6 +86,9 @@ class MqttAdmin extends Component {
     };
 
     initMQTT = (user) => {
+        mqtt.onStatus = (online) => {
+            this.setState({mqttOn: online});
+        };
         mqtt.init("trl1", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
@@ -615,7 +618,7 @@ class MqttAdmin extends Component {
 
   render() {
 
-      const { bitrate,rooms,current_room,user,feeds,feed_id,feed_info,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,showConfirmReloadAll,active_srv,current_srv} = this.state;
+      const { bitrate,rooms,current_room,user,feeds,feed_id,feed_info,i,messages,description,room_id,room_name,root,support_chat,feed_rtcp,trl_muted,msg_type,showConfirmReloadAll,active_srv,current_srv,mqttOn} = this.state;
       const srv_healthy = current_srv && active_srv && current_srv === active_srv;
 
       const f = (<Icon name='volume up' />);
@@ -729,6 +732,15 @@ class MqttAdmin extends Component {
                       hideOnScroll
                   />
                   <Menu icon='labeled' secondary size="mini" floated='right'>
+                      <Popup
+                          trigger={
+                              <Menu.Item>
+                                  <Icon color={mqttOn ? 'green' : 'red'} name='power off'/>
+                              </Menu.Item>
+                          }
+                          position='bottom right'
+                          content={mqttOn ? 'MQTT connected' : 'MQTT disconnected'}
+                      />
                       <Popup
                           trigger={
                               <Menu.Item disabled={!current_srv}>

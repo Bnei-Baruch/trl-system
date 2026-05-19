@@ -18,7 +18,7 @@ class App extends Component {
         return (
             <Fragment>
                 {/*<Main />*/}
-                {/* <MqttMerkaz /> */}
+                {/*<MqttMerkaz />*/}
                 <MqttClient />
                 {/* <MqttAdmin /> */}
                 {/*<TrlChat />*/}

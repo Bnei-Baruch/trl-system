@@ -93,6 +93,9 @@ class MqttClient extends Component {
     };
 
     initMQTT = (user) => {
+        mqtt.onStatus = (online) => {
+            this.setState({mqttOn: online});
+        };
         mqtt.init("trl1", user, (reconnected, error) => {
             if (error) {
                 log.info("[client] MQTT disconnected");
@@ -434,7 +437,7 @@ class MqttClient extends Component {
 
     render() {
 
-        const {trl_switch, feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus,active_srv,current_srv} = this.state;
+        const {trl_switch, feeds,room,audio:{devices,device},audios,i,muted,delay,mystream,selected_room,selftest,tested,trl_stream,trl_muted,user,video,janus,active_srv,current_srv,mqttOn} = this.state;
         const srv_healthy = current_srv && active_srv && current_srv === active_srv;
         const autoPlay = true;
         const controls = false;
@@ -460,10 +463,15 @@ class MqttClient extends Component {
             <div className="vclient" >
                 <div className="vclient__toolbar">
                     <Menu icon='labeled' size="mini">
-                        <Menu.Item disabled >
-                            <Icon color={mystream ? 'green' : 'red'} name='power off'/>
-                            {!mystream ? "Disconnected" : "Connected"}
-                        </Menu.Item>
+                        <Popup
+                            trigger={
+                                <Menu.Item>
+                                    <Icon color={mqttOn ? 'green' : 'red'} name='power off'/>
+                                </Menu.Item>
+                            }
+                            position='bottom left'
+                            content={mqttOn ? 'MQTT connected' : 'MQTT disconnected'}
+                        />
                         <Popup
                             trigger={
                                 <Menu.Item disabled={!current_srv}>
