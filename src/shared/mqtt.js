@@ -83,6 +83,7 @@ class MqttMsg {
             if (this.reconnect_count === RC && !disconnectedFired) {
                 disconnectedFired = true;
                 log.warn("[mqtt] - disconnected - after: " + this.reconnect_count + " attempts");
+                this.mq.end(true);
                 if (typeof callback === "function") callback(false, true);
             }
         });
