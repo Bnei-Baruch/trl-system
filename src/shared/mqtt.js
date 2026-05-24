@@ -29,7 +29,6 @@ class MqttMsg {
 
         let options = {
             keepalive: mqttKeepalive,
-            connectTimeout: 1000,
             clientId: user.id + "-" + randomString(3),
             protocolId: "MQTT",
             protocolVersion: 5,
